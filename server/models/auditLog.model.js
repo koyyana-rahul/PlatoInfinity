@@ -1,3 +1,5 @@
+import mongoose, { Schema } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 const auditLogSchema = new mongoose.Schema(
   {
     actorType: { type: String, enum: ["USER", "SYSTEM"], required: true },

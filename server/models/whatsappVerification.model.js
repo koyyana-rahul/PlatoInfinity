@@ -1,3 +1,6 @@
+import mongoose, { Schema } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
+import crypto from "crypto";
 const whatsappVerificationSchema = new mongoose.Schema(
   {
     phone: { type: String, required: true },

@@ -1,3 +1,5 @@
+import mongoose, {Schema} from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";  
 const sessionTokenSchema = new mongoose.Schema(
   {
     sessionId: {

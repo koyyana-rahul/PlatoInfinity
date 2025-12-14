@@ -1,5 +1,5 @@
-import mongoose from "mongoose";
-
+import mongoose, { Schema } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 const billItemSchema = new mongoose.Schema(
   {
     orderId: { type: Schema.Types.ObjectId, ref: "Order" },

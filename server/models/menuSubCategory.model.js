@@ -1,5 +1,5 @@
-import mongoose from "mongoose";
-
+import mongoose, {Schema} from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";  
 const menuSubCategorySchema = new mongoose.Schema(
   {
     brandId: {
@@ -21,14 +21,14 @@ const menuSubCategorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-menuSubCategoryModelenuSubCategorySchema.index(
+menuSubCategorySchema.index(
   { categoryId: 1, name: 1 },
   { unique: true, partialFilterExpression: { isArchived: false } }
 );
 menuSubCategorySchema.plugin(mongoosePaginate);
 
 const menuSubCategoryModel = mongoose.model(
-  "MenuSubCategory",
+  "MenuSubcategory",
   menuSubCategorySchema
 );
 

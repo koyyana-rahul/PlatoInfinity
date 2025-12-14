@@ -1,3 +1,5 @@
+import mongoose, { Schema } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 const kitchenStationSchema = new mongoose.Schema(
   {
     restaurantId: {

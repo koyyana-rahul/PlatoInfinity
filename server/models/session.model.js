@@ -1,3 +1,5 @@
+import mongoose, { Schema } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 const sessionSchema = new mongoose.Schema(
   {
     restaurantId: {
@@ -37,12 +39,18 @@ const sessionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-sessionSchema.index({ restaurantId: 1, tableId: 1, status: 1 }, { unique: true, partialFilterExpression: { status: "OPEN" } });
+sessionSchema.index(
+  { restaurantId: 1, tableId: 1, status: 1 },
+  { unique: true, partialFilterExpression: { status: "OPEN" } }
+);
 
-sessionSchema.statics.createForTable = async function({ restaurantId, tableId, openedByUserId }, session = null) {
-  const tablePin = (Math.floor(1000 + Math.random()*9000)).toString();
-  const token = crypto.randomBytes(24).toString('hex');
-  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+sessionSchema.statics.createForTable = async function (
+  { restaurantId, tableId, openedByUserId },
+  session = null
+) {
+  const tablePin = Math.floor(1000 + Math.random() * 9000).toString();
+  const token = crypto.randomBytes(24).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
   const doc = new this({
     restaurantId,
     tableId,
@@ -50,15 +58,15 @@ sessionSchema.statics.createForTable = async function({ restaurantId, tableId, o
     tablePin,
     sessionTokenHash: tokenHash,
     tokenExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 8), // default 8 hours
-    currentTableId: tableId
+    currentTableId: tableId,
   });
   if (session) await doc.save({ session });
   else await doc.save();
   return { sessionDoc: doc, token };
 };
 
-sessionSchema.methods.verifySessionToken = function(rawToken) {
-  const hash = crypto.createHash('sha256').update(rawToken).digest('hex');
+sessionSchema.methods.verifySessionToken = function (rawToken) {
+  const hash = crypto.createHash("sha256").update(rawToken).digest("hex");
   if (this.sessionTokenHash !== hash) return false;
   if (this.tokenExpiresAt && this.tokenExpiresAt < new Date()) return false;
   if (this.status !== "OPEN") return false;

@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import mongoosePaginate from "mongoose-paginate-v2";
 
 const userSchema = new mongoose.Schema(
@@ -35,7 +35,7 @@ const userSchema = new mongoose.Schema(
     },
     isActive: { type: Boolean, default: true },
     avatar: { type: String, default: "" },
-    mobile: { type: String, trim: true },
+    mobile: { type: String, trim: true, sparse: true },
     refreshToken: { type: String, select: false },
     verifyEmail: { type: Boolean, default: false },
     lastLoginAt: Date,
@@ -46,13 +46,13 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-UserSchema.index(
+userSchema.index(
   { restaurantId: 1, staffPin: 1 },
   { unique: true, sparse: true }
 );
 
 // helper to generate a staff pin
-UserSchema.statics.generateStaffPin = async function (restaurantId) {
+userSchema.statics.generateStaffPin = async function (restaurantId) {
   const maxAttempts = 12;
   for (let i = 0; i < maxAttempts; i++) {
     const pin = Math.floor(1000 + Math.random() * 9000).toString();
@@ -62,7 +62,7 @@ UserSchema.statics.generateStaffPin = async function (restaurantId) {
   throw new Error("Unable to generate unique staff PIN");
 };
 
-UserSchema.plugin(mongoosePaginate);
+userSchema.plugin(mongoosePaginate);
 const userModel = mongoose.model("User", userSchema);
 
 export default userModel;

@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 const brandSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true, trim: true },
@@ -16,3 +17,4 @@ const brandSchema = new mongoose.Schema(
 );
 
 const brandModel = mongoose.model("Brand", brandSchema);
+export default brandModel;
