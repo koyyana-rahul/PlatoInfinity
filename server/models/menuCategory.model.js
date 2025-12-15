@@ -21,6 +21,5 @@ menuCategorySchema.index(
   { unique: true, partialFilterExpression: { isArchived: false } }
 );
 menuCategorySchema.plugin(mongoosePaginate);
-const menuCategoryModel = mongoose.model("MenuCategory", menuCategorySchema);
-
-export default menuCategoryModel;
+export default mongoose.models.MenuCategory ||
+  mongoose.model("MenuCategory", menuCategorySchema);

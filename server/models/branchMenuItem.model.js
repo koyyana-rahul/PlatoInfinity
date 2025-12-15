@@ -48,9 +48,5 @@ branchMenuItemSchema.index(
 );
 branchMenuItemSchema.plugin(mongoosePaginate);
 
-const branchMenuItemModel = mongoose.model(
-  "BranchMenuItem",
-  branchMenuItemSchema
-);
-
-export default branchMenuItemModel;
+export default mongoose.models.BranchMenuItem ||
+  mongoose.model("BranchMenuItem", branchMenuItemSchema);

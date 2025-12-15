@@ -2,6 +2,9 @@ import MenuCategory from "../models/menuCategory.model.js";
 import MasterMenuItem from "../models/masterMenuItem.model.js";
 import MenuSubcategory from "../models/menuSubcategory.model.js";
 import uploadImageClodinary from "../utils/uploadImageClodinary.js";
+import menuCategoryModel from "../models/menuCategory.model.js";
+import menuSubcategoryModel from "../models/menuSubcategory.model.js";
+import masterMenuItemModel from "../models/masterMenuItem.model.js";
 
 export async function createCategory(req, res) {
   const { name, order } = req.body;
@@ -11,11 +14,11 @@ export async function createCategory(req, res) {
     return res.status(400).json({ message: "Category name required" });
   }
 
-  const category = await MenuCategory.create({
-    brandId,
-    name,
-    order,
-  });
+  const category = await MenuCategory.findOneAndUpdate(
+    { name, brandId },
+    { $setOnInsert: { name, brandId, order } },
+    { upsert: true, new: true }
+  );
 
   res.status(201).json({ success: true, data: category });
 }
@@ -28,12 +31,11 @@ export async function createSubcategory(req, res) {
     return res.status(400).json({ message: "Missing fields" });
   }
 
-  const subcategory = await MenuSubcategory.create({
-    brandId,
-    categoryId,
-    name,
-    order,
-  });
+  const subcategory = await MenuSubcategory.findOneAndUpdate(
+    { categoryId, name, brandId },
+    { $setOnInsert: { categoryId, name, brandId, order } },
+    { upsert: true, new: true }
+  );
 
   res.status(201).json({ success: true, data: subcategory });
 }
@@ -88,7 +90,7 @@ export async function createMasterItem(req, res) {
       imageUrl = result.secure_url;
     }
 
-    const item = await MasterMenuItem.create({
+    const itemPayload = {
       brandId,
       categoryId,
       subcategoryId,
@@ -98,7 +100,13 @@ export async function createMasterItem(req, res) {
       basePrice: parseFloat(basePrice),
       defaultStation,
       image: imageUrl,
-    });
+    };
+
+    const item = await MasterMenuItem.findOneAndUpdate(
+      { brandId, name },
+      { $setOnInsert: itemPayload },
+      { upsert: true, new: true }
+    );
 
     res.status(201).json({ success: true, data: item });
   } catch (error) {
@@ -108,22 +116,357 @@ export async function createMasterItem(req, res) {
 }
 
 export async function getMasterMenu(req, res) {
-  const brandId = req.user.brandId;
-  const { isVeg } = req.query;
+  try {
+    const brandId = req.user.brandId;
+    const { isVeg } = req.query;
 
-  const filter = {
-    brandId,
-    isArchived: false,
-  };
+    if (!brandId) {
+      return res.status(400).json({
+        message: "Brand not linked to user",
+        error: true,
+        success: false,
+      });
+    }
 
-  if (isVeg !== undefined) {
-    filter.isVeg = isVeg === "true";
+    /** 1️⃣ Load categories */
+    const categories = await menuCategoryModel
+      .find({
+        brandId,
+        isArchived: false,
+      })
+      .sort({ order: 1, createdAt: 1 })
+      .lean();
+
+    /** 2️⃣ Load subcategories */
+    const subcategories = await menuSubcategoryModel
+      .find({
+        brandId,
+        isArchived: false,
+      })
+      .lean();
+
+    /** 3️⃣ Load items */
+    const itemFilter = {
+      brandId,
+      isArchived: false,
+    };
+
+    if (isVeg !== undefined) {
+      itemFilter.isVeg = isVeg === "true";
+    }
+
+    const items = await masterMenuItemModel.find(itemFilter).lean();
+
+    /** 4️⃣ Build maps */
+    const categoryMap = {};
+    const subcategoryMap = {};
+
+    categories.forEach((cat) => {
+      categoryMap[cat._id] = {
+        id: cat._id,
+        name: cat.name,
+        subcategories: [],
+        items: [],
+      };
+    });
+
+    subcategories.forEach((sub) => {
+      subcategoryMap[sub._id] = {
+        id: sub._id,
+        name: sub.name,
+        items: [],
+      };
+    });
+
+    /** 5️⃣ Attach items */
+    for (const item of items) {
+      if (!categoryMap[item.categoryId]) continue;
+
+      const formattedItem = {
+        id: item._id,
+        name: item.name,
+        description: item.description || "",
+        price: item.basePrice,
+        image: item.image || "",
+        isVeg: item.isVeg,
+        dietaryInfo: item.dietaryInfo || [],
+        defaultStation: item.defaultStation || null,
+      };
+
+      if (item.subcategoryId && subcategoryMap[item.subcategoryId]) {
+        subcategoryMap[item.subcategoryId].items.push(formattedItem);
+      } else {
+        categoryMap[item.categoryId].items.push(formattedItem);
+      }
+    }
+
+    /** 6️⃣ Attach subcategories to categories */
+    for (const sub of subcategories) {
+      if (
+        categoryMap[sub.categoryId] &&
+        subcategoryMap[sub._id].items.length > 0
+      ) {
+        categoryMap[sub.categoryId].subcategories.push(subcategoryMap[sub._id]);
+      }
+    }
+
+    /** 7️⃣ Clean empty categories */
+    const result = Object.values(categoryMap).filter(
+      (cat) => cat.items.length > 0 || cat.subcategories.length > 0
+    );
+
+    return res.json({
+      success: true,
+      error: false,
+      data: result,
+    });
+  } catch (err) {
+    console.error("getMasterMenu error:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
   }
+}
 
-  const items = await MasterMenuItem.find(filter)
-    .populate("categoryId", "name")
-    .populate("subcategoryId", "name")
-    .sort({ createdAt: 1 });
+export async function updateCategory(req, res) {
+  try {
+    const { categoryId } = req.params;
+    const { name, order } = req.body;
 
-  res.json({ success: true, data: items });
+    if (!name && order === undefined) {
+      return res.status(400).json({
+        message: "Nothing to update",
+        error: true,
+        success: false,
+      });
+    }
+
+    const updated = await menuCategoryModel.findByIdAndUpdate(
+      categoryId,
+      {
+        ...(name && { name }),
+        ...(order !== undefined && { order }),
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({
+        message: "Category not found",
+        error: true,
+        success: false,
+      });
+    }
+
+    return res.json({
+      success: true,
+      error: false,
+      data: updated,
+    });
+  } catch (err) {
+    console.error("updateCategory:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
+}
+
+export async function deleteCategory(req, res) {
+  try {
+    const { categoryId } = req.params;
+
+    const category = await menuCategoryModel.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({
+        message: "Category not found",
+        error: true,
+        success: false,
+      });
+    }
+
+    category.isArchived = true;
+    await category.save();
+
+    // Optional: archive all subcategories & items
+    await menuSubcategoryModel.updateMany({ categoryId }, { isArchived: true });
+
+    await masterMenuItemModel.updateMany({ categoryId }, { isArchived: true });
+
+    return res.json({
+      success: true,
+      error: false,
+      message: "Category archived",
+    });
+  } catch (err) {
+    console.error("deleteCategory:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
+}
+
+export async function updateSubcategory(req, res) {
+  try {
+    const { subcategoryId } = req.params;
+    const { name, order } = req.body;
+
+    if (!name && order === undefined) {
+      return res.status(400).json({
+        message: "Nothing to update",
+        error: true,
+        success: false,
+      });
+    }
+
+    const updated = await menuSubcategoryModel.findByIdAndUpdate(
+      subcategoryId,
+      {
+        ...(name && { name }),
+        ...(order !== undefined && { order }),
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({
+        message: "Subcategory not found",
+        error: true,
+        success: false,
+      });
+    }
+
+    return res.json({
+      success: true,
+      error: false,
+      data: updated,
+    });
+  } catch (err) {
+    console.error("updateSubcategory:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
+}
+
+export async function deleteSubcategory(req, res) {
+  try {
+    const { subcategoryId } = req.params;
+
+    const sub = await menuSubcategoryModel.findById(subcategoryId);
+    if (!sub) {
+      return res.status(404).json({
+        message: "Subcategory not found",
+        error: true,
+        success: false,
+      });
+    }
+
+    sub.isArchived = true;
+    await sub.save();
+
+    // Archive items under subcategory
+    await masterMenuItemModel.updateMany(
+      { subcategoryId },
+      { isArchived: true }
+    );
+
+    return res.json({
+      success: true,
+      error: false,
+      message: "Subcategory archived",
+    });
+  } catch (err) {
+    console.error("deleteSubcategory:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
+}
+
+export async function updateMasterItem(req, res) {
+  try {
+    const { itemId } = req.params;
+    const { name, description, isVeg, basePrice, defaultStation } = req.body;
+
+    let update = {
+      ...(name && { name }),
+      ...(description && { description }),
+      ...(isVeg !== undefined && { isVeg }),
+      ...(basePrice !== undefined && { basePrice }),
+      ...(defaultStation && { defaultStation }),
+    };
+
+    if (req.file) {
+      const uploadRes = await uploadImageClodinary(req.file, "master-menu");
+      update.image = uploadRes.secure_url;
+    }
+
+    update.version = Date.now(); // used for branch sync
+
+    const item = await MasterMenuItem.findByIdAndUpdate(itemId, update, {
+      new: true,
+    });
+
+    if (!item) {
+      return res.status(404).json({
+        message: "Item not found",
+        error: true,
+        success: false,
+      });
+    }
+
+    return res.json({
+      success: true,
+      error: false,
+      data: item,
+    });
+  } catch (err) {
+    console.error("updateMasterItem:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
+}
+
+export async function deleteMasterItem(req, res) {
+  try {
+    const { itemId } = req.params;
+
+    const item = await masterMenuItemModel.findById(itemId);
+    if (!item) {
+      return res.status(404).json({
+        message: "Item not found",
+        error: true,
+        success: false,
+      });
+    }
+
+    item.isArchived = true;
+    await item.save();
+
+    return res.json({
+      success: true,
+      error: false,
+      message: "Item archived",
+    });
+  } catch (err) {
+    console.error("deleteMasterItem:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
 }

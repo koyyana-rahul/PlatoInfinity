@@ -1,5 +1,5 @@
-import mongoose, {Schema} from "mongoose";
-import mongoosePaginate from "mongoose-paginate-v2";  
+import mongoose, { Schema } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 const tableSchema = new mongoose.Schema(
   {
     restaurantId: {
@@ -8,15 +8,21 @@ const tableSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    tableNumber: { type: Number, required: true },
+    tableNumber: { type: String, required: true },
     name: { type: String, default: null },
     seatingCapacity: { type: Number, default: 4 },
-    qrCodePath: { type: String, default: "" },
+    qrUrl: {
+      type: String, // 👈 important
+    },
+    qrImageUrl: {
+      type: String, // 👈 cloudinary image
+    },
     status: {
       type: String,
       enum: ["FREE", "OCCUPIED", "RESERVED"],
       default: "FREE",
     },
+    isActive: { type: Boolean, default: true },
     isArchived: { type: Boolean, default: false },
     meta: { type: Schema.Types.Mixed, default: {} },
   },
@@ -26,6 +32,4 @@ const tableSchema = new mongoose.Schema(
 tableSchema.index({ restaurantId: 1, tableNumber: 1 }, { unique: true });
 tableSchema.plugin(mongoosePaginate);
 
-const tableModel = mongoose.model("Table", tableSchema);
-
-export default tableModel;
+export default mongoose.models.Table || mongoose.model("Table", tableSchema);

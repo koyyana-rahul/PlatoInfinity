@@ -26,6 +26,8 @@ import { initSocketServer } from "./socket/index.js";
 import { registerEmitFunc } from "./socket/emitter.js";
 import masterMenuRouter from "./route/masterMenu.route.js";
 import kitchenStationRouter from "./route/kitchenStation.route.js";
+import customerMenuRouter from "./route/customerMenu.route.js";
+import tableRouter from "./route/table.route.js";
 
 // ---------- EXPRESS APP ----------
 const app = express();
@@ -55,6 +57,9 @@ app.use("/api/order", orderRouter);
 app.use("/api/suspicious", suspiciousRouter);
 app.use("/api/master-menu", masterMenuRouter);
 app.use("/api", kitchenStationRouter);
+
+app.use("/api/customer", customerMenuRouter);
+app.use("/api", tableRouter);
 
 // ---------- SERVER + SOCKET ----------
 const PORT = process.env.PORT || 8080;

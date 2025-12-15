@@ -1,5 +1,5 @@
-import mongoose, {Schema} from "mongoose";
-import mongoosePaginate from "mongoose-paginate-v2";  
+import mongoose, { Schema } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 const menuSubCategorySchema = new mongoose.Schema(
   {
     brandId: {
@@ -27,9 +27,5 @@ menuSubCategorySchema.index(
 );
 menuSubCategorySchema.plugin(mongoosePaginate);
 
-const menuSubCategoryModel = mongoose.model(
-  "MenuSubcategory",
-  menuSubCategorySchema
-);
-
-export default menuSubCategoryModel;
+export default mongoose.models.MenuSubcategory ||
+  mongoose.model("MenuSubcategory", menuSubCategorySchema);

@@ -5,7 +5,13 @@ import {
   createCategory,
   createMasterItem,
   createSubcategory,
+  deleteCategory,
+  deleteMasterItem,
+  deleteSubcategory,
   getMasterMenu,
+  updateCategory,
+  updateMasterItem,
+  updateSubcategory,
 } from "../controller/masterMenu.controller.js";
 import upload from "../config/multer.js";
 
@@ -34,6 +40,46 @@ masterMenuRouter.post(
   requireRole("BRAND_ADMIN"),
   upload.single("image"),
   createMasterItem
+);
+
+masterMenuRouter.put(
+  "/category/:categoryId",
+  requireAuth,
+  requireRole("BRAND_ADMIN"),
+  updateCategory
+);
+masterMenuRouter.delete(
+  "/category/:categoryId",
+  requireAuth,
+  requireRole("BRAND_ADMIN"),
+  deleteCategory
+);
+
+masterMenuRouter.put(
+  "/subcategory/:subcategoryId",
+  requireAuth,
+  requireRole("BRAND_ADMIN"),
+  updateSubcategory
+);
+masterMenuRouter.delete(
+  "/subcategory/:subcategoryId",
+  requireAuth,
+  requireRole("BRAND_ADMIN"),
+  deleteSubcategory
+);
+
+masterMenuRouter.put(
+  "/item/:itemId",
+  requireAuth,
+  requireRole("BRAND_ADMIN"),
+  upload.single("image"),
+  updateMasterItem
+);
+masterMenuRouter.delete(
+  "/item/:itemId",
+  requireAuth,
+  requireRole("BRAND_ADMIN"),
+  deleteMasterItem
 );
 
 /**

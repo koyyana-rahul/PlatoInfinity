@@ -3,6 +3,7 @@ import BrandModel from "../models/brand.model.js";
 import UserModel from "../models/user.model.js";
 import AuditLog from "../models/auditLog.model.js"; // optional - remove if you don't have
 import uploadImageClodinary from "../utils/uploadImageClodinary.js";
+import MenuCategory from "../models/menuCategory.model.js";
 
 export async function createBrandController(req, res) {
   try {
@@ -48,6 +49,23 @@ export async function createBrandController(req, res) {
       logoUrl,
       ownerId: admin._id,
     });
+
+    // Create default categories for the new brand
+    const defaultCategories = [
+      { name: "Starters", brandId: brand._id, sortOrder: 1 },
+      { name: "chicken Starters", brandId: brand._id, sortOrder: 2 },
+      { name: "Main Course", brandId: brand._id, sortOrder: 3 },
+      { name: "Desserts", brandId: brand._id, sortOrder: 4 },
+      { name: "Beverages", brandId: brand._id, sortOrder: 5 },
+    ];
+
+    for (const category of defaultCategories) {
+      await MenuCategory.findOneAndUpdate(
+        { name: category.name, brandId: category.brandId },
+        { $setOnInsert: category },
+        { upsert: true, new: true }
+      );
+    }
 
     // Attach brandId to admin if not already attached
     if (!admin.brandId) {
