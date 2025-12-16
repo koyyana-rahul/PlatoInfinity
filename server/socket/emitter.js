@@ -20,3 +20,7 @@ export async function emitToStationWrapper(payload) {
     console.error("emitToStationWrapper error:", err);
   }
 }
+
+export function emitKitchenEvent(io, restaurantId, station, event, payload) {
+  io.to(`restaurant:${restaurantId}:station:${station}`).emit(event, payload);
+}

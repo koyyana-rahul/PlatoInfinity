@@ -2,22 +2,16 @@
 import jwt from "jsonwebtoken";
 import UserModel from "../models/user.model.js";
 
-/**
- * requireAuth middleware
- * - Reads access token from cookie `accessToken` OR Authorization header `Bearer <token>`
- * - Verifies JWT using JWT access secret (prefers JWT_SECRET_ACCESS, fallback to JWT_SECRET)
- * - Loads user (minimal projection) into req.user and req.userId
- *
- * NOTE: This middleware expects the access tokens to be signed with the access secret.
- */
 export async function requireAuth(req, res, next) {
   try {
+    // 1️⃣ Read token from cookie or Authorization header
     const cookieToken = req.cookies?.accessToken;
     const header = req.headers?.authorization;
     const headerToken =
       header && typeof header === "string" && header.startsWith("Bearer ")
         ? header.split(" ")[1]
         : null;
+
     const token = cookieToken || headerToken;
 
     if (!token) {
@@ -28,13 +22,13 @@ export async function requireAuth(req, res, next) {
       });
     }
 
-    // Prefer explicit access secret (used by controllers). Fallback to JWT_SECRET for compatibility.
-    const accessSecret =
-      process.env.JWT_SECRET_ACCESS || process.env.JWT_SECRET;
-    if (!accessSecret) {
-      console.error("requireAuth: missing JWT_SECRET_ACCESS/JWT_SECRET env");
+    // 2️⃣ Verify JWT
+    const secret = process.env.JWT_SECRET_ACCESS || process.env.JWT_SECRET;
+
+    if (!secret) {
+      console.error("JWT secret missing");
       return res.status(500).json({
-        message: "Server misconfiguration (JWT secret missing)",
+        message: "Server misconfiguration",
         error: true,
         success: false,
       });
@@ -42,10 +36,8 @@ export async function requireAuth(req, res, next) {
 
     let payload;
     try {
-      // verify throws if invalid/expired
-      payload = jwt.verify(token, accessSecret);
+      payload = jwt.verify(token, secret);
     } catch (err) {
-      // token invalid or expired
       return res.status(401).json({
         message: "Invalid or expired token",
         error: true,
@@ -53,8 +45,8 @@ export async function requireAuth(req, res, next) {
       });
     }
 
-    // Accept common payload shapes: { sub }, { _id }, { id }
-    const userId = payload?.sub || payload?._id || payload?.id;
+    // 3️⃣ Extract userId
+    const userId = payload.sub || payload._id || payload.id;
     if (!userId) {
       return res.status(401).json({
         message: "Invalid token payload",
@@ -63,25 +55,29 @@ export async function requireAuth(req, res, next) {
       });
     }
 
-    // Load user with minimal fields to avoid leaking sensitive info and reduce payload size.
-    const user = await UserModel.findById(userId, {
-      password: 0,
-      refresh_token: 0,
-      forgot_password_otp: 0,
-      forgot_password_expiry: 0,
-    }).lean();
+    // 4️⃣ Load user (ADMIN / MANAGER / WAITER / CHEF)
+    const user = await UserModel.findById(userId)
+      .select("_id name role restaurantId brandId isActive")
+      .lean();
 
-    if (!user) {
+    if (!user || user.isActive === false) {
       return res.status(401).json({
-        message: "User not found",
+        message: "User not found or inactive",
         error: true,
         success: false,
       });
     }
 
-    // attach to request
+    // 5️⃣ Normalize auth context (VERY IMPORTANT)
     req.userId = user._id;
-    req.user = user;
+    req.user = {
+      _id: user._id,
+      name: user.name,
+      role: user.role, // BRAND_ADMIN / MANAGER / WAITER / CHEF
+      restaurantId: user.restaurantId || null,
+      brandId: user.brandId || null,
+      isStaff: ["WAITER", "CHEF"].includes(user.role),
+    };
 
     return next();
   } catch (err) {

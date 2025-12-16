@@ -200,9 +200,11 @@ export async function loginController(req, res) {
       "+password +refreshToken"
     );
     if (!user || !user.password)
-      return res
-        .status(400)
-        .json({ message: "User not registered or no password set", error: true, success: false });
+      return res.status(400).json({
+        message: "User not registered or no password set",
+        error: true,
+        success: false,
+      });
 
     // Optionally check isActive or role restrictions
     if (!user.isActive)
@@ -494,7 +496,9 @@ export async function uploadAvatarController(req, res) {
     try {
       const buffer = Buffer.from(file.buffer);
       const uploadRes = await uploadImageClodinary(buffer);
-      await UserModel.findByIdAndUpdate(userId, { avatar: uploadRes.secure_url });
+      await UserModel.findByIdAndUpdate(userId, {
+        avatar: uploadRes.secure_url,
+      });
       return res.json({
         message: "Avatar uploaded",
         error: false,

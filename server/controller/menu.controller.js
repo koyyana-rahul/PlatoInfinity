@@ -1,598 +1,334 @@
-// src/controllers/menu.controller.js
-import MasterMenuItemModel from "../models/masterMenuItem.model.js";
-import BranchMenuItemModel from "../models/branchMenuItem.model.js";
-import StockModel from "../models/stock.model.js";
-import AuditLog from "../models/auditLog.model.js"; // optional
 import mongoose from "mongoose";
-import MenuCategory from "../models/menuCategory.model.js";
-import MenuSubcategory from "../models/menuSubcategory.model.js";
+import BranchMenuItem from "../models/branchMenuItem.model.js";
 import MasterMenuItem from "../models/masterMenuItem.model.js";
-import branchMenuItemModel from "../models/branchMenuItem.model.js";
+import AuditLog from "../models/auditLog.model.js";
+
 /**
- * importMasterMenuController
+ * ---------------------------------------------------
+ * 1️⃣ IMPORT MASTER MENU → BRANCH
+ * ---------------------------------------------------
  * POST /manager/branch-menu/:restaurantId/import
- * Body: { importAll?: boolean, masterItemIds?: [] }
- *
- * - Copies master items into BranchMenuItem if not already present.
- * - Does not overwrite manager overrides (unless you choose to).
+ * Body:
+ *  {
+ *    importAll?: boolean,
+ *    masterItemIds?: []
+ *  }
  */
-export async function importMasterMenuController(req, res) {
+export async function importMasterMenu(req, res) {
   try {
     const manager = req.user;
     const { restaurantId } = req.params;
-    if (String(manager.restaurantId) !== String(restaurantId))
-      return res
-        .status(403)
-        .json({ message: "Forbidden", error: true, success: false });
-
-    console.log("req.body", req.body);
     const { importAll = false, masterItemIds = [] } = req.body;
 
-    let masters;
+    if (String(manager.restaurantId) !== String(restaurantId)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    let masterItems = [];
+
     if (importAll) {
-      masters = await MasterMenuItemModel.find({
+      masterItems = await MasterMenuItem.find({
         brandId: manager.brandId,
         isArchived: false,
       }).lean();
     } else {
-      if (!Array.isArray(masterItemIds) || masterItemIds.length === 0)
+      if (!Array.isArray(masterItemIds) || masterItemIds.length === 0) {
         return res.status(400).json({
-          message: "masterItemIds or importAll required",
-          error: true,
-          success: false,
+          message: "importAll or masterItemIds required",
         });
-      masters = await MasterMenuItemModel.find({
+      }
+
+      masterItems = await MasterMenuItem.find({
         _id: { $in: masterItemIds },
         brandId: manager.brandId,
+        isArchived: false,
       }).lean();
     }
 
-    const created = [];
-    const skipped = [];
-    for (const m of masters) {
-      const exists = await BranchMenuItemModel.findOne({
-        restaurantId,
-        masterItemId: m._id,
-      }).lean();
-      if (exists) {
-        skipped.push(m._id);
+    const bulkOps = masterItems.map((m) => ({
+      updateOne: {
+        filter: { restaurantId, masterItemId: m._id },
+        update: {
+          $setOnInsert: {
+            restaurantId,
+            masterItemId: m._id,
+            name: m.name,
+            description: m.description || "",
+            price: m.basePrice,
+            station: m.defaultStation || null,
+            taxPercent: m.taxPercent || 0,
+            status: "ON",
+            trackStock: true,
+            autoHideWhenZero: true,
+            lastMasterVersion: m.version || 1,
+            masterSnapshot: {
+              name: m.name,
+              basePrice: m.basePrice,
+              defaultStation: m.defaultStation,
+            },
+          },
+        },
+        upsert: true,
+      },
+    }));
+
+    if (bulkOps.length > 0) {
+      await BranchMenuItem.bulkWrite(bulkOps);
+    }
+
+    return res.json({
+      success: true,
+      importedCount: bulkOps.length,
+    });
+  } catch (err) {
+    console.error("importMasterMenu:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+/**
+ * ---------------------------------------------------
+ * 2️⃣ LIST BRANCH MENU (FLAT – MANAGER PANEL)
+ * ---------------------------------------------------
+ * GET /manager/branch-menu/:restaurantId
+ */
+export async function listBranchMenu(req, res) {
+  try {
+    const manager = req.user;
+    const { restaurantId } = req.params;
+
+    if (String(manager.restaurantId) !== String(restaurantId)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const items = await BranchMenuItem.find({
+      restaurantId,
+      isArchived: false,
+    })
+      .populate("masterItemId", "isVeg image categoryId subcategoryId")
+      .sort({ name: 1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      data: items,
+    });
+  } catch (err) {
+    console.error("listBranchMenu:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+/**
+ * ---------------------------------------------------
+ * 3️⃣ LIST BRANCH MENU GROUPED (CATEGORY → SUBCATEGORY)
+ * ---------------------------------------------------
+ * GET /manager/branch-menu/:restaurantId/grouped
+ * Query: ?isVeg=true|false
+ */
+export async function listBranchMenuGrouped(req, res) {
+  try {
+    const { restaurantId } = req.params;
+    const { isVeg } = req.query;
+
+    const filter = {
+      restaurantId,
+      isArchived: false,
+    };
+
+    const items = await BranchMenuItem.find(filter)
+      .populate("masterItemId", "categoryId subcategoryId isVeg image")
+      .lean();
+
+    const grouped = {};
+
+    for (const item of items) {
+      const master = item.masterItemId;
+      if (!master) continue;
+
+      if (isVeg !== undefined && master.isVeg !== (isVeg === "true")) {
         continue;
       }
 
-      const doc = {
-        restaurantId,
-        masterItemId: m._id,
-        name: m.name,
-        description: m.description || "",
-        price: m.basePrice || 0,
-        station: m.defaultStation || null,
-        taxPercent: m.taxPercent || 0,
-        status: "ON", // default to ON when imported
-        trackStock: true,
-        autoHideWhenZero: true,
-        lastMasterVersion: m.version || 1,
-        masterSnapshot: {
-          name: m.name,
-          description: m.description || "",
-          basePrice: m.basePrice || 0,
-          defaultStation: m.defaultStation || null,
-        },
-      };
-      const b = await BranchMenuItemModel.create(doc);
-      created.push(b._id);
+      const categoryId = master.categoryId?.toString();
+      const subcategoryId = master.subcategoryId?.toString() || "uncategorized";
+
+      if (!grouped[categoryId]) grouped[categoryId] = {};
+      if (!grouped[categoryId][subcategoryId])
+        grouped[categoryId][subcategoryId] = [];
+
+      grouped[categoryId][subcategoryId].push(item);
     }
 
-    try {
-      await AuditLog.create({
-        actorType: "USER",
-        actorId: String(manager._id),
-        action: "IMPORT_MASTER_MENU",
-        entityType: "Restaurant",
-        entityId: restaurantId,
-        meta: { createdCount: created.length, skippedCount: skipped.length },
-      });
-    } catch (e) {}
-
-    return res.json({
-      message: "import complete",
-      error: false,
+    res.json({
       success: true,
-      data: {
-        createdCount: created.length,
-        skippedCount: skipped.length,
-        created,
-        skipped,
-      },
+      data: grouped,
     });
   } catch (err) {
-    console.error("importMasterMenuController err:", err);
-    return res
-      .status(500)
-      .json({ message: "server error", error: true, success: false });
+    console.error("listBranchMenuGrouped:", err);
+    res.status(500).json({ message: "Server error" });
   }
 }
 
 /**
- * upsertBranchMenuItemController
- * POST /manager/branch-menu/:restaurantId
- * Body: { masterItemId, name?, price?, station?, status?, trackStock?, autoHideWhenZero? }
- *
- * If branch record exists, updates fields; otherwise creates a new branch override.
- */ export async function upsertBranchMenuItemController(req, res) {
-  try {
-    const manager = req.user;
-    const { restaurantId } = req.params;
-
-    if (String(manager.restaurantId) !== String(restaurantId)) {
-      return res.status(403).json({
-        message: "Forbidden",
-        error: true,
-        success: false,
-      });
-    }
-
-    const {
-      branchMenuItemId,
-      masterItemId,
-      name,
-      description,
-      price,
-      station,
-      status,
-      trackStock,
-      autoHideWhenZero,
-    } = req.body;
-
-    /**
-     * ❌ NOTHING PROVIDED
-     */
-    if (!branchMenuItemId && !masterItemId) {
-      return res.status(400).json({
-        message: "branchMenuItemId or masterItemId required",
-        error: true,
-        success: false,
-      });
-    }
-
-    /**
-     * 🟡 UPDATE EXISTING BRANCH ITEM
-     */
-    if (branchMenuItemId) {
-      const branchItem = await BranchMenuItemModel.findOne({
-        _id: branchMenuItemId,
-        restaurantId,
-      });
-
-      if (!branchItem) {
-        return res.status(404).json({
-          message: "Branch menu item not found",
-          error: true,
-          success: false,
-        });
-      }
-
-      if (name) branchItem.name = name;
-      if (description) branchItem.description = description;
-      if (typeof price === "number") branchItem.price = price;
-      if (station) branchItem.station = station;
-      if (status) branchItem.status = status;
-      if (typeof trackStock === "boolean") branchItem.trackStock = trackStock;
-      if (typeof autoHideWhenZero === "boolean")
-        branchItem.autoHideWhenZero = autoHideWhenZero;
-
-      branchItem.meta = branchItem.meta || {};
-      branchItem.meta.lastManagerEditedAt = new Date();
-
-      await branchItem.save();
-
-      return res.json({
-        message: "Branch menu item updated",
-        error: false,
-        success: true,
-        data: branchItem,
-      });
-    }
-
-    /**
-     * 🟢 CREATE NEW BRANCH ITEM (FROM MASTER)
-     */
-    const master = await MasterMenuItemModel.findById(masterItemId).lean();
-    if (!master) {
-      return res.status(404).json({
-        message: "Master item not found",
-        error: true,
-        success: false,
-      });
-    }
-
-    const exists = await BranchMenuItemModel.findOne({
-      restaurantId,
-      masterItemId,
-    }).lean();
-
-    if (exists) {
-      return res.status(409).json({
-        message: "Item already exists in branch menu",
-        error: true,
-        success: false,
-      });
-    }
-
-    const branchItem = await BranchMenuItemModel.create({
-      restaurantId,
-      masterItemId,
-      name: master.name,
-      description: master.description || "",
-      price: master.basePrice,
-      station: master.defaultStation,
-      taxPercent: master.taxPercent || 0,
-      status: "ON",
-      trackStock: true,
-      autoHideWhenZero: true,
-      masterSnapshot: {
-        name: master.name,
-        basePrice: master.basePrice,
-        defaultStation: master.defaultStation,
-      },
-    });
-
-    return res.status(201).json({
-      message: "Branch menu item created",
-      error: false,
-      success: true,
-      data: branchItem,
-    });
-  } catch (err) {
-    console.error("upsertBranchMenuItemController:", err);
-    return res.status(500).json({
-      message: "Server error",
-      error: true,
-      success: false,
-    });
-  }
-}
-
-/**
- * listBranchMenuController
- * GET /manager/branch-menu/:restaurantId
- * Query: ?search=&categoryId=&station=&status=&limit=&page=
- * Returns branch menu items joined with master snapshot
+ * ---------------------------------------------------
+ * 4️⃣ UPDATE SINGLE BRANCH MENU ITEM
+ * ---------------------------------------------------
+ * PATCH /manager/branch-menu/:restaurantId/item/:itemId
  */
-
-export async function listBranchMenuController(req, res) {
+export async function updateBranchMenuItem(req, res) {
   try {
-    const manager = req.user;
-    const { restaurantId } = req.params;
+    const { restaurantId, itemId } = req.params;
+    const updates = req.body;
 
-    // Safety check
-    if (String(manager.restaurantId) !== String(restaurantId)) {
-      return res.status(403).json({
-        message: "Forbidden",
-        error: true,
-        success: false,
-      });
+    const allowedFields = [
+      "name",
+      "description",
+      "price",
+      "station",
+      "status",
+      "trackStock",
+      "autoHideWhenZero",
+    ];
+
+    const safeUpdate = {};
+    for (const key of allowedFields) {
+      if (updates[key] !== undefined) safeUpdate[key] = updates[key];
     }
 
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 50;
-    const skip = (page - 1) * limit;
+    const item = await BranchMenuItem.findOneAndUpdate(
+      { _id: itemId, restaurantId },
+      { $set: safeUpdate },
+      { new: true }
+    );
 
-    const [items, total] = await Promise.all([
-      BranchMenuItemModel.find({
-        restaurantId,
-        isArchived: false,
-      })
-        .populate({
-          path: "masterItemId",
-          select: "isVeg image categoryId subcategoryId",
-        })
-        .sort({ name: 1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
 
-      BranchMenuItemModel.countDocuments({
-        restaurantId,
-        isArchived: false,
-      }),
-    ]);
-
-    // 🔥 FINAL SHAPE (IMPORTANT)
-    const mappedItems = items.map((item) => ({
-      _id: item._id,
-      restaurantId: item.restaurantId,
-      masterItemId: item.masterItemId?._id || null,
-
-      name: item.name,
-      description: item.description,
-      price: item.price,
-      station: item.station,
-      taxPercent: item.taxPercent,
-
-      status: item.status,
-      trackStock: item.trackStock,
-      autoHideWhenZero: item.autoHideWhenZero,
-      stock: item.stock || null,
-
-      // ✅ FROM MASTER
-      isVeg: item.masterItemId?.isVeg ?? true,
-      image: item.masterItemId?.image ?? "",
-      categoryId: item.masterItemId?.categoryId || null,
-      subcategoryId: item.masterItemId?.subcategoryId || null,
-
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-    }));
-
-    return res.json({
-      message: "branch menu",
-      error: false,
+    res.json({
       success: true,
-      data: {
-        total,
-        page,
-        limit,
-        items: mappedItems,
-      },
+      data: item,
     });
   } catch (err) {
-    console.error("listBranchMenuController:", err);
-    return res.status(500).json({
-      message: "Server error",
-      error: true,
-      success: false,
-    });
+    console.error("updateBranchMenuItem:", err);
+    res.status(500).json({ message: "Server error" });
   }
 }
 
 /**
- * toggleBranchMenuItemsController
+ * ---------------------------------------------------
+ * 5️⃣ BULK TOGGLE (ON / OFF)
+ * ---------------------------------------------------
  * POST /manager/branch-menu/:restaurantId/bulk-toggle
- * Body: { itemIds: [], action: 'ON'|'OFF' }
- * Useful to disable many items quickly.
- */ export async function toggleBranchMenuItemsController(req, res) {
+ * Body: { itemIds: [], action: "ON" | "OFF" }
+ */
+export async function bulkToggleBranchMenu(req, res) {
   try {
-    const manager = req.user;
     const { restaurantId } = req.params;
+    const { itemIds = [], action } = req.body;
 
-    const {
-      itemIds = [],
-      branchMenuItemIds = [],
-      action, // ON | OFF
-    } = req.body;
-
-    // ✅ accept both keys
-    const finalItemIds = itemIds.length > 0 ? itemIds : branchMenuItemIds;
-
-    if (!Array.isArray(finalItemIds) || finalItemIds.length === 0) {
-      return res.status(400).json({
-        message: "itemIds required",
-        error: true,
-        success: false,
-      });
+    if (!Array.isArray(itemIds) || itemIds.length === 0) {
+      return res.status(400).json({ message: "itemIds required" });
     }
 
     if (!["ON", "OFF"].includes(action)) {
-      return res.status(400).json({
-        message: "action must be ON or OFF",
-        error: true,
-        success: false,
-      });
+      return res.status(400).json({ message: "Invalid action" });
     }
 
-    // restaurant ownership check
-    if (String(manager.restaurantId) !== String(restaurantId)) {
-      return res.status(403).json({
-        message: "Forbidden",
-        error: true,
-        success: false,
-      });
-    }
-
-    // 🔥 bulk update
-    const updateResult = await BranchMenuItemModel.updateMany(
-      {
-        restaurantId,
-        _id: { $in: finalItemIds },
-        isArchived: false,
-      },
-      {
-        $set: {
-          status: action,
-          updatedAt: new Date(),
-        },
-      }
+    await BranchMenuItem.updateMany(
+      { restaurantId, _id: { $in: itemIds } },
+      { $set: { status: action } }
     );
 
-    // audit (non-blocking)
-    try {
-      await AuditLog.create({
-        actorType: "USER",
-        actorId: String(manager._id),
-        action: "BULK_TOGGLE_BRANCH_MENU",
-        entityType: "BranchMenuItem",
-        entityId: restaurantId,
-        meta: {
-          itemCount: finalItemIds.length,
-          action,
-        },
-      });
-    } catch (_) {}
-
-    return res.json({
-      message: "Branch menu items updated",
-      error: false,
-      success: true,
-      data: {
-        matchedCount: updateResult.matchedCount,
-        modifiedCount: updateResult.modifiedCount,
-        status: action,
-      },
-    });
+    res.json({ success: true });
   } catch (err) {
-    console.error("toggleBranchMenuItemsController:", err);
-    return res.status(500).json({
-      message: "Server error",
-      error: true,
-      success: false,
-    });
+    console.error("bulkToggleBranchMenu:", err);
+    res.status(500).json({ message: "Server error" });
   }
 }
 
 /**
- * syncWithMasterController
- * POST /manager/branch-menu/:restaurantId/sync-with-master
- * Body: { overwrite?: boolean } - if overwrite true, update branch items' name/price/station to match master
+ * ---------------------------------------------------
+ * 6️⃣ UPDATE STOCK (IMPORTANT)
+ * ---------------------------------------------------
+ * PATCH /manager/branch-menu/:restaurantId/item/:itemId/stock
+ * Body: { stock: number }
  */
-export async function syncWithMasterController(req, res) {
+export async function updateBranchStock(req, res) {
   try {
-    const manager = req.user;
+    const { restaurantId, itemId } = req.params;
+    const { stock } = req.body;
+
+    if (stock < 0) {
+      return res.status(400).json({ message: "Invalid stock" });
+    }
+
+    const item = await BranchMenuItem.findOneAndUpdate(
+      { _id: itemId, restaurantId },
+      { stock },
+      { new: true }
+    );
+
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    res.json({
+      success: true,
+      data: item,
+    });
+  } catch (err) {
+    console.error("updateBranchStock:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+/**
+ * ---------------------------------------------------
+ * 7️⃣ SYNC WITH MASTER MENU
+ * ---------------------------------------------------
+ * POST /manager/branch-menu/:restaurantId/sync-with-master
+ * Body: { overwrite?: boolean }
+ */
+export async function syncBranchWithMaster(req, res) {
+  try {
     const { restaurantId } = req.params;
     const { overwrite = false } = req.body;
-    if (String(manager.restaurantId) !== String(restaurantId))
-      return res
-        .status(403)
-        .json({ message: "Forbidden", error: true, success: false });
 
-    const branchItems = await BranchMenuItemModel.find({ restaurantId }).lean();
+    const branchItems = await BranchMenuItem.find({ restaurantId });
+
     let updatedCount = 0;
-    for (const b of branchItems) {
-      const master = await MasterMenuItemModel.findById(b.masterItemId).lean();
+
+    for (const item of branchItems) {
+      const master = await MasterMenuItem.findById(item.masterItemId);
       if (!master) continue;
-      // if overwrite or master version changed -> update snapshot/fields
-      const masterVersion = master.version || 1;
-      if (overwrite || (b.lastMasterVersion || 0) < masterVersion) {
-        const update = {
-          lastMasterVersion: masterVersion,
-          masterSnapshot: {
-            name: master.name,
-            description: master.description || "",
-            basePrice: master.basePrice || 0,
-            defaultStation: master.defaultStation || null,
-          },
+
+      if (overwrite || item.lastMasterVersion < master.version) {
+        item.masterSnapshot = {
+          name: master.name,
+          basePrice: master.basePrice,
+          defaultStation: master.defaultStation,
         };
+        item.lastMasterVersion = master.version;
+
         if (overwrite) {
-          update.name = master.name;
-          update.price = master.basePrice || 0;
-          update.station = master.defaultStation || null;
+          item.name = master.name;
+          item.price = master.basePrice;
+          item.station = master.defaultStation;
         }
-        await BranchMenuItemModel.findByIdAndUpdate(b._id, update).catch(
-          () => {}
-        );
+
+        await item.save();
         updatedCount++;
       }
     }
 
-    try {
-      await AuditLog.create({
-        actorType: "USER",
-        actorId: String(manager._id),
-        action: "SYNC_WITH_MASTER",
-        entityType: "Restaurant",
-        entityId: restaurantId,
-        meta: { updatedCount },
-      });
-    } catch (e) {}
-
-    return res.json({
-      message: "sync complete",
-      error: false,
+    res.json({
       success: true,
-      data: { updatedCount },
+      updatedCount,
     });
   } catch (err) {
-    console.error("syncWithMasterController err:", err);
-    return res
-      .status(500)
-      .json({ message: "server error", error: true, success: false });
+    console.error("syncBranchWithMaster:", err);
+    res.status(500).json({ message: "Server error" });
   }
 }
-
-// export async function createCategory(req, res) {
-//   const { name, order } = req.body;
-//   const brandId = req.user.brandId;
-
-//   if (!name) {
-//     return res.status(400).json({ message: "Category name required" });
-//   }
-
-//   const category = await MenuCategory.create({
-//     brandId,
-//     name,
-//     order,
-//   });
-
-//   res.status(201).json({ success: true, data: category });
-// }
-
-// export async function createSubcategory(req, res) {
-//   const { categoryId, name, order } = req.body;
-//   const brandId = req.user.brandId;
-
-//   if (!categoryId || !name) {
-//     return res.status(400).json({ message: "Missing fields" });
-//   }
-
-//   const subcategory = await MenuSubcategory.create({
-//     brandId,
-//     categoryId,
-//     name,
-//     order,
-//   });
-
-//   res.status(201).json({ success: true, data: subcategory });
-// }
-
-// export async function createMasterItem(req, res) {
-//   const {
-//     categoryId,
-//     subcategoryId,
-//     name,
-//     description,
-//     isVeg,
-//     basePrice,
-//     defaultStation,
-//     image,
-//   } = req.body;
-
-//   const brandId = req.user.brandId;
-
-//   if (!categoryId || !name || basePrice === undefined || isVeg === undefined) {
-//     return res.status(400).json({ message: "Missing required fields" });
-//   }
-
-//   const item = await MasterMenuItem.create({
-//     brandId,
-//     categoryId,
-//     subcategoryId,
-//     name,
-//     description,
-//     isVeg,
-//     basePrice,
-//     defaultStation,
-//     image,
-//   });
-
-//   res.status(201).json({ success: true, data: item });
-// }
-
-// export async function getMasterMenu(req, res) {
-//   const brandId = req.user.brandId;
-//   const { isVeg } = req.query;
-
-//   const filter = {
-//     brandId,
-//     isArchived: false,
-//   };
-
-//   if (isVeg !== undefined) {
-//     filter.isVeg = isVeg === "true";
-//   }
-
-//   const items = await MasterMenuItem.find(filter)
-//     .populate("categoryId", "name")
-//     .populate("subcategoryId", "name")
-//     .sort({ createdAt: 1 });
-
-//   res.json({ success: true, data: items });
-// }

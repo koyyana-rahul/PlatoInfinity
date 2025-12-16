@@ -470,3 +470,136 @@ export async function deleteMasterItem(req, res) {
     });
   }
 }
+
+// src/controller/masterMenu.controller.js
+
+/**
+ * GET /api/master-menu/categories
+ * Brand admin only
+ */
+export async function getCategories(req, res) {
+  try {
+    const brandId = req.user.brandId;
+
+    const categories = await menuCategoryModel
+      .find({
+        brandId,
+        isArchived: false,
+      })
+      .sort({ order: 1, createdAt: 1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      error: false,
+      data: categories,
+    });
+  } catch (err) {
+    console.error("getCategories error:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
+}
+
+/**
+ * GET /api/master-menu/categories/:categoryId/subcategories
+ */
+export async function getSubcategories(req, res) {
+  try {
+    const brandId = req.user.brandId;
+    const { categoryId } = req.params;
+
+    const subcategories = await menuSubcategoryModel
+      .find({
+        brandId,
+        categoryId,
+        isArchived: false,
+      })
+      .sort({ order: 1, createdAt: 1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      error: false,
+      data: subcategories,
+    });
+  } catch (err) {
+    console.error("getSubcategories error:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
+}
+
+/**
+ * GET /api/master-menu/tree
+ */
+export async function getMasterMenuTree(req, res) {
+  try {
+    const brandId = req.user.brandId;
+
+    const [categories, subcategories, items] = await Promise.all([
+      menuCategoryModel
+        .find({ brandId, isArchived: false })
+        .sort({ order: 1 })
+        .lean(),
+      menuSubcategoryModel
+        .find({ brandId, isArchived: false })
+        .sort({ order: 1 })
+        .lean(),
+      masterMenuItemModel.find({ brandId, isArchived: false }).lean(),
+    ]);
+
+    const categoryMap = {};
+
+    categories.forEach((cat) => {
+      categoryMap[cat._id] = {
+        id: cat._id,
+        name: cat.name,
+        subcategories: [],
+        items: [],
+      };
+    });
+
+    const subcategoryMap = {};
+
+    subcategories.forEach((sub) => {
+      const node = {
+        id: sub._id,
+        name: sub.name,
+        items: [],
+      };
+      subcategoryMap[sub._id] = node;
+
+      if (categoryMap[sub.categoryId]) {
+        categoryMap[sub.categoryId].subcategories.push(node);
+      }
+    });
+
+    items.forEach((item) => {
+      if (item.subcategoryId && subcategoryMap[item.subcategoryId]) {
+        subcategoryMap[item.subcategoryId].items.push(item);
+      } else if (categoryMap[item.categoryId]) {
+        categoryMap[item.categoryId].items.push(item);
+      }
+    });
+
+    return res.json({
+      success: true,
+      error: false,
+      data: Object.values(categoryMap),
+    });
+  } catch (err) {
+    console.error("getMasterMenuTree error:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
+}

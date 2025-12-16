@@ -1,423 +1,365 @@
-// src/controllers/session.controller.js
 import crypto from "crypto";
 import mongoose from "mongoose";
 import TableModel from "../models/table.model.js";
 import SessionModel from "../models/session.model.js";
-import AuditLog from "../models/auditLog.model.js"; // optional
-import OrderModel from "../models/order.model.js"; // used for close checks
+import OrderModel from "../models/order.model.js";
+import AuditLog from "../models/auditLog.model.js";
 
 const TOKEN_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
 
+/* ---------------- HELPERS ---------------- */
+
 function generatePin(length = 4) {
-  const min = Math.pow(10, length - 1);
-  const max = Math.pow(10, length) - 1;
-  return String(Math.floor(min + Math.random() * (max - min + 1)));
+  return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
 function hashToken(raw) {
   return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
-/**
- * Waiter opens a session for a table.
- * POST /restaurants/:restaurantId/sessions/open
- * Body: { tableId }
- * Auth: requireAuth + requireRole('WAITER','MANAGER')
- */
+/* =========================================================
+   1️⃣ OPEN TABLE SESSION (WAITER / MANAGER)
+   ========================================================= */
 export async function openTableSessionController(req, res) {
+  const mongoSession = await mongoose.startSession();
+  mongoSession.startTransaction();
+
   try {
     const user = req.user;
     const { restaurantId } = req.params;
     const { tableId } = req.body;
 
     if (!tableId)
-      return res
-        .status(400)
-        .json({ message: "tableId required", error: true, success: false });
-    if (!user || String(user.restaurantId) !== String(restaurantId))
-      return res
-        .status(403)
-        .json({ message: "Forbidden", error: true, success: false });
+      return res.status(400).json({
+        message: "tableId required",
+        error: true,
+        success: false,
+      });
 
-    // ensure table exists and is part of restaurant
+    if (String(user.restaurantId) !== String(restaurantId))
+      return res.status(403).json({
+        message: "Forbidden",
+        error: true,
+        success: false,
+      });
+
+    // 🔒 Lock table
     const table = await TableModel.findOne({
       _id: tableId,
       restaurantId,
-    }).lean();
+      status: "FREE",
+    }).session(mongoSession);
+
     if (!table)
-      return res
-        .status(404)
-        .json({ message: "Table not found", error: true, success: false });
-
-    // ensure no open session on this table (or decide policy: allow multiple)
-    const existingOpen = await SessionModel.findOne({
-      restaurantId,
-      tableId,
-      status: "OPEN",
-    }).lean();
-    if (existingOpen)
-      return res
-        .status(409)
-        .json({
-          message: "Table already has an open session",
-          error: true,
-          success: false,
-        });
-
-    // generate a tablePin (4-digit) and session token raw
-    const tablePin = generatePin(4);
-
-    // create session record with only token hash stored and return raw sessionToken to waiter (they'll share PIN with customers)
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    const tokenHash = hashToken(rawToken);
-    const tokenExpiry = new Date(Date.now() + TOKEN_TTL_MS);
-
-    const sessionDoc = await SessionModel.create({
-      restaurantId,
-      tableId,
-      tableNumber: table.tableNumber || null,
-      openedByWaiterId: user._id,
-      tablePin,
-      status: "OPEN",
-      sessionTokenHash: tokenHash,
-      tokenExpiresAt: tokenExpiry,
-      meta: {
-        currentTableHistory: [
-          { tableId: tableId, movedAt: new Date(), movedBy: user._id },
-        ],
-      },
-    });
-
-    // Audit
-    try {
-      await AuditLog.create({
-        actorType: "USER",
-        actorId: String(user._id),
-        action: "OPEN_SESSION",
-        entityType: "Session",
-        entityId: String(sessionDoc._id),
-        meta: { tableId },
+      return res.status(409).json({
+        message: "Table not available",
+        error: true,
+        success: false,
       });
-    } catch (e) {}
 
-    // Return: sessionId, tablePin (for customer), sessionToken (raw) for waiter to store/use to print QR or attach to the table device
+    const existingSession = await SessionModel.findOne({
+      restaurantId,
+      tableId,
+      status: "OPEN",
+    }).session(mongoSession);
+
+    if (existingSession)
+      return res.status(409).json({
+        message: "Session already open for this table",
+        error: true,
+        success: false,
+      });
+
+    const tablePin = generatePin();
+    const rawToken = crypto.randomBytes(32).toString("hex");
+
+    const sessionDoc = await SessionModel.create(
+      [
+        {
+          restaurantId,
+          tableId,
+          openedByUserId: user._id,
+          tablePin,
+          sessionTokenHash: hashToken(rawToken),
+          tokenExpiresAt: new Date(Date.now() + TOKEN_TTL_MS),
+          status: "OPEN",
+          meta: {
+            tableHistory: [{ tableId, movedAt: new Date() }],
+          },
+        },
+      ],
+      { session: mongoSession }
+    );
+
+    // ✅ OCCUPY TABLE
+    table.status = "OCCUPIED";
+    await table.save({ session: mongoSession });
+
+    await mongoSession.commitTransaction();
+
     return res.status(201).json({
-      message: "Session opened",
-      error: false,
       success: true,
+      error: false,
       data: {
-        sessionId: sessionDoc._id,
-        tablePin: sessionDoc.tablePin,
-        sessionToken: rawToken, // IMPORTANT: show raw only now — store hash server-side
-        tokenExpiresAt: tokenExpiry,
+        sessionId: sessionDoc[0]._id,
+        tablePin,
+        sessionToken: rawToken,
       },
     });
   } catch (err) {
-    console.error("openTableSessionController err:", err);
-    return res
-      .status(500)
-      .json({ message: "server error", error: true, success: false });
+    await mongoSession.abortTransaction();
+    console.error("openTableSessionController:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  } finally {
+    mongoSession.endSession();
   }
 }
 
-/**
- * Customer joins session using tableId + tablePin.
- * POST /sessions/join
- * Body: { restaurantId, tableId, tablePin }
- * Returns short-lived sessionToken (raw) for the customer to use for placing orders, or sessionId if already in session.
- */
+/* =========================================================
+   2️⃣ CUSTOMER JOINS SESSION (PUBLIC)
+   ========================================================= */
+
 export async function joinSessionController(req, res) {
   try {
     const { restaurantId, tableId, tablePin } = req.body;
-    if (!restaurantId || !tableId || !tablePin)
-      return res
-        .status(400)
-        .json({
-          message: "restaurantId, tableId, tablePin required",
-          error: true,
-          success: false,
-        });
 
-    // Find open session matching tableId, tablePin
+    if (!restaurantId || !tableId || !tablePin) {
+      return res.status(400).json({
+        message: "restaurantId, tableId, tablePin required",
+        error: true,
+        success: false,
+      });
+    }
+
+    // 1️⃣ Find open session
     const session = await SessionModel.findOne({
       restaurantId,
       tableId,
       tablePin,
       status: "OPEN",
     });
-    if (!session)
-      return res
-        .status(400)
-        .json({
-          message: "Wrong table or PIN or no open session",
-          error: true,
-          success: false,
-        });
 
-    // If token still valid and we want to return same token, we could return a new token to avoid giving the waiter token.
-    // Generate a one-time raw token for the customer and store its hash (overwrites existing sessionTokenHash)
-    const rawToken = crypto.randomBytes(28).toString("hex");
+    if (!session) {
+      return res.status(400).json({
+        message: "Invalid table or PIN",
+        error: true,
+        success: false,
+      });
+    }
+
+    // 2️⃣ Generate secure token
+    const rawToken = crypto.randomBytes(32).toString("hex");
     const tokenHash = hashToken(rawToken);
-    const tokenExpiry = new Date(Date.now() + TOKEN_TTL_MS);
 
     session.sessionTokenHash = tokenHash;
-    session.tokenExpiresAt = tokenExpiry;
-    // Optionally store lastJoinedAt and keep map of joined devices in meta
-    session.meta = session.meta || {};
-    session.meta.lastCustomerJoinedAt = new Date();
+    session.tokenExpiresAt = new Date(Date.now() + TOKEN_TTL_MS);
+    session.lastActivityAt = new Date();
     await session.save();
 
+    // 3️⃣ STORE TOKEN IN COOKIE (KEY CHANGE 🔥)
+    res.cookie("sessionToken", rawToken, {
+      httpOnly: true, // ❌ JS can’t access
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: TOKEN_TTL_MS,
+    });
+
+    // 4️⃣ Return SAFE response
     return res.json({
-      message: "Joined session",
-      error: false,
       success: true,
+      error: false,
       data: {
         sessionId: session._id,
-        sessionToken: rawToken,
-        tokenExpiresAt: tokenExpiry,
       },
     });
   } catch (err) {
-    console.error("joinSessionController err:", err);
-    return res
-      .status(500)
-      .json({ message: "server error", error: true, success: false });
-  }
-}
-
-/**
- * Validate incoming session token (internal helper).
- * Use this in controllers that require a session token (orders etc).
- * Accept raw token (from header or body) and returns session doc if valid.
- */
-export async function validateSessionToken(
-  rawToken,
-  sessionIdOrRestaurantAndTable = {}
-) {
-  if (!rawToken) return null;
-  const tokenHash = hashToken(rawToken);
-
-  // If sessionId provided prefer direct lookup
-  if (sessionIdOrRestaurantAndTable.sessionId) {
-    const s = await SessionModel.findOne({
-      _id: sessionIdOrRestaurantAndTable.sessionId,
-      sessionTokenHash: tokenHash,
-      status: "OPEN",
+    console.error("joinSessionController:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
     });
-    if (!s) return null;
-    if (s.tokenExpiresAt && new Date() > new Date(s.tokenExpiresAt))
-      return null;
-    return s;
   }
-
-  // else use restaurantId + tableId lookup
-  const { restaurantId, tableId } = sessionIdOrRestaurantAndTable;
-  const q = { sessionTokenHash: tokenHash, status: "OPEN" };
-  if (restaurantId) q.restaurantId = restaurantId;
-  if (tableId) q.tableId = tableId;
-  const s = await SessionModel.findOne(q).lean();
-  if (!s) return null;
-  if (s.tokenExpiresAt && new Date() > new Date(s.tokenExpiresAt)) return null;
-  return s;
 }
 
-/**
- * Shift table mid-meal.
- * POST /restaurants/:restaurantId/sessions/:sessionId/shift
- * Body: { toTableId }
- * Auth: waiter (must be same restaurant)
- */
+/* =========================================================
+   3️⃣ SHIFT TABLE MID-SESSION
+   ========================================================= */
 export async function shiftTableController(req, res) {
+  const mongoSession = await mongoose.startSession();
+  mongoSession.startTransaction();
+
   try {
     const user = req.user;
     const { restaurantId, sessionId } = req.params;
     const { toTableId } = req.body;
 
-    if (!toTableId)
-      return res
-        .status(400)
-        .json({ message: "toTableId required", error: true, success: false });
-    if (!user || String(user.restaurantId) !== String(restaurantId))
-      return res
-        .status(403)
-        .json({ message: "Forbidden", error: true, success: false });
-
-    const session = await SessionModel.findOne({
+    const sessionDoc = await SessionModel.findOne({
       _id: sessionId,
       restaurantId,
       status: "OPEN",
-    });
-    if (!session)
-      return res
-        .status(404)
-        .json({ message: "Session not found", error: true, success: false });
+    }).session(mongoSession);
 
-    const destTable = await TableModel.findOne({
+    if (!sessionDoc)
+      return res.status(404).json({
+        message: "Session not found",
+        error: true,
+        success: false,
+      });
+
+    const newTable = await TableModel.findOne({
       _id: toTableId,
       restaurantId,
-    }).lean();
-    if (!destTable)
-      return res
-        .status(404)
-        .json({
-          message: "Destination table not found",
-          error: true,
-          success: false,
-        });
+      status: "FREE",
+    }).session(mongoSession);
 
-    // Make sure dest table has no open session or allow shift semantics
-    const existingAtDest = await SessionModel.findOne({
-      restaurantId,
-      tableId: toTableId,
-      status: "OPEN",
-    }).lean();
-    if (existingAtDest)
-      return res
-        .status(409)
-        .json({
-          message: "Destination table already has an open session",
-          error: true,
-          success: false,
-        });
+    if (!newTable)
+      return res.status(409).json({
+        message: "Target table not available",
+        error: true,
+        success: false,
+      });
 
-    // Update session currentTableHistory
-    session.tableId = toTableId;
-    session.tableNumber = destTable.tableNumber || null;
-    session.meta = session.meta || {};
-    session.meta.currentTableHistory = session.meta.currentTableHistory || [];
-    session.meta.currentTableHistory.push({
+    // FREE OLD TABLE
+    await TableModel.findByIdAndUpdate(
+      sessionDoc.tableId,
+      { status: "FREE" },
+      { session: mongoSession }
+    );
+
+    // OCCUPY NEW TABLE
+    newTable.status = "OCCUPIED";
+    await newTable.save({ session: mongoSession });
+
+    sessionDoc.tableId = toTableId;
+    sessionDoc.meta.tableHistory.push({
       tableId: toTableId,
       movedAt: new Date(),
       movedBy: user._id,
     });
-    await session.save();
+    await sessionDoc.save({ session: mongoSession });
 
-    try {
-      await AuditLog.create({
-        actorType: "USER",
-        actorId: String(user._id),
-        action: "SHIFT_SESSION_TABLE",
-        entityType: "Session",
-        entityId: String(session._id),
-        meta: { toTableId },
-      });
-    } catch (e) {}
+    await mongoSession.commitTransaction();
 
     return res.json({
-      message: "Session table shifted",
-      error: false,
       success: true,
-      data: { sessionId: session._id, currentTableId: toTableId },
+      error: false,
+      message: "Table shifted",
     });
   } catch (err) {
-    console.error("shiftTableController err:", err);
-    return res
-      .status(500)
-      .json({ message: "server error", error: true, success: false });
+    await mongoSession.abortTransaction();
+    console.error("shiftTableController:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  } finally {
+    mongoSession.endSession();
   }
 }
 
-/**
- * Close session (when bill paid and session can be closed)
- * POST /restaurants/:restaurantId/sessions/:sessionId/close
- * Body: { closedByWaiterId? } - typically current waiter closes
- */
+/* =========================================================
+   4️⃣ CLOSE SESSION (BILL PAID)
+   ========================================================= */
 export async function closeSessionController(req, res) {
+  const mongoSession = await mongoose.startSession();
+  mongoSession.startTransaction();
+
   try {
-    const user = req.user;
     const { restaurantId, sessionId } = req.params;
 
-    if (!user || String(user.restaurantId) !== String(restaurantId))
-      return res
-        .status(403)
-        .json({ message: "Forbidden", error: true, success: false });
-
-    const session = await SessionModel.findOne({
+    const sessionDoc = await SessionModel.findOne({
       _id: sessionId,
       restaurantId,
-    });
-    if (!session)
-      return res
-        .status(404)
-        .json({ message: "Session not found", error: true, success: false });
+      status: "OPEN",
+    }).session(mongoSession);
 
-    // Prevent closing if there are unpaid orders — optional: check order statuses
-    const openOrders = await OrderModel.find({
-      restaurantId,
-      tableId: session.tableId,
-      orderStatus: { $ne: "PAID" },
-    }).lean();
-    if (openOrders && openOrders.length > 0) {
-      return res
-        .status(400)
-        .json({
-          message: "Cannot close session: there are unpaid orders",
-          error: true,
-          success: false,
-          data: { openOrdersCount: openOrders.length },
-        });
-    }
-
-    session.status = "CLOSED";
-    session.closedAt = new Date();
-    await session.save();
-
-    try {
-      await AuditLog.create({
-        actorType: "USER",
-        actorId: String(user._id),
-        action: "CLOSE_SESSION",
-        entityType: "Session",
-        entityId: String(session._id),
+    if (!sessionDoc)
+      return res.status(404).json({
+        message: "Session not found",
+        error: true,
+        success: false,
       });
-    } catch (e) {}
+
+    const unpaidOrders = await OrderModel.countDocuments({
+      sessionId,
+      orderStatus: { $ne: "PAID" },
+    });
+
+    if (unpaidOrders > 0)
+      return res.status(400).json({
+        message: "Unpaid orders exist",
+        error: true,
+        success: false,
+      });
+
+    sessionDoc.status = "CLOSED";
+    sessionDoc.closedAt = new Date();
+    await sessionDoc.save({ session: mongoSession });
+
+    await TableModel.findByIdAndUpdate(
+      sessionDoc.tableId,
+      { status: "FREE" },
+      { session: mongoSession }
+    );
+
+    await mongoSession.commitTransaction();
+
+    res.clearCookie("sessionToken");
 
     return res.json({
-      message: "Session closed",
-      error: false,
       success: true,
-      data: { sessionId: session._id },
+      error: false,
+      message: "Session closed",
     });
   } catch (err) {
-    console.error("closeSessionController err:", err);
-    return res
-      .status(500)
-      .json({ message: "server error", error: true, success: false });
+    await mongoSession.abortTransaction();
+    console.error("closeSessionController:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  } finally {
+    mongoSession.endSession();
   }
 }
 
-/**
- * Get session details (manager/waiter) - useful for UI
- * GET /restaurants/:restaurantId/sessions/:sessionId
- */
+/* =========================================================
+   5️⃣ GET SESSION (WAITER / MANAGER)
+   ========================================================= */
 export async function getSessionController(req, res) {
   try {
-    const user = req.user;
     const { restaurantId, sessionId } = req.params;
-    if (!user || String(user.restaurantId) !== String(restaurantId))
-      return res
-        .status(403)
-        .json({ message: "Forbidden", error: true, success: false });
 
     const session = await SessionModel.findOne({
       _id: sessionId,
       restaurantId,
     }).lean();
+
     if (!session)
-      return res
-        .status(404)
-        .json({ message: "Session not found", error: true, success: false });
+      return res.status(404).json({
+        message: "Session not found",
+        error: true,
+        success: false,
+      });
 
     return res.json({
-      message: "session",
-      error: false,
       success: true,
+      error: false,
       data: session,
     });
   } catch (err) {
-    console.error("getSessionController err:", err);
-    return res
-      .status(500)
-      .json({ message: "server error", error: true, success: false });
+    console.error("getSessionController:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
   }
 }

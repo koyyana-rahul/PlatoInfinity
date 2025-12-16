@@ -3,6 +3,10 @@ import UserModel from "../models/user.model.js";
 import AuditLog from "../models/auditLog.model.js"; // optional
 import mongoose from "mongoose";
 
+import generatedAccessToken from "../utils/generatedAccessToken.js";
+import genertedRefreshToken from "../utils/generatedRefreshToken.js";
+import { cookieOptions } from "../utils/cookieOptions.js";
+
 /**
  * Helper: generateUniquePin(restaurantId)
  * Tries to generate a unique 4-digit pin for the given restaurantId
@@ -36,13 +40,11 @@ export async function createStaffController(req, res) {
     } = req.body;
 
     if (String(manager.restaurantId) !== String(restaurantId)) {
-      return res
-        .status(403)
-        .json({
-          message: "Forbidden - not your restaurant",
-          error: true,
-          success: false,
-        });
+      return res.status(403).json({
+        message: "Forbidden - not your restaurant",
+        error: true,
+        success: false,
+      });
     }
     if (!name)
       return res
@@ -54,7 +56,10 @@ export async function createStaffController(req, res) {
         .json({ message: "invalid role", error: true, success: false });
 
     if (mobile) {
-      const existingMobile = await UserModel.findOne({ mobile, restaurantId }).lean();
+      const existingMobile = await UserModel.findOne({
+        mobile,
+        restaurantId,
+      }).lean();
       if (existingMobile) {
         return res.status(400).json({
           message: "Mobile number already registered in this restaurant",
@@ -66,13 +71,11 @@ export async function createStaffController(req, res) {
 
     const pin = await generateUniquePin(restaurantId);
     if (!pin)
-      return res
-        .status(500)
-        .json({
-          message: "Unable to generate unique PIN, try again",
-          error: true,
-          success: false,
-        });
+      return res.status(500).json({
+        message: "Unable to generate unique PIN, try again",
+        error: true,
+        success: false,
+      });
 
     const staff = await UserModel.create({
       name,
@@ -109,13 +112,11 @@ export async function createStaffController(req, res) {
     });
   } catch (err) {
     console.error("createStaffController error:", err);
-    return res
-      .status(500)
-      .json({
-        message: err.message || "Server error",
-        error: true,
-        success: false,
-      });
+    return res.status(500).json({
+      message: err.message || "Server error",
+      error: true,
+      success: false,
+    });
   }
 }
 
@@ -145,13 +146,11 @@ export async function listStaffController(req, res) {
     });
   } catch (err) {
     console.error("listStaffController error:", err);
-    return res
-      .status(500)
-      .json({
-        message: err.message || "Server error",
-        error: true,
-        success: false,
-      });
+    return res.status(500).json({
+      message: err.message || "Server error",
+      error: true,
+      success: false,
+    });
   }
 }
 
@@ -178,13 +177,11 @@ export async function regenerateStaffPinController(req, res) {
 
     const newPin = await generateUniquePin(restaurantId);
     if (!newPin)
-      return res
-        .status(500)
-        .json({
-          message: "Unable to generate unique PIN",
-          error: true,
-          success: false,
-        });
+      return res.status(500).json({
+        message: "Unable to generate unique PIN",
+        error: true,
+        success: false,
+      });
 
     staff.staffPin = newPin;
     await staff.save();
@@ -207,13 +204,11 @@ export async function regenerateStaffPinController(req, res) {
     });
   } catch (err) {
     console.error("regenerateStaffPinController error:", err);
-    return res
-      .status(500)
-      .json({
-        message: err.message || "Server error",
-        error: true,
-        success: false,
-      });
+    return res.status(500).json({
+      message: err.message || "Server error",
+      error: true,
+      success: false,
+    });
   }
 }
 
@@ -224,76 +219,75 @@ export async function regenerateStaffPinController(req, res) {
  *
  * Security: callers MUST implement rate-limit / brute-force protection.
  */
-import generatedAccessToken from "../utils/generatedAccessToken.js";
-import genertedRefreshToken from "../utils/generatedRefreshToken.js";
-
 export async function staffLoginController(req, res) {
   try {
     const { restaurantId, staffPin } = req.body;
-    if (!restaurantId || !staffPin)
-      return res
-        .status(400)
-        .json({
-          message: "restaurantId & staffPin required",
-          error: true,
-          success: false,
-        });
 
-    // Find active staff with matching PIN
+    if (!restaurantId || !staffPin) {
+      return res.status(400).json({
+        message: "restaurantId & staffPin required",
+        error: true,
+        success: false,
+      });
+    }
+
+    // ✅ Only STAFF roles allowed
     const staff = await UserModel.findOne({
       restaurantId,
       staffPin,
       isActive: true,
-    })
-      .select("+refresh_token")
-      .lean();
+      role: { $in: ["WAITER", "CHEF", "MANAGER"] },
+    });
+
     if (!staff) {
-      // NOTE: log attempt to AuditLog or separate store for security monitoring (not returning PIN or details)
       try {
         await AuditLog.create({
           actorType: "SYSTEM",
           action: "STAFF_PIN_FAIL",
           entityType: "User",
-          meta: { restaurantId, staffPin },
+          meta: { restaurantId },
         });
-      } catch (e) {}
-      return res
-        .status(401)
-        .json({ message: "Invalid PIN", error: true, success: false });
+      } catch (_) {}
+
+      return res.status(401).json({
+        message: "Invalid PIN",
+        error: true,
+        success: false,
+      });
     }
 
-    // Issue tokens (you may want to set cookies instead)
-    const accessToken = await generatedAccessToken(staff._id);
-    const refreshToken = await genertedRefreshToken(staff._id);
+    // 🔑 Generate tokens
+    const accessToken = generatedAccessToken(staff._id);
+    const refreshToken = genertedRefreshToken(staff._id);
 
-    // Persist refresh token to allow revocation
-    await UserModel.findByIdAndUpdate(staff._id, {
-      refresh_token: refreshToken,
-    });
+    // 🔁 Save refresh token
+    staff.refresh_token = refreshToken;
+    await staff.save();
+
+    // 🍪 Set cookies (SAME AS USER LOGIN)
+    res.cookie("accessToken", accessToken, cookieOptions());
+    res.cookie("refreshToken", refreshToken, cookieOptions());
 
     return res.json({
-      message: "Login success",
+      message: "Staff login successful",
       error: false,
       success: true,
       data: {
-        accessToken,
-        refreshToken,
         user: {
           id: staff._id,
           name: staff.name,
           role: staff.role,
-          staffPin: staff.staffPin,
+          restaurantId: staff.restaurantId,
+          isStaff: true,
         },
       },
     });
   } catch (err) {
     console.error("staffLoginController error:", err);
-    return res
-      .status(500)
-      .json({
-        message: err.message || "Server error",
-        error: true,
-        success: false,
-      });
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
   }
 }

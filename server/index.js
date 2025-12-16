@@ -28,6 +28,14 @@ import masterMenuRouter from "./route/masterMenu.route.js";
 import kitchenStationRouter from "./route/kitchenStation.route.js";
 import customerMenuRouter from "./route/customerMenu.route.js";
 import tableRouter from "./route/table.route.js";
+import cartRouter from "./route/cart.route.js";
+import billRouter from "./route/bill.route.js";
+import { initCronJobs } from "./cron.js";
+import reportRouter from "./route/report.route.js";
+import whatsappRouter from "./route/billWhatsapp.route.js";
+import kitchenRouter from "./route/kitchen.route.js";
+import billShareRouter from "./route/billShare.route.js";
+import dashboardRouter from "./route/dashboard.route.js";
 
 // ---------- EXPRESS APP ----------
 const app = express();
@@ -51,15 +59,21 @@ app.use("/api/restaurant", restaurantRouter);
 app.use("/api/invite", inviteRouter);
 app.use("/api/auth/invite", authInviteRouter);
 app.use("/api/staff", staffRouter);
-app.use("/api/menu", menuRouter);
-app.use("/api/session", sessionRouter);
-app.use("/api/order", orderRouter);
+app.use("/api/branch-menu", menuRouter);
+app.use("/api", sessionRouter);
+app.use("/api", orderRouter);
 app.use("/api/suspicious", suspiciousRouter);
 app.use("/api/master-menu", masterMenuRouter);
 app.use("/api", kitchenStationRouter);
-
 app.use("/api/customer", customerMenuRouter);
 app.use("/api", tableRouter);
+app.use("/api", cartRouter);
+app.use("/api", billRouter);
+app.use("/api", reportRouter);
+app.use("/api", whatsappRouter);
+app.use("/api/kitchen", kitchenRouter);
+app.use("/api", billShareRouter);
+app.use("/api/dashboard", dashboardRouter);
 
 // ---------- SERVER + SOCKET ----------
 const PORT = process.env.PORT || 8080;
@@ -68,6 +82,8 @@ async function startServer() {
   try {
     await connectDB();
     console.log("✅ MongoDB connected");
+
+    initCronJobs();
 
     const server = http.createServer(app);
 
