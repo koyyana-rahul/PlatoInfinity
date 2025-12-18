@@ -2,6 +2,7 @@ import Order from "../models/order.model.js";
 import Bill from "../models/bill.model.js";
 import Session from "../models/session.model.js";
 import mongoose from "mongoose";
+import BranchMenuItem from "../models/branchMenuItem.model.js";
 
 /**
  * ============================
@@ -228,8 +229,6 @@ export async function dailySalesReport(req, res) {
   });
 }
 
-
-
 /**
  * ===============================
  * HOURLY SALES REPORT
@@ -273,7 +272,7 @@ export async function hourlySalesReportController(req, res) {
           billCount: { $sum: 1 },
         },
       },
-      { $sort: { "_id": 1 } },
+      { $sort: { _id: 1 } },
     ]);
 
     // 🔥 Fill missing hours (0–23)
@@ -293,6 +292,218 @@ export async function hourlySalesReportController(req, res) {
     });
   } catch (err) {
     console.error("hourlySalesReportController:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
+}
+
+/**
+ * ===============================
+ * GST / TAX BREAKUP REPORT
+ * ===============================
+ * GET /api/reports/tax-breakup
+ * Query:
+ *   startDate=YYYY-MM-DD
+ *   endDate=YYYY-MM-DD
+ * Access: MANAGER / OWNER
+ */
+export async function taxBreakupReportController(req, res) {
+  try {
+    const restaurantId = req.user.restaurantId;
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        message: "startDate and endDate are required",
+        error: true,
+        success: false,
+      });
+    }
+
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    const taxReport = await Bill.aggregate([
+      {
+        $match: {
+          restaurantId: new mongoose.Types.ObjectId(restaurantId),
+          status: "PAID",
+          createdAt: { $gte: start, $lte: end },
+        },
+      },
+      { $unwind: "$items" },
+      {
+        $group: {
+          _id: "$items.taxPercent",
+          taxableAmount: {
+            $sum: {
+              $multiply: ["$items.rate", "$items.quantity"],
+            },
+          },
+          taxAmount: {
+            $sum: {
+              $multiply: [
+                {
+                  $divide: ["$items.taxPercent", 100],
+                },
+                {
+                  $multiply: ["$items.rate", "$items.quantity"],
+                },
+              ],
+            },
+          },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    let grandTaxable = 0;
+    let grandTax = 0;
+
+    const formatted = taxReport.map((t) => {
+      grandTaxable += t.taxableAmount;
+      grandTax += t.taxAmount;
+
+      return {
+        taxPercent: t._id,
+        taxableAmount: Number(t.taxableAmount.toFixed(2)),
+        taxAmount: Number(t.taxAmount.toFixed(2)),
+      };
+    });
+
+    return res.json({
+      success: true,
+      error: false,
+      data: {
+        period: { startDate, endDate },
+        breakup: formatted,
+        totals: {
+          taxableAmount: Number(grandTaxable.toFixed(2)),
+          taxAmount: Number(grandTax.toFixed(2)),
+        },
+      },
+    });
+  } catch (err) {
+    console.error("taxBreakupReportController:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
+}
+
+/**
+ * ===============================
+ * MONTHLY P&L REPORT
+ * ===============================
+ * GET /api/reports/monthly-pl
+ * Query:
+ *   year=2025
+ *   month=1 (1-12)
+ * Access: OWNER only
+ */
+export async function monthlyPLReportController(req, res) {
+  try {
+    const restaurantId = req.user.restaurantId;
+    const { year, month } = req.query;
+
+    if (!year || !month) {
+      return res.status(400).json({
+        message: "year and month are required",
+        error: true,
+        success: false,
+      });
+    }
+
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59);
+
+    /**
+     * 1️⃣ FETCH PAID BILLS
+     */
+    const bills = await Bill.find({
+      restaurantId,
+      status: "PAID",
+      createdAt: { $gte: startDate, $lte: endDate },
+    }).lean();
+
+    if (!bills.length) {
+      return res.json({
+        success: true,
+        error: false,
+        data: {
+          revenue: 0,
+          discounts: 0,
+          taxes: 0,
+          foodCost: 0,
+          profit: 0,
+          billsCount: 0,
+        },
+      });
+    }
+
+    let grossRevenue = 0;
+    let totalDiscounts = 0;
+    let totalTaxes = 0;
+    let foodCost = 0;
+
+    /**
+     * 2️⃣ PRELOAD MENU COST PRICES
+     */
+    const menuMap = {};
+    const menuItems = await BranchMenuItem.find({
+      restaurantId,
+    }).lean();
+
+    for (const m of menuItems) {
+      menuMap[String(m._id)] = m.costPrice || 0;
+    }
+
+    /**
+     * 3️⃣ CALCULATE TOTALS
+     */
+    for (const bill of bills) {
+      grossRevenue += bill.subtotal || 0;
+      totalDiscounts += bill.discounts || 0;
+      totalTaxes += bill.taxes || 0;
+
+      for (const item of bill.items) {
+        const costPrice = menuMap[String(item.branchMenuItemId)] || 0;
+        foodCost += costPrice * item.quantity;
+      }
+    }
+
+    const netSales = grossRevenue - totalDiscounts;
+    const profit = netSales - foodCost - totalTaxes;
+
+    return res.json({
+      success: true,
+      error: false,
+      data: {
+        period: {
+          year: Number(year),
+          month: Number(month),
+        },
+        summary: {
+          grossRevenue: Number(grossRevenue.toFixed(2)),
+          discounts: Number(totalDiscounts.toFixed(2)),
+          netSales: Number(netSales.toFixed(2)),
+          taxes: Number(totalTaxes.toFixed(2)),
+          foodCost: Number(foodCost.toFixed(2)),
+          profit: Number(profit.toFixed(2)),
+          billsCount: bills.length,
+        },
+      },
+    });
+  } catch (err) {
+    console.error("monthlyPLReportController:", err);
     return res.status(500).json({
       message: "Server error",
       error: true,

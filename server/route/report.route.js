@@ -9,6 +9,8 @@ import {
   topItemsReportController,
   dailySalesReport,
   hourlySalesReportController,
+  taxBreakupReportController,
+  monthlyPLReportController,
 } from "../controller/report.controller.js";
 
 const reportRouter = express.Router();
@@ -47,4 +49,17 @@ reportRouter.get(
   topItemsReportController
 );
 
+reportRouter.get(
+  "/tax-breakup",
+  requireAuth,
+  requireRole("MANAGER", "OWNER"),
+  taxBreakupReportController
+);
+
+reportRouter.get(
+  "/monthly-pl",
+  requireAuth,
+  requireRole("OWNER"),
+  monthlyPLReportController
+);
 export default reportRouter;

@@ -1,15 +1,24 @@
 import express from "express";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { requireRole } from "../middleware/requireRole.js";
+import { requireSessionAuth } from "../middleware/requireSessionAuth.js";
+
 import {
   generateBillController,
   payBillController,
   getBillBySessionController,
+  getCustomerBillController,
 } from "../controller/bill.controller.js";
 
 const billRouter = express.Router();
 
-// Waiter / Manager
+/**
+ * =========================
+ * STAFF (WAITER / MANAGER)
+ * =========================
+ */
+
+// Generate bill (after orders)
 billRouter.post(
   "/bill/session/:sessionId",
   requireAuth,
@@ -17,6 +26,7 @@ billRouter.post(
   generateBillController
 );
 
+// Pay bill
 billRouter.post(
   "/bill/:billId/pay",
   requireAuth,
@@ -24,10 +34,20 @@ billRouter.post(
   payBillController
 );
 
+// Staff view bill
 billRouter.get(
   "/bill/session/:sessionId",
   requireAuth,
   getBillBySessionController
 );
+
+/**
+ * =========================
+ * CUSTOMER (SESSION BASED)
+ * =========================
+ */
+
+// 👇 CUSTOMER VIEW BILL (NO LOGIN)
+billRouter.get("/customer/bill", requireSessionAuth, getCustomerBillController);
 
 export default billRouter;

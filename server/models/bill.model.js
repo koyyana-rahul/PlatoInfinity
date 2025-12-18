@@ -192,8 +192,8 @@ const billSchema = new mongoose.Schema(
  * AUTO CALCULATIONS
  * ==========================
  */
-billSchema.pre("save", function (next) {
-  if (!this.isModified("items")) return next();
+billSchema.pre("save", function () {
+  if (!this.isModified("items")) return;
 
   let subtotal = 0;
   let taxes = 0;
@@ -217,8 +217,6 @@ billSchema.pre("save", function (next) {
     taxes +
     (this.serviceCharge || 0) -
     (this.discounts || 0);
-
-  next();
 });
 
 /**
@@ -226,18 +224,15 @@ billSchema.pre("save", function (next) {
  * SAFETY HOOKS
  * ==========================
  */
-billSchema.pre("save", function (next) {
+billSchema.pre("save", function () {
   if (this.status === "PAID") {
     if (!this.paymentMethod || !this.paidAt) {
-      return next(
-        new Error("Paid bill must have paymentMethod and paidAt")
-      );
+      throw new Error("Paid bill must have paymentMethod and paidAt");
     }
     if (this.paidAmount < this.total) {
-      return next(new Error("Paid amount less than total"));
+      throw new Error("Paid amount less than total");
     }
   }
-  next();
 });
 
 /**

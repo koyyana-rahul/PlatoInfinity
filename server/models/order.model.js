@@ -73,7 +73,7 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-orderSchema.pre("save", function (next) {
+orderSchema.pre("save", function () {
   if (this.isModified("items")) {
     let total = 0;
     for (const it of this.items) {
@@ -87,7 +87,6 @@ orderSchema.pre("save", function (next) {
     }
     this.totalAmount = total;
   }
-  next();
 });
 
 orderSchema.plugin(mongoosePaginate);

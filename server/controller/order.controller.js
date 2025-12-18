@@ -98,6 +98,11 @@ export async function placeOrderController(req, res) {
       sessionId: session._id,
     }).session(mongoSession);
 
+    const table = await Table.findById(session.tableId).session(mongoSession);
+    if (!table) {
+      throw new Error("Table not found");
+    }
+
     /**
      * 5️⃣ CREATE ORDER
      */
@@ -107,6 +112,7 @@ export async function placeOrderController(req, res) {
           restaurantId: session.restaurantId,
           sessionId: session._id,
           tableId: session.tableId,
+          tableName: table.name || table.tableNumber,
           orderNumber: orderCount + 1,
           items: orderItems,
           totalAmount,
@@ -200,6 +206,14 @@ export async function placeOrderController(req, res) {
  */
 export async function listSessionOrdersController(req, res) {
   const { sessionId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+    return res.status(400).json({
+      message: "Invalid sessionId",
+      error: true,
+      success: false,
+    });
+  }
 
   const orders = await Order.find({ sessionId }).sort({ createdAt: -1 }).lean();
 

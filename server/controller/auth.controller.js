@@ -114,14 +114,19 @@ export async function registerUserController(req, res) {
     const salt = await bcrypt.genSalt(10);
     const hashed = await bcrypt.hash(password, salt);
 
-    const newUser = new UserModel({
+    const newUserPayload = {
       name,
       email,
       password: hashed,
       role,
-      mobile: mobile || "",
       verify_email: false,
-    });
+    };
+
+    if (mobile) {
+      newUserPayload.mobile = mobile;
+    }
+
+    const newUser = new UserModel(newUserPayload);
 
     await newUser.save();
 

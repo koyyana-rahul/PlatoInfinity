@@ -74,6 +74,11 @@ app.use("/api", whatsappRouter);
 app.use("/api/kitchen", kitchenRouter);
 app.use("/api", billShareRouter);
 app.use("/api/dashboard", dashboardRouter);
+app.use("/api/waiter", waiterRouter);
+
+import { handleJsonError } from "./middleware/handleJsonError.js";
+import waiterRouter from "./route/waiter.route.js";
+app.use(handleJsonError);
 
 // ---------- SERVER + SOCKET ----------
 const PORT = process.env.PORT || 8080;
