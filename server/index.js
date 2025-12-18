@@ -36,6 +36,8 @@ import whatsappRouter from "./route/billWhatsapp.route.js";
 import kitchenRouter from "./route/kitchen.route.js";
 import billShareRouter from "./route/billShare.route.js";
 import dashboardRouter from "./route/dashboard.route.js";
+import waiterRouter from "./route/waiter.route.js";
+import { handleJsonError } from "./middleware/handleJsonError.js";
 
 // ---------- EXPRESS APP ----------
 const app = express();
@@ -75,9 +77,6 @@ app.use("/api/kitchen", kitchenRouter);
 app.use("/api", billShareRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/waiter", waiterRouter);
-
-import { handleJsonError } from "./middleware/handleJsonError.js";
-import waiterRouter from "./route/waiter.route.js";
 app.use(handleJsonError);
 
 // ---------- SERVER + SOCKET ----------
