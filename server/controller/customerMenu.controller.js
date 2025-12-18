@@ -1,7 +1,7 @@
 import BranchMenuItem from "../models/branchMenuItem.model.js";
 import MasterMenuItem from "../models/masterMenuItem.model.js";
 import MenuCategory from "../models/menuCategory.model.js";
-import MenuSubcategory from "../models/menuSubCategory.model.js";
+import MenuSubcategory from "../models/menuSubcategory.model.js";
 
 /**
  * PUBLIC CUSTOMER MENU

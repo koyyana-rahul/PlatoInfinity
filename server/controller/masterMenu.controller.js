@@ -1,10 +1,10 @@
 import MenuCategory from "../models/menuCategory.model.js";
 import MasterMenuItem from "../models/masterMenuItem.model.js";
-import MenuSubcategory from "../models/menuSubCategory.model.js";
+import MenuSubcategory from "../models/menuSubcategory.model.js";
 import uploadImageClodinary from "../utils/uploadImageClodinary.js";
 import menuCategoryModel from "../models/menuCategory.model.js";
 import masterMenuItemModel from "../models/masterMenuItem.model.js";
-import menuSubcategoryModel from "../models/menuSubCategory.model.js";
+import menuSubcategoryModel from "../models/menuSubcategory.model.js";
 
 export async function createCategory(req, res) {
   const { name, order } = req.body;
