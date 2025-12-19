@@ -9,18 +9,15 @@
       "src": "client/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "build"
+        "distDir": "dist"
       }
     }
   ],
-  "routes": [
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/server/index.js" },
     {
-      "src": "/api/.*",
-      "dest": "server/index.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/"
     }
   ]
 }
