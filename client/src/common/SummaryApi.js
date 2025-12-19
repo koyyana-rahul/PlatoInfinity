@@ -1,4 +1,7 @@
-export const baseURL = import.meta.env.VITE_API_BASE_URL;
+export const baseURL =
+  (import.meta.env.VITE_API_BASE_URL &&
+    import.meta.env.VITE_API_BASE_URL.replace("https", "http")) ||
+  "http://localhost:8080/api";
 
 const SummaryApi = {
   register: {
@@ -22,8 +25,8 @@ const SummaryApi = {
     url: "/auth/forgot-password",
     method: "post",
   },
-  verifyForgotPasswordOtp: {
-    url: "/auth/verify-forgot-password-otp",
+  forgot_password_otp_verification: {
+    url: "/auth/verify-forgot-otp",
     method: "post",
   },
   resetPassword: {
@@ -46,6 +49,14 @@ const SummaryApi = {
   },
   userDetails: {
     url: "/auth/me",
+    method: "get",
+  },
+  createBrand: {
+    url: "/brand",
+    method: "post",
+  },
+  getBrandDetails: {
+    url: "/brand",
     method: "get",
   },
 };
