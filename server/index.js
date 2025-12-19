@@ -52,8 +52,8 @@ app.use(
   })
 );
 
-// app.get("/", (req, res) => res.json({ message: "Plato API Server", ok: true }));
-// app.get("/health", (req, res) => res.json({ ok: true, time: new Date() }));
+app.get("/", (req, res) => res.json({ message: "Plato API Server", ok: true }));
+app.get("/health", (req, res) => res.json({ ok: true, time: new Date() }));
 
 // ---------- ROUTES ----------
 app.use("/api/auth", authRouter);
