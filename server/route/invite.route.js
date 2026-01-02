@@ -22,4 +22,5 @@ inviteRouter.post(
   requireRole("BRAND_ADMIN"),
   assignExistingManagerController
 );
+
 export default inviteRouter;

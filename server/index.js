@@ -13,7 +13,7 @@ import connectDB from "./config/connectDB.js";
 import authRouter from "./route/auth.route.js";
 import brandRouter from "./route/brand.route.js";
 import restaurantRouter from "./route/restaurant.route.js";
-import inviteRouter from "./route/invite.route.js";
+// import inviteRouter from "./route/invite.route.js";
 import authInviteRouter from "./route/auth.invite.route.js";
 import staffRouter from "./route/staff.route.js";
 import menuRouter from "./route/menu.route.js";
@@ -25,6 +25,7 @@ import orderRouter from "./route/order.route.js";
 import { initSocketServer } from "./socket/index.js";
 import { registerEmitFunc } from "./socket/emitter.js";
 import masterMenuRouter from "./route/masterMenu.route.js";
+import managerRouter from "./route/manager.route.js";
 import kitchenStationRouter from "./route/kitchenStation.route.js";
 import customerMenuRouter from "./route/customerMenu.route.js";
 import tableRouter from "./route/table.route.js";
@@ -41,7 +42,6 @@ import { handleJsonError } from "./middleware/handleJsonError.js";
 
 // ---------- EXPRESS APP ----------
 const app = express();
-app.use(express.json());
 app.use(cookieParser());
 
 app.use(
@@ -55,18 +55,22 @@ app.use(
 app.get("/", (req, res) => res.json({ message: "Plato API Server", ok: true }));
 app.get("/health", (req, res) => res.json({ ok: true, time: new Date() }));
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use("/api/master-menu", masterMenuRouter);
 // ---------- ROUTES ----------
 app.use("/api/auth", authRouter);
 app.use("/api/brand", brandRouter);
 app.use("/api/restaurant", restaurantRouter);
-app.use("/api/invite", inviteRouter);
+app.use("/api/restaurants/:restaurantId/managers", managerRouter);
+// app.use("/api/invite", inviteRouter);
 app.use("/api/auth/invite", authInviteRouter);
 app.use("/api/staff", staffRouter);
 app.use("/api/branch-menu", menuRouter);
 app.use("/api", sessionRouter);
 app.use("/api", orderRouter);
 app.use("/api/suspicious", suspiciousRouter);
-app.use("/api/master-menu", masterMenuRouter);
+
 app.use("/api", kitchenStationRouter);
 app.use("/api/customer", customerMenuRouter);
 app.use("/api", tableRouter);
@@ -78,6 +82,7 @@ app.use("/api/kitchen", kitchenRouter);
 app.use("/api", billShareRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/waiter", waiterRouter);
+
 app.use(handleJsonError);
 
 // ---------- SERVER + SOCKET ----------

@@ -13,13 +13,11 @@ export async function inviteManagerController(req, res) {
     const { name, email } = req.body;
 
     if (!name || !email)
-      return res
-        .status(400)
-        .json({
-          message: "name & email required",
-          error: true,
-          success: false,
-        });
+      return res.status(400).json({
+        message: "name & email required",
+        error: true,
+        success: false,
+      });
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -37,13 +35,11 @@ export async function inviteManagerController(req, res) {
         .status(404)
         .json({ message: "Restaurant not found", error: true, success: false });
     if (String(restaurant.brandId) !== String(admin.brandId))
-      return res
-        .status(403)
-        .json({
-          message: "Forbidden - restaurant not under your brand",
-          error: true,
-          success: false,
-        });
+      return res.status(403).json({
+        message: "Forbidden - restaurant not under your brand",
+        error: true,
+        success: false,
+      });
 
     // Check if email is already used by a manager in this brand/restaurant
     const existing = await UserModel.findOne({ email }).lean();
@@ -52,13 +48,11 @@ export async function inviteManagerController(req, res) {
       existing.role === "MANAGER" &&
       String(existing.restaurantId) === String(restaurantId)
     ) {
-      return res
-        .status(409)
-        .json({
-          message: "Manager already exists for this restaurant",
-          error: true,
-          success: false,
-        });
+      return res.status(409).json({
+        message: "Manager already exists for this restaurant",
+        error: true,
+        success: false,
+      });
     }
 
     // Generate invite token: rawToken (sent over email) and store only hash
@@ -114,14 +108,12 @@ export async function inviteManagerController(req, res) {
     }
 
     // NOTE: In production you should NOT return raw token. For development convenience we return inviteUrl.
-    return res
-      .status(201)
-      .json({
-        message: "Manager invited",
-        error: false,
-        success: true,
-        data: { inviteUrl, userId: newUser._id },
-      });
+    return res.status(201).json({
+      message: "Manager invited",
+      error: false,
+      success: true,
+      data: { inviteUrl, userId: newUser._id },
+    });
   } catch (err) {
     console.error("inviteManagerController error:", err);
     return res
@@ -189,3 +181,35 @@ export async function assignExistingManagerController(req, res) {
       .json({ message: "Server error", error: true, success: false });
   }
 }
+
+// export async function setPasswordController(req, res) {
+//   const { token, password } = req.body;
+
+//   if (!token || !password || password.length < 6) {
+//     return res.status(400).json({ message: "Invalid request" });
+//   }
+
+//   const tokenHash = crypto
+//     .createHash("sha256")
+//     .update(token)
+//     .digest("hex");
+
+//   const user = await User.findOne({
+//     "meta.inviteTokenHash": tokenHash,
+//     "meta.inviteExpiresAt": { $gt: Date.now() },
+//   });
+
+//   if (!user) {
+//     return res.status(400).json({ message: "Invite expired" });
+//   }
+
+//   user.password = await bcrypt.hash(password, 10);
+//   user.isActive = true;
+//   user.verify_email = true;
+//   user.meta.inviteTokenHash = undefined;
+//   user.meta.inviteExpiresAt = undefined;
+
+//   await user.save();
+
+//   res.json({ success: true, message: "Password set successfully" });
+// }

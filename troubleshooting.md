@@ -1,0 +1,1 @@
+I have reviewed all the route files and corrected the import statements that were causing the `ERR_MODULE_NOT_FOUND` error. The issue was a mix of missing file extensions (`.js`) and incorrect directory paths in the import statements. With these fixes, the server should be able to start without this specific error.

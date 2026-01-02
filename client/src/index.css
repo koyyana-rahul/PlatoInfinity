@@ -1,1 +1,56 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* @import "./styles/theme.css"; */
+
+body {
+  @apply bg-bg text-textDark;
+}
+
+/* index.css */
+body {
+  background: #f7f7f7;
+}
+
+.btn-primary {
+  @apply bg-black text-white px-4 py-2 rounded-lg;
+}
+
+.input {
+  @apply w-full border rounded-lg px-4 py-2
+         focus:outline-none focus:ring-2 focus:ring-[#00684A]/30;
+}
+
+.input {
+  @apply w-full px-4 py-2.5 border rounded-lg
+         focus:outline-none focus:ring-2
+         focus:ring-[#00684A]/30
+         text-sm;
+}
+
+.input-lg {
+  @apply w-full h-12 px-4 rounded-xl bg-white border border-gray-200
+         text-sm font-medium focus:ring-2 focus:ring-red-500 outline-none;
+}
+
+.label {
+  @apply text-[11px] font-black uppercase tracking-widest text-gray-500 mb-1;
+}
+
+.icon-left {
+  @apply absolute left-4 top-1/2 -translate-y-1/2 text-gray-400;
+}
+
+.btn-toggle {
+  @apply h-12 rounded-xl border text-sm font-black flex items-center
+         justify-center gap-2 transition;
+}
+
+.veg-active {
+  @apply bg-green-600 text-white border-green-600;
+}
+
+.nonveg-active {
+  @apply bg-red-600 text-white border-red-600;
+}

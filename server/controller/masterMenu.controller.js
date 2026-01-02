@@ -1,10 +1,10 @@
 import MenuCategory from "../models/menuCategory.model.js";
 import MasterMenuItem from "../models/masterMenuItem.model.js";
 import MenuSubcategory from "../models/menuSubcategory.model.js";
-import uploadImageClodinary from "../utils/uploadImageClodinary.js";
 import menuCategoryModel from "../models/menuCategory.model.js";
 import masterMenuItemModel from "../models/masterMenuItem.model.js";
 import menuSubcategoryModel from "../models/menuSubcategory.model.js";
+import mongoose from "mongoose";
 
 export async function createCategory(req, res) {
   const { name, order } = req.body;
@@ -40,38 +40,21 @@ export async function createSubcategory(req, res) {
   res.status(201).json({ success: true, data: subcategory });
 }
 
+import uploadImageClodinary from "../utils/uploadImageClodinary.js";
+
 export async function createMasterItem(req, res) {
   try {
-    let data = req.body;
-
-    // If content-type is form-data, req.body might contain stringified JSON
-    // in a field, or individual fields. Multer will populate req.file for the image.
-    if (req.is("multipart/form-data")) {
-      // If there's a specific field containing JSON data, parse it.
-      // Assuming a field named 'data' might contain the JSON payload.
-      if (req.body.data) {
-        try {
-          data = JSON.parse(req.body.data);
-        } catch (e) {
-          return res
-            .status(400)
-            .json({ message: "Invalid JSON data in 'data' field" });
-        }
-      }
-    }
+    const data = req.body?.data ? JSON.parse(req.body.data) : req.body;
 
     const {
       categoryId,
       subcategoryId,
       name,
-      description,
+      description = "",
       isVeg,
       basePrice,
       defaultStation,
-      image, // can be a URL for JSON input
     } = data;
-
-    const brandId = req.user.brandId;
 
     if (
       !categoryId ||
@@ -82,35 +65,37 @@ export async function createMasterItem(req, res) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    let imageUrl = image; // Use image URL from JSON body by default
-    if (req.file) {
-      // If a file is uploaded, it takes precedence
-      const buffer = Buffer.from(req.file.buffer);
-      const result = await uploadImageClodinary(buffer);
-      imageUrl = result.secure_url;
+    // 🔥 UPLOAD MULTIPLE IMAGES
+    const imageUrls = [];
+
+    if (req.files?.length) {
+      for (const file of req.files) {
+        const result = await uploadImageClodinary(file.buffer, "master-menu");
+        imageUrls.push(result.secure_url);
+      }
     }
 
-    const itemPayload = {
-      brandId,
+    const item = await MasterMenuItem.create({
+      brandId: req.user.brandId,
       categoryId,
       subcategoryId,
       name,
       description,
-      isVeg: String(isVeg) === "true",
-      basePrice: parseFloat(basePrice),
+      isVeg: Boolean(isVeg),
+      basePrice: Number(basePrice),
       defaultStation,
-      image: imageUrl,
-    };
 
-    const item = await MasterMenuItem.findOneAndUpdate(
-      { brandId, name },
-      { $setOnInsert: itemPayload },
-      { upsert: true, new: true }
-    );
+      // ✅ IMPORTANT
+      image: imageUrls[0] || "",
+      images: imageUrls,
+    });
 
-    res.status(201).json({ success: true, data: item });
-  } catch (error) {
-    console.error("createMasterItem error:", error);
+    res.status(201).json({
+      success: true,
+      data: item,
+    });
+  } catch (err) {
+    console.error("createMasterItem:", err);
     res.status(500).json({ message: "Server error" });
   }
 }
@@ -393,53 +378,163 @@ export async function deleteSubcategory(req, res) {
   }
 }
 
+// export async function updateMasterItem(req, res) {
+//   try {
+//     const { itemId } = req.params;
+//     const { name, description, isVeg, basePrice, defaultStation } = req.body;
+
+//     let update = {
+//       ...(name && { name }),
+//       ...(description && { description }),
+//       ...(isVeg !== undefined && { isVeg }),
+//       ...(basePrice !== undefined && { basePrice }),
+//       ...(defaultStation && { defaultStation }),
+//     };
+
+//     if (req.file) {
+//       const uploadRes = await uploadImageClodinary(req.file, "master-menu");
+//       update.image = uploadRes.secure_url;
+//     }
+
+//     update.version = Date.now(); // used for branch sync
+
+//     const item = await MasterMenuItem.findByIdAndUpdate(itemId, update, {
+//       new: true,
+//     });
+
+//     if (!item) {
+//       return res.status(404).json({
+//         message: "Item not found",
+//         error: true,
+//         success: false,
+//       });
+//     }
+
+//     return res.json({
+//       success: true,
+//       error: false,
+//       data: item,
+//     });
+//   } catch (err) {
+//     console.error("updateMasterItem:", err);
+//     return res.status(500).json({
+//       message: "Server error",
+//       error: true,
+//       success: false,
+//     });
+//   }
+// }
+
+// export async function updateMasterItem(req, res) {
+//   try {
+//     const { itemId } = req.params;
+
+//     // ✅ REQUIRED for multipart/form-data
+//     const payload =
+//       typeof req.body.data === "string" ? JSON.parse(req.body.data) : req.body;
+
+//     const { name, description, isVeg, basePrice, defaultStation } = payload;
+
+//     const update = {
+//       ...(name && { name }),
+//       ...(description !== undefined && { description }),
+//       ...(isVeg !== undefined && { isVeg }),
+//       ...(basePrice !== undefined && { basePrice }),
+//       ...(defaultStation && { defaultStation }),
+//       version: Date.now(),
+//     };
+
+//     if (req.file) {
+//       const uploadRes = await uploadImageClodinary(req.file, "master-menu");
+//       update.image = uploadRes.secure_url;
+//     }
+
+//     const item = await MasterMenuItem.findByIdAndUpdate(itemId, update, {
+//       new: true,
+//     });
+
+//     if (!item) {
+//       return res.status(404).json({
+//         success: false,
+//         error: true,
+//         message: "Item not found",
+//       });
+//     }
+
+//     return res.json({
+//       success: true,
+//       error: false,
+//       data: item,
+//     });
+//   } catch (err) {
+//     console.error("updateMasterItem ERROR:", err);
+//     return res.status(500).json({
+//       success: false,
+//       error: true,
+//       message: "Server error",
+//     });
+//   }
+// }
+
 export async function updateMasterItem(req, res) {
   try {
     const { itemId } = req.params;
-    const { name, description, isVeg, basePrice, defaultStation } = req.body;
 
-    let update = {
-      ...(name && { name }),
-      ...(description && { description }),
-      ...(isVeg !== undefined && { isVeg }),
-      ...(basePrice !== undefined && { basePrice }),
-      ...(defaultStation && { defaultStation }),
-    };
-
-    if (req.file) {
-      const uploadRes = await uploadImageClodinary(req.file, "master-menu");
-      update.image = uploadRes.secure_url;
+    if (!mongoose.Types.ObjectId.isValid(itemId)) {
+      return res.status(400).json({ message: "Invalid itemId" });
     }
 
-    update.version = Date.now(); // used for branch sync
+    const body = req.body?.data ? JSON.parse(req.body.data) : req.body;
 
-    const item = await MasterMenuItem.findByIdAndUpdate(itemId, update, {
-      new: true,
-    });
+    const {
+      name,
+      description,
+      basePrice,
+      isVeg,
+      defaultStation,
+      removedImages = [],
+    } = body;
 
-    if (!item) {
-      return res.status(404).json({
-        message: "Item not found",
-        error: true,
-        success: false,
-      });
+    const item = await MasterMenuItem.findById(itemId);
+    if (!item || item.isArchived) {
+      return res.status(404).json({ message: "Item not found" });
     }
+
+    /* ---------- REMOVE IMAGES ---------- */
+    if (removedImages.length) {
+      item.images = item.images.filter((img) => !removedImages.includes(img));
+    }
+
+    /* ---------- ADD NEW IMAGES ---------- */
+    if (req.files?.length) {
+      for (const file of req.files) {
+        const upload = await uploadImageClodinary(file.buffer, "master-menu");
+        item.images.push(upload.secure_url);
+      }
+    }
+
+    /* ---------- PRIMARY IMAGE ---------- */
+    item.image = item.images[0] || "";
+
+    /* ---------- UPDATE FIELDS ---------- */
+    if (name !== undefined) item.name = name;
+    if (description !== undefined) item.description = description;
+    if (basePrice !== undefined) item.basePrice = Number(basePrice);
+    if (isVeg !== undefined) item.isVeg = Boolean(isVeg);
+    if (defaultStation !== undefined) item.defaultStation = defaultStation;
+
+    item.version = Date.now();
+    await item.save();
 
     return res.json({
       success: true,
-      error: false,
       data: item,
     });
   } catch (err) {
-    console.error("updateMasterItem:", err);
-    return res.status(500).json({
-      message: "Server error",
-      error: true,
-      success: false,
-    });
+    console.error("updateMasterItem error:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 }
-
 export async function deleteMasterItem(req, res) {
   try {
     const { itemId } = req.params;

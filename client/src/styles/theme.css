@@ -1,0 +1,14 @@
+.btn-primary {
+  @apply bg-primary text-white px-4 py-2 rounded-lg font-semibold;
+}
+
+.input {
+  @apply w-full border px-4 py-2 rounded-lg;
+}
+
+.input {
+  @apply w-full px-4 py-2.5 border rounded-lg
+         focus:outline-none focus:ring-2
+         focus:ring-[#00684A]/30
+         text-sm;
+}

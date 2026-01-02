@@ -1,18 +1,15 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.jsx";
+import Providers from "./app/providers.jsx";
 import "./index.css";
-import { Toaster } from "react-hot-toast";
+import { initAxiosInterceptors } from "./api/axios.interceptor.js";
+// import "./api/axios.interceptor";
 
-import { Provider } from "react-redux";
-import { RouterProvider } from "react-router-dom";
-import { store } from "./store/store";
-import router from "./route/index";
+initAxiosInterceptors();
 
-createRoot(document.getElementById("root")).render(
-  // <StrictMode>
-  <Provider store={store}>
-    <Toaster position="top-right" reverseOrder={false} />
-    <RouterProvider router={router} />
-  </Provider>
-  // {/* </StrictMode> */}
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <Providers />
+  </React.StrictMode>
 );

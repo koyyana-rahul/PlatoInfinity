@@ -1,18 +1,16 @@
 // src/controllers/brand.controller.js
 import BrandModel from "../models/brand.model.js";
 import UserModel from "../models/user.model.js";
-import AuditLog from "../models/auditLog.model.js"; // optional - remove if you don't have
-import uploadImageClodinary from "../utils/uploadImageClodinary.js";
 import MenuCategory from "../models/menuCategory.model.js";
+import uploadImageClodinary from "../utils/uploadImageClodinary.js";
+import slugify from "slugify";
 
 export async function createBrandController(req, res) {
   try {
-    const admin = req.user; // requireAuth + requireRole('BRAND_ADMIN')
-
-    // req.body works for BOTH json and form-data
+    const admin = req.user;
     const { name } = req.body;
 
-    if (!name) {
+    if (!name?.trim()) {
       return res.status(400).json({
         message: "Brand name is required",
         error: true,
@@ -20,12 +18,16 @@ export async function createBrandController(req, res) {
       });
     }
 
-    // Prevent duplicate brand names (case-insensitive recommended)
-    const existing = await BrandModel.findOne({
-      name: new RegExp(`^${name}$`, "i"),
-    }).lean();
+    // Generate slug
+    const slug = slugify(name, {
+      lower: true,
+      strict: true,
+      trim: true,
+    });
 
-    if (existing) {
+    // Prevent duplicate slug
+    const existingSlug = await BrandModel.findOne({ slug });
+    if (existingSlug) {
       return res.status(409).json({
         message: "Brand name already exists",
         error: true,
@@ -33,9 +35,8 @@ export async function createBrandController(req, res) {
       });
     }
 
-    // Handle optional logo upload
+    // Upload logo if exists
     let logoUrl = "";
-
     if (req.file) {
       const uploadRes = await uploadImageClodinary(
         req.file.buffer,
@@ -45,65 +46,50 @@ export async function createBrandController(req, res) {
     }
 
     const brand = await BrandModel.create({
-      name,
+      name: name.trim(),
+      slug,
       logoUrl,
       ownerId: admin._id,
     });
 
-    // Create default categories for the new brand
+    // Default categories
     const defaultCategories = [
-      { name: "Starters", brandId: brand._id, sortOrder: 1 },
-      { name: "chicken Starters", brandId: brand._id, sortOrder: 2 },
-      { name: "Main Course", brandId: brand._id, sortOrder: 3 },
-      { name: "Desserts", brandId: brand._id, sortOrder: 4 },
-      { name: "Beverages", brandId: brand._id, sortOrder: 5 },
+      "Starters",
+      "Chicken Starters",
+      "Main Course",
+      "Desserts",
+      "Beverages",
     ];
 
-    for (const category of defaultCategories) {
+    for (let i = 0; i < defaultCategories.length; i++) {
       await MenuCategory.findOneAndUpdate(
-        { name: category.name, brandId: category.brandId },
-        { $setOnInsert: category },
-        { upsert: true, new: true }
+        { name: defaultCategories[i], brandId: brand._id },
+        {
+          $setOnInsert: {
+            name: defaultCategories[i],
+            brandId: brand._id,
+            sortOrder: i + 1,
+          },
+        },
+        { upsert: true }
       );
     }
 
-    // Attach brandId to admin if not already attached
+    // Attach brandId to admin
     if (!admin.brandId) {
       await UserModel.findByIdAndUpdate(admin._id, {
         brandId: brand._id,
       });
     }
 
-    // Optional audit log (non-blocking)
-    try {
-      await AuditLog.create({
-        actorType: "USER",
-        actorId: String(admin._id),
-        action: "CREATE_BRAND",
-        entityType: "Brand",
-        entityId: String(brand._id),
-      });
-    } catch (e) {
-      console.warn("Audit log failed:", e.message);
-    }
-
     return res.status(201).json({
       message: "Brand created successfully",
       error: false,
       success: true,
-      data: brand,
+      data: brand, // includes slug
     });
   } catch (err) {
-    console.error("createBrandController error:", err);
-
-    if (err.code === 11000) {
-      return res.status(409).json({
-        message: "Brand already exists",
-        error: true,
-        success: false,
-      });
-    }
-
+    console.error("createBrandController:", err);
     return res.status(500).json({
       message: "Server error",
       error: true,
@@ -115,18 +101,22 @@ export async function createBrandController(req, res) {
 export async function listBrandsController(req, res) {
   try {
     const admin = req.user;
-    // If admin should only see their brands:
-    const brands = await BrandModel.find({ ownerId: admin._id }).lean();
+
+    const brands = await BrandModel.find({ ownerId: admin._id }).select(
+      "name slug logoUrl"
+    );
+
     return res.json({
-      message: "brands",
-      error: false,
       success: true,
+      error: false,
       data: brands,
     });
   } catch (err) {
-    console.error("listBrandsController error:", err);
-    return res
-      .status(500)
-      .json({ message: "Server error", error: true, success: false });
+    console.error("listBrandsController:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
   }
 }

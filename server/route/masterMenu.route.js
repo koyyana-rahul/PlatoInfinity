@@ -19,6 +19,7 @@ import {
   getMasterMenu,
   getMasterMenuTree,
 } from "../controller/masterMenu.controller.js";
+import { uploadMultipleImages } from "../config/multerMultiImages.js";
 
 const masterMenuRouter = express.Router();
 
@@ -79,14 +80,14 @@ masterMenuRouter.post(
   "/item",
   requireAuth,
   requireRole("BRAND_ADMIN"),
-  upload.single("image"),
+  uploadMultipleImages.array("images", 5),
   createMasterItem
 );
 masterMenuRouter.put(
   "/item/:itemId",
   requireAuth,
   requireRole("BRAND_ADMIN"),
-  upload.single("image"),
+  uploadMultipleImages.array("images", 5),
   updateMasterItem
 );
 masterMenuRouter.delete(

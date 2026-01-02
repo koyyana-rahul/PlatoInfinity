@@ -37,7 +37,18 @@ const userSchema = new mongoose.Schema(
     avatar: { type: String, default: "" },
     mobile: { type: String, trim: true, sparse: true },
     refreshToken: { type: String, select: false },
-    verifyEmail: { type: Boolean, default: false },
+    emailVerifyToken: {
+      type: String,
+      select: false,
+    },
+    emailVerifyExpires: {
+      type: Date,
+      select: false,
+    },
+    verify_email: {
+      type: Boolean,
+      default: false,
+    },
     lastLoginAt: Date,
     forgotPasswordOtpHash: { type: String, select: false },
     forgotPasswordExpiry: { type: Date, select: false },

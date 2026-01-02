@@ -79,189 +79,153 @@ async function sendForgotPasswordEmail({ to, name, otp }) {
 // CONTROLLERS
 
 // Register (Brand admin or generic)
+
 export async function registerUserController(req, res) {
   try {
-    const { name, email, password, role = "BRAND_ADMIN", mobile } = req.body;
+    const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        message: "provide name, email and password",
-        error: true,
-        success: false,
-      });
-    }
+    if (!name || !email || !password)
+      return res
+        .status(400)
+        .json({ success: false, message: "All fields required" });
 
-    const existing = await UserModel.findOne({ email }).lean();
-    if (existing) {
-      return res.status(400).json({
-        message: "Email already registered",
-        error: true,
-        success: false,
-      });
-    }
+    const exists = await UserModel.findOne({ email });
+    if (exists)
+      return res
+        .status(400)
+        .json({ success: false, message: "Email already registered" });
 
-    if (mobile) {
-      const existingMobile = await UserModel.findOne({ mobile }).lean();
-      if (existingMobile) {
-        return res.status(400).json({
-          message: "Mobile number already registered",
-          error: true,
-          success: false,
-        });
-      }
-    }
+    const hashed = await bcrypt.hash(password, 10);
+    const token = crypto.randomBytes(32).toString("hex");
 
-    const salt = await bcrypt.genSalt(10);
-    const hashed = await bcrypt.hash(password, salt);
-
-    const newUserPayload = {
+    await UserModel.create({
       name,
       email,
       password: hashed,
-      role,
+      role: "BRAND_ADMIN",
       verify_email: false,
-    };
+      emailVerifyToken: token,
+      emailVerifyExpires: Date.now() + 24 * 60 * 60 * 1000,
+    });
 
-    if (mobile) {
-      newUserPayload.mobile = mobile;
-    }
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
 
-    const newUser = new UserModel(newUserPayload);
+    await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL,
+      to: email,
+      subject: "Verify your email",
+      html: `<a href="${verifyUrl}">Verify Email</a>`,
+    });
 
-    await newUser.save();
-
-    // send verify email (link contains user id; you may prefer token instead)
-    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?code=${String(
-      newUser._id
-    )}`;
-    try {
-      await sendVerifyEmail({ to: email, name, url: verifyUrl });
-    } catch (e) {
-      console.warn("resend send verify email failed:", e?.message || e);
-    }
-
-    return res.status(201).json({
-      message: "User registered successfully. Please verify your email.",
-      error: false,
+    res.status(201).json({
       success: true,
-      data: {
-        _id: newUser._id,
-        email: newUser.email,
-        name: newUser.name,
-        role: newUser.role,
-      },
+      message: "Account created. Please verify your email.",
     });
   } catch (err) {
-    console.error("registerUserController:", err);
-    return res.status(500).json({
-      message: err.message || "Server error",
-      error: true,
-      success: false,
-    });
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 }
-
 // Verify email
+
+// src/controllers/auth.controller.js
 export async function verifyEmailController(req, res) {
   try {
-    const { code } = req.body;
-    if (!code) {
-      return res
-        .status(400)
-        .json({ message: "code required", error: true, success: false });
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification token missing",
+      });
     }
 
-    const user = await UserModel.findById(code);
+    const user = await UserModel.findOne({
+      emailVerifyToken: token,
+      emailVerifyExpires: { $gt: Date.now() },
+    });
+
     if (!user) {
-      return res
-        .status(400)
-        .json({ message: "Invalid code", error: true, success: false });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired verification link",
+      });
     }
 
     user.verify_email = true;
+    user.emailVerifyToken = undefined;
+    user.emailVerifyExpires = undefined;
+    user.lastLoginAt = new Date();
+
     await user.save();
 
-    return res.json({ message: "Email verified", error: false, success: true });
-  } catch (err) {
-    console.error("verifyEmailController:", err);
-    return res
-      .status(500)
-      .json({ message: "Server error", error: true, success: false });
-  }
-}
-
-// Login (brand admin / manager / staff)
-export async function loginController(req, res) {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({
-        message: "provide email and password",
-        error: true,
-        success: false,
-      });
-
-    const user = await UserModel.findOne({ email }).select(
-      "+password +refreshToken"
-    );
-    if (!user || !user.password)
-      return res.status(400).json({
-        message: "User not registered or no password set",
-        error: true,
-        success: false,
-      });
-
-    // Optionally check isActive or role restrictions
-    if (!user.isActive)
-      return res.status(403).json({
-        message: "Account disabled. Contact admin",
-        error: true,
-        success: false,
-      });
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match)
-      return res
-        .status(400)
-        .json({ message: "Invalid credentials", error: true, success: false });
-
-    // generate tokens
-    const accessToken = signAccessToken(user._id);
-    const refreshToken = signRefreshToken(user._id);
-
-    // store refresh token on user (hashed or raw; here raw stored)
-    user.refreshToken = refreshToken;
-    user.last_login_date = new Date();
-    await user.save();
-
-    // set cookies
-    res.cookie("accessToken", accessToken, cookieOptions());
-    res.cookie("refreshToken", refreshToken, cookieOptions());
-
-    // return minimal user
-    const safeUser = {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar || "",
-      mobile: user.mobile || "",
-    };
-
-    return res.json({
-      message: "Login successful",
-      error: false,
+    return res.status(200).json({
       success: true,
-      data: { user: safeUser, accessToken },
+      message: "Email verified successfully",
     });
   } catch (err) {
-    console.error("loginController:", err);
-    return res
-      .status(500)
-      .json({ message: "Server error", error: true, success: false });
+    console.error("verifyEmailController:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 }
 
+export async function loginController(req, res) {
+  const { email, password } = req.body;
+
+  const user = await UserModel.findOne({ email }).select(
+    "+password +refreshToken"
+  );
+  if (!user) {
+    return res
+      .status(401)
+      .json({ success: false, message: "Invalid credentials" });
+  }
+
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    return res
+      .status(401)
+      .json({ success: false, message: "Invalid credentials" });
+  }
+
+  if (!user.verify_email) {
+    return res.status(403).json({
+      success: false,
+      message: "Please verify your email before logging in",
+    });
+  }
+
+  // 🔐 Generate tokens
+  const accessToken = signAccessToken(user._id);
+  const refreshToken = signRefreshToken(user._id);
+
+  // 🔐 Save refresh token in DB
+  user.refreshToken = refreshToken;
+  await user.save();
+
+  // 🍪 Set cookies
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    maxAge: 15 * 60 * 1000, // 15 min
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+  });
+
+  return res.json({
+    success: true,
+    message: "Login successful",
+  });
+}
 // Logout
 export async function logoutController(req, res) {
   try {
@@ -292,59 +256,48 @@ export async function logoutController(req, res) {
 
 // Refresh token
 export async function refreshTokenController(req, res) {
-  try {
-    const token =
-      req.cookies?.refreshToken ||
-      (req.headers?.authorization && req.headers.authorization.split(" ")[1]);
-    if (!token)
-      return res.status(401).json({
-        message: "Refresh token required",
-        error: true,
-        success: false,
-      });
+  const refreshToken = req.cookies?.refreshToken;
 
-    let payload;
-    try {
-      payload = jwt.verify(token, process.env.SECRET_KEY_REFRESH_TOKEN);
-    } catch (e) {
-      return res.status(401).json({
-        message: "Invalid refresh token",
-        error: true,
-        success: false,
-      });
-    }
-
-    const user = await UserModel.findById(payload._id).select("+refreshToken");
-    if (!user)
-      return res
-        .status(401)
-        .json({ message: "User not found", error: true, success: false });
-
-    if (!user.refreshToken || user.refreshToken !== token) {
-      return res.status(401).json({
-        message: "Refresh token mismatch",
-        error: true,
-        success: false,
-      });
-    }
-
-    const newAccessToken = signAccessToken(user._id);
-    res.cookie("accessToken", newAccessToken, cookieOptions());
-
-    return res.json({
-      message: "New access token generated",
-      error: false,
-      success: true,
-      data: { accessToken: newAccessToken },
+  if (!refreshToken) {
+    return res.status(401).json({
+      success: false,
+      message: "Refresh token missing",
     });
-  } catch (err) {
-    console.error("refreshTokenController:", err);
-    return res
-      .status(500)
-      .json({ message: "Server error", error: true, success: false });
   }
-}
 
+  let payload;
+  try {
+    payload = jwt.verify(refreshToken, process.env.SECRET_KEY_REFRESH_TOKEN);
+  } catch {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid refresh token",
+    });
+  }
+
+  const user = await UserModel.findById(payload._id).select("+refreshToken");
+  if (!user || user.refreshToken !== refreshToken) {
+    return res.status(401).json({
+      success: false,
+      message: "Refresh token mismatch",
+    });
+  }
+
+  // 🔁 Issue new access token
+  const newAccessToken = signAccessToken(user._id);
+
+  res.cookie("accessToken", newAccessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    maxAge: 15 * 60 * 1000,
+  });
+
+  return res.json({
+    success: true,
+    message: "Access token refreshed",
+  });
+}
 // Forgot password - send OTP
 export async function forgotPasswordController(req, res) {
   try {
@@ -611,31 +564,140 @@ export async function updateUserDetailsController(req, res) {
 }
 
 // Get logged-in user details (requires auth middleware to set req.userId)
+
 export async function userDetailsController(req, res) {
   try {
     const userId = req.userId || (req.user && req.user._id);
-    if (!userId)
+
+    if (!userId) {
       return res.status(401).json({
         message: "Authentication required",
         error: true,
         success: false,
       });
+    }
 
-    const user = await UserModel.findById(userId).select(
-      "-password -refresh_token -forgot_password_otp -forgot_password_expiry"
-    );
+    const user = await UserModel.findById(userId)
+      .select(
+        "-password -refresh_token -forgot_password_otp -forgot_password_expiry"
+      )
+      .populate("brandId", "name slug logoUrl")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        error: true,
+        success: false,
+      });
+    }
+
     return res.json({
       message: "User details",
-      data: user,
-      error: false,
       success: true,
+      error: false,
+      data: {
+        ...user,
+        brand: user.brandId || null, // 👈 VERY IMPORTANT
+      },
     });
   } catch (err) {
     console.error("userDetailsController:", err);
-    return res
-      .status(500)
-      .json({ message: "Server error", error: true, success: false });
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
   }
+}
+
+// export async function setPasswordController(req, res) {
+//   try {
+//     const { userId, password } = req.body;
+
+//     if (!password || password.length < 6)
+//       return res.status(400).json({ message: "Password too short" });
+
+//     const user = await UserModel.findById(userId);
+//     if (!user) return res.status(404).json({ message: "User not found" });
+
+//     user.password = await bcrypt.hash(password, 10);
+//     user.isActive = true;
+//     user.verify_email = true;
+//     user.meta.inviteTokenHash = null;
+//     user.meta.inviteExpiresAt = null;
+
+//     await user.save();
+
+//     return res.json({
+//       success: true,
+//       message: "Password set successfully",
+//     });
+//   } catch (err) {
+//     console.error("setPasswordController:", err);
+//     return res.status(500).json({ message: "Server error" });
+//   }
+// }
+
+// import crypto from "crypto";
+// import bcrypt from "bcryptjs";
+// import User from "../models/user.model.js";
+
+export async function acceptInviteController(req, res) {
+  const { token } = req.query;
+
+  if (!token) {
+    return res.status(400).json({ message: "Invalid invite link" });
+  }
+
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+  const user = await User.findOne({
+    "meta.inviteTokenHash": tokenHash,
+    "meta.inviteExpiresAt": { $gt: Date.now() },
+  }).select("name email role");
+
+  if (!user) {
+    return res.status(400).json({ message: "Invite expired or invalid" });
+  }
+
+  res.json({
+    success: true,
+    data: {
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    },
+  });
+}
+
+export async function setPasswordController(req, res) {
+  const { token, password } = req.body;
+
+  if (!token || !password || password.length < 6) {
+    return res.status(400).json({ message: "Invalid request" });
+  }
+
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+  const user = await User.findOne({
+    "meta.inviteTokenHash": tokenHash,
+    "meta.inviteExpiresAt": { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return res.status(400).json({ message: "Invite expired" });
+  }
+
+  user.password = await bcrypt.hash(password, 10);
+  user.isActive = true;
+  user.verify_email = true;
+  user.meta.inviteTokenHash = undefined;
+  user.meta.inviteExpiresAt = undefined;
+
+  await user.save();
+
+  res.json({ success: true, message: "Password set successfully" });
 }
 
 // Export default for convenience as well (routes may import named exports)
@@ -651,4 +713,5 @@ export default {
   // uploadAvatarController,
   updateUserDetailsController,
   userDetailsController,
+  setPasswordController,
 };

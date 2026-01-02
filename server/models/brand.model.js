@@ -3,6 +3,12 @@ import mongoosePaginate from "mongoose-paginate-v2";
 const brandSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true, trim: true },
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
     ownerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

@@ -4,7 +4,7 @@ import { requireRole } from "../middleware/requireRole.js";
 import {
   dailySalesReport,
   waiterWiseSalesReport,
-} from "../controllers/report.controller.js";
+} from "../controller/report.controller.js";
 
 const waiterReportRouter = express.Router();
 

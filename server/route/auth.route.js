@@ -12,10 +12,13 @@ import {
   updateUserDetailsController,
   userDetailsController,
   uploadAvatarController,
+  setPasswordController,
+  acceptInviteController,
 } from "../controller/auth.controller.js";
 
 import { requireAuth } from "../middleware/requireAuth.js";
 import upload from "../config/multer.js";
+// import { acceptInviteController } from "../controller/invite.controller.js";
 
 const authRouter = express.Router();
 
@@ -23,7 +26,7 @@ const authRouter = express.Router();
  * PUBLIC ROUTES
  */
 authRouter.post("/register", registerUserController); // signup (brand admin / user)
-authRouter.post("/verify-email", verifyEmailController); // email verification
+authRouter.get("/verify-email", verifyEmailController); // email verification
 authRouter.post("/login", loginController); // login
 authRouter.post("/refresh-token", refreshTokenController); // get new access token
 
@@ -44,5 +47,7 @@ authRouter.post(
 );
 authRouter.put("/update-profile", requireAuth, updateUserDetailsController);
 authRouter.get("/me", requireAuth, userDetailsController);
+authRouter.post("/accept-invite", acceptInviteController);
+authRouter.post("/set-password", setPasswordController);
 
 export default authRouter;
