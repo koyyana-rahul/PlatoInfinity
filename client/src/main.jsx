@@ -9,7 +9,7 @@ import { initAxiosInterceptors } from "./api/axios.interceptor.js";
 initAxiosInterceptors();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <Providers />
-  </React.StrictMode>
+  // <React.StrictMode>
+  <Providers />
+  // </React.StrictMode>
 );

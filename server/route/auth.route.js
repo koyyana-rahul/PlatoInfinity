@@ -45,6 +45,7 @@ authRouter.post(
   upload.single("avatar"),
   uploadAvatarController
 );
+
 authRouter.put("/update-profile", requireAuth, updateUserDetailsController);
 authRouter.get("/me", requireAuth, userDetailsController);
 authRouter.post("/accept-invite", acceptInviteController);

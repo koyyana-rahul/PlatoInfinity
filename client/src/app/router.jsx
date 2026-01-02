@@ -3,7 +3,6 @@ import { createBrowserRouter } from "react-router-dom";
 
 import App from "../App";
 
-
 /* -------- AUTH -------- */
 import Login from "../modules/auth/Login";
 import Register from "../modules/auth/Register";
