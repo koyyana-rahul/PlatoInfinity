@@ -6,6 +6,7 @@ import crypto from "crypto";
 
 import UserModel from "../models/user.model.js";
 import uploadImageClodinary from "../utils/uploadImageClodinary.js";
+import getInviteEmailTemplate from "../utils/getInviteEmailTemplate.js";
 // import uploadImageClodinary from "../utils/uploadImageClodinary.js"; // optional, used in uploadAvatar
 
 // Initialize Resend
@@ -100,7 +101,7 @@ export async function registerUserController(req, res) {
     const hashed = await bcrypt.hash(password, 10);
     const token = crypto.randomBytes(32).toString("hex");
 
-    await UserModel.create({
+    const user = await UserModel.create({
       name,
       email,
       password: hashed,
@@ -115,8 +116,12 @@ export async function registerUserController(req, res) {
     await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL,
       to: email,
-      subject: "Verify your email",
-      html: `<a href="${verifyUrl}">Verify Email</a>`,
+      subject: "You're invited – Verify your email",
+      html: getInviteEmailTemplate({
+        name: user.name, // optional
+        verifyUrl,
+        appName: "Plato", // change if needed
+      }),
     });
 
     res.status(201).json({

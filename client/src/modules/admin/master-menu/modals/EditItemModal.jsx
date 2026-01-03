@@ -16,13 +16,16 @@ import {
   Star,
 } from "lucide-react";
 
+/* ================= CONFIG ================= */
+
 const MAX_IMAGES = 5;
 const MAX_SIZE_MB = 5;
 
-// ✅ Mobile detection (PRODUCTION SAFE)
 const isTouchDevice =
   typeof window !== "undefined" &&
   ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+
+/* ================= COMPONENT ================= */
 
 export default function EditItemModal({ item, onClose, onSuccess }) {
   /* ================= STATE ================= */
@@ -42,7 +45,23 @@ export default function EditItemModal({ item, onClose, onSuccess }) {
   const [removedImages, setRemovedImages] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  /* ================= DRAG REFS ================= */
+
   const dragIndex = useRef(null);
+  const touchIndex = useRef(null);
+
+  /* ================= HELPERS ================= */
+
+  const reorder = (from, to) => {
+    if (from === to) return;
+
+    setImages((prev) => {
+      const arr = [...prev];
+      const [moved] = arr.splice(from, 1);
+      arr.splice(to, 0, moved);
+      return arr;
+    });
+  };
 
   /* ================= IMAGE ADD ================= */
 
@@ -86,56 +105,68 @@ export default function EditItemModal({ item, onClose, onSuccess }) {
 
   /* ================= DESKTOP DRAG ================= */
 
-  const onDragStart = (i) => (dragIndex.current = i);
+  const onDragStart = (index) => {
+    dragIndex.current = index;
+  };
 
-  const onDrop = (i) => {
+  const onDrop = (index) => {
     if (dragIndex.current === null) return;
-
-    const arr = [...images];
-    const moved = arr.splice(dragIndex.current, 1)[0];
-    arr.splice(i, 0, moved);
+    reorder(dragIndex.current, index);
     dragIndex.current = null;
-    setImages(arr);
   };
 
-  /* ================= MOBILE MOVE ================= */
+  /* ================= MOBILE TOUCH DRAG ================= */
 
-  const moveImage = (from, to) => {
-    if (to < 0 || to >= images.length) return;
-
-    const arr = [...images];
-    const [img] = arr.splice(from, 1);
-    arr.splice(to, 0, img);
-    setImages(arr);
+  const onTouchStart = (index) => {
+    touchIndex.current = index;
   };
 
-  /* ================= PRIMARY ================= */
+  const onTouchMove = (e) => {
+    if (touchIndex.current === null) return;
 
-  const setPrimary = (index) => {
-    const arr = [...images];
-    const [img] = arr.splice(index, 1);
-    arr.unshift(img);
-    setImages(arr);
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const wrapper = el?.closest("[data-index]");
+    if (!wrapper) return;
+
+    const newIndex = Number(wrapper.dataset.index);
+    if (newIndex !== touchIndex.current) {
+      reorder(touchIndex.current, newIndex);
+      touchIndex.current = newIndex;
+    }
   };
+
+  const onTouchEnd = () => {
+    touchIndex.current = null;
+  };
+
+  /* ================= PRIMARY IMAGE ================= */
+
+  const setPrimary = (index) => reorder(index, 0);
 
   /* ================= SUBMIT ================= */
 
   const submit = async () => {
     if (!form.name.trim()) return toast.error("Item name required");
-    if (Number(form.basePrice) < 0) return toast.error("Invalid price");
     if (!images.length) return toast.error("Add at least one image");
 
     try {
       setLoading(true);
 
+      const existingImagesOrder = images
+        .filter((img) => img.type === "existing")
+        .map((img) => img.url);
+
       const payload = {
         ...form,
         basePrice: Number(form.basePrice),
         removedImages,
+        existingImagesOrder,
       };
 
       const fd = new FormData();
       fd.append("data", JSON.stringify(payload));
+
       images.forEach((img) => {
         if (img.type === "new") fd.append("images", img.file);
       });
@@ -148,7 +179,8 @@ export default function EditItemModal({ item, onClose, onSuccess }) {
       toast.success("Item updated");
       onSuccess();
       onClose();
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast.error("Update failed");
     } finally {
       setLoading(false);
@@ -160,93 +192,75 @@ export default function EditItemModal({ item, onClose, onSuccess }) {
   return (
     <Modal title="Edit Menu Item" onClose={onClose}>
       <div className="space-y-8">
-
         {/* ================= IMAGES ================= */}
-        <section className="space-y-3">
-          <div className="flex justify-between items-center">
-            <label className="text-sm font-semibold text-gray-700">
-              Item Images
-            </label>
-            <span className="text-xs text-gray-400">
-              {images.length}/{MAX_IMAGES}
-            </span>
-          </div>
-
-          <p className="text-xs text-gray-500">
-            Drag on desktop • Use arrows on mobile • First image is primary
+        <section>
+          <label className="text-sm font-semibold text-gray-700">
+            Item Images
+          </label>
+          <p className="text-xs text-gray-500 mb-2">
+            Drag to reorder • First image is primary
           </p>
 
           <div className="grid grid-cols-3 gap-3">
             {images.map((img, i) => (
               <div
                 key={i}
+                data-index={i}
                 draggable={!isTouchDevice}
                 onDragStart={!isTouchDevice ? () => onDragStart(i) : undefined}
-                onDragOver={!isTouchDevice ? (e) => e.preventDefault() : undefined}
+                onDragOver={
+                  !isTouchDevice ? (e) => e.preventDefault() : undefined
+                }
                 onDrop={!isTouchDevice ? () => onDrop(i) : undefined}
-                className="relative rounded-xl overflow-hidden border bg-gray-100 group"
+                onTouchStart={isTouchDevice ? () => onTouchStart(i) : undefined}
+                onTouchMove={isTouchDevice ? onTouchMove : undefined}
+                onTouchEnd={isTouchDevice ? onTouchEnd : undefined}
+                className="relative rounded-xl overflow-hidden border bg-gray-100"
               >
                 <img
                   src={img.url || img.preview}
                   className="w-full h-24 object-cover"
-                  alt="Item"
+                  alt=""
                 />
 
-                {/* PRIMARY */}
                 {i === 0 && (
-                  <span className="absolute top-1.5 left-1.5 bg-black/80 text-white text-[10px] px-2 py-0.5 rounded-full">
+                  <span className="absolute top-1 left-1 bg-black/80 text-white text-[10px] px-2 py-0.5 rounded-full">
                     <Star size={10} className="inline mr-1 text-yellow-400" />
                     Primary
                   </span>
                 )}
 
-                {/* ACTIONS */}
-                <div className="absolute bottom-1.5 right-1.5 flex gap-1">
+                <div className="absolute bottom-1 right-1 flex gap-1">
                   <button
                     onClick={() => setPrimary(i)}
-                    className="h-7 w-7 bg-white/90 rounded-full flex items-center justify-center text-yellow-500 shadow"
+                    className="h-7 w-7 bg-white/90 rounded-full flex items-center justify-center text-yellow-500"
                   >
                     <Star size={14} />
                   </button>
 
                   <button
                     onClick={() => removeImage(img, i)}
-                    className="h-7 w-7 bg-white/90 rounded-full flex items-center justify-center text-red-600 shadow"
+                    className="h-7 w-7 bg-white/90 rounded-full flex items-center justify-center text-red-600"
                   >
                     <X size={14} />
                   </button>
 
                   {!isTouchDevice && (
-                    <div className="h-7 w-7 bg-white/90 rounded-full flex items-center justify-center text-gray-500 shadow cursor-grab">
+                    <div
+                      className="
+                        h-7 w-7 bg-white/90 rounded-full flex items-center
+                        justify-center text-gray-500 cursor-grab touch-none
+                      "
+                    >
                       <GripVertical size={14} />
                     </div>
                   )}
                 </div>
-
-                {/* MOBILE MOVE */}
-                {isTouchDevice && (
-                  <div className="absolute top-1.5 right-1.5 flex gap-1">
-                    <button
-                      onClick={() => moveImage(i, i - 1)}
-                      disabled={i === 0}
-                      className="h-6 w-6 bg-white/90 rounded-full text-xs disabled:opacity-30"
-                    >
-                      ◀
-                    </button>
-                    <button
-                      onClick={() => moveImage(i, i + 1)}
-                      disabled={i === images.length - 1}
-                      className="h-6 w-6 bg-white/90 rounded-full text-xs disabled:opacity-30"
-                    >
-                      ▶
-                    </button>
-                  </div>
-                )}
               </div>
             ))}
 
             {images.length < MAX_IMAGES && (
-              <label className="h-24 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer text-gray-400 hover:bg-gray-50">
+              <label className="h-24 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer text-gray-400">
                 <Plus size={18} />
                 <span className="text-xs">Add</span>
                 <input
@@ -262,30 +276,25 @@ export default function EditItemModal({ item, onClose, onSuccess }) {
         </section>
 
         {/* ================= FORM ================= */}
-        <section className="space-y-5">
-
-          {/* NAME */}
+        <section className="space-y-4">
           <div>
             <label className="text-sm font-semibold">Item Name</label>
             <input
               className="w-full border rounded-xl px-4 py-3 text-sm"
-              placeholder="Butter Chicken"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
           </div>
 
-          {/* PRICE */}
           <div>
             <label className="text-sm font-semibold">Base Price</label>
             <div className="flex border rounded-xl overflow-hidden">
-              <div className="w-11 flex items-center justify-center border-r text-gray-400">
+              <div className="w-10 flex items-center justify-center border-r">
                 <IndianRupee size={16} />
               </div>
               <input
                 type="number"
-                className="flex-1 px-3 py-3 text-sm outline-none"
-                placeholder="199"
+                className="flex-1 px-3 py-3 text-sm"
                 value={form.basePrice}
                 onChange={(e) =>
                   setForm({ ...form, basePrice: e.target.value })
@@ -294,16 +303,14 @@ export default function EditItemModal({ item, onClose, onSuccess }) {
             </div>
           </div>
 
-          {/* STATION */}
           <div>
             <label className="text-sm font-semibold">Kitchen Station</label>
             <div className="flex border rounded-xl overflow-hidden">
-              <div className="w-11 flex items-center justify-center border-r text-gray-400">
+              <div className="w-10 flex items-center justify-center border-r">
                 <Store size={16} />
               </div>
               <input
-                className="flex-1 px-3 py-3 text-sm outline-none"
-                placeholder="Tandoor / Fryer"
+                className="flex-1 px-3 py-3 text-sm"
                 value={form.defaultStation}
                 onChange={(e) =>
                   setForm({ ...form, defaultStation: e.target.value })
@@ -312,13 +319,11 @@ export default function EditItemModal({ item, onClose, onSuccess }) {
             </div>
           </div>
 
-          {/* DESCRIPTION */}
           <div>
             <label className="text-sm font-semibold">Description</label>
             <textarea
-              rows={4}
-              className="w-full border rounded-xl px-4 py-3 text-sm resize-none"
-              placeholder="Optional description shown to customers"
+              rows={3}
+              className="w-full border rounded-xl px-4 py-3 text-sm"
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
@@ -330,14 +335,14 @@ export default function EditItemModal({ item, onClose, onSuccess }) {
         {/* ================= DIET ================= */}
         <section>
           <label className="text-sm font-semibold">Dietary Type</label>
-          <div className="grid grid-cols-2 border rounded-xl overflow-hidden mt-2">
+          <div className="grid grid-cols-2 border rounded-xl mt-2 overflow-hidden">
             <button
               onClick={() => setForm({ ...form, isVeg: true })}
               className={`py-3 font-semibold ${
                 form.isVeg ? "bg-green-600 text-white" : "bg-gray-100"
               }`}
             >
-              <Leaf size={16} className="inline mr-1" /> Veg
+              <Leaf size={14} className="inline mr-1" /> Veg
             </button>
             <button
               onClick={() => setForm({ ...form, isVeg: false })}
@@ -345,37 +350,25 @@ export default function EditItemModal({ item, onClose, onSuccess }) {
                 !form.isVeg ? "bg-red-600 text-white" : "bg-gray-100"
               }`}
             >
-              <Flame size={16} className="inline mr-1" /> Non-Veg
+              <Flame size={14} className="inline mr-1" /> Non-Veg
             </button>
           </div>
         </section>
 
         {/* ================= ACTION BAR ================= */}
-        <div className="sticky bottom-0 bg-white border-t pt-3 flex gap-3">
+        <div className="flex gap-3">
           <button
             onClick={onClose}
-            disabled={loading}
             className="flex-1 border rounded-xl py-3 font-semibold"
           >
             Cancel
           </button>
-
           <button
             onClick={submit}
             disabled={loading}
-            className="flex-1 bg-black text-white rounded-xl py-3 font-semibold flex items-center justify-center gap-2"
+            className="flex-1 bg-black text-white rounded-xl py-3 font-semibold"
           >
-            {loading ? (
-              <>
-                <Loader2 className="animate-spin" size={16} />
-                Saving…
-              </>
-            ) : (
-              <>
-                <Save size={16} />
-                Save Changes
-              </>
-            )}
+            {loading ? "Saving…" : "Save Changes"}
           </button>
         </div>
       </div>

@@ -53,13 +53,7 @@ export async function createBrandController(req, res) {
     });
 
     // Default categories
-    const defaultCategories = [
-      "Starters",
-      "Chicken Starters",
-      "Main Course",
-      "Desserts",
-      "Beverages",
-    ];
+    const defaultCategories = [];
 
     for (let i = 0; i < defaultCategories.length; i++) {
       await MenuCategory.findOneAndUpdate(

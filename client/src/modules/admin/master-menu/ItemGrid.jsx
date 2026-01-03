@@ -6,6 +6,7 @@ export default function ItemGrid({
   items = [],
   refresh,
   onAddItem,
+  onDeleteItem, // 🔥 REQUIRED
   isAllSection = false,
 }) {
   const canAddItem = !isAllSection;
@@ -30,7 +31,7 @@ export default function ItemGrid({
         )}
       </div>
 
-      {/* EMPTY */}
+      {/* EMPTY STATE */}
       {!hasItems && (
         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 text-center">
           <Info size={20} className="mx-auto text-blue-600 mb-2" />
@@ -61,6 +62,9 @@ export default function ItemGrid({
                 key={item._id || item.id}
                 item={item}
                 refresh={refresh}
+                onDelete={
+                  () => onDeleteItem(item.id || item._id) // ✅ FIX
+                }
               />
             ))}
 

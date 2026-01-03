@@ -260,39 +260,83 @@ export async function updateCategory(req, res) {
   }
 }
 
+// export async function deleteCategory(req, res) {
+//   try {
+//     const { categoryId } = req.params;
+
+//     const category = await menuCategoryModel.findById(categoryId);
+//     if (!category) {
+//       return res.status(404).json({
+//         message: "Category not found",
+//         error: true,
+//         success: false,
+//       });
+//     }
+
+//     category.isArchived = true;
+//     await category.save();
+
+//     // Optional: archive all subcategories & items
+//     await menuSubcategoryModel.updateMany({ categoryId }, { isArchived: true });
+
+//     await masterMenuItemModel.updateMany({ categoryId }, { isArchived: true });
+
+//     return res.json({
+//       success: true,
+//       error: false,
+//       message: "Category archived",
+//     });
+//   } catch (err) {
+//     console.error("deleteCategory:", err);
+//     return res.status(500).json({
+//       message: "Server error",
+//       error: true,
+//       success: false,
+//     });
+//   }
+// }
+
 export async function deleteCategory(req, res) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { categoryId } = req.params;
 
-    const category = await menuCategoryModel.findById(categoryId);
-    if (!category) {
-      return res.status(404).json({
-        message: "Category not found",
-        error: true,
-        success: false,
-      });
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      return res.status(400).json({ message: "Invalid categoryId" });
     }
 
-    category.isArchived = true;
-    await category.save();
+    const category = await menuCategoryModel
+      .findById(categoryId)
+      .session(session);
 
-    // Optional: archive all subcategories & items
-    await menuSubcategoryModel.updateMany({ categoryId }, { isArchived: true });
+    if (!category) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: "Category not found" });
+    }
 
-    await masterMenuItemModel.updateMany({ categoryId }, { isArchived: true });
+    // 1️⃣ Delete items under category
+    await masterMenuItemModel.deleteMany({ categoryId }, { session });
+
+    // 2️⃣ Delete subcategories under category
+    await menuSubcategoryModel.deleteMany({ categoryId }, { session });
+
+    // 3️⃣ Delete category itself
+    await menuCategoryModel.deleteOne({ _id: categoryId }, { session });
+
+    await session.commitTransaction();
 
     return res.json({
       success: true,
-      error: false,
-      message: "Category archived",
+      message: "Category permanently deleted",
     });
   } catch (err) {
+    await session.abortTransaction();
     console.error("deleteCategory:", err);
-    return res.status(500).json({
-      message: "Server error",
-      error: true,
-      success: false,
-    });
+    return res.status(500).json({ message: "Server error" });
+  } finally {
+    session.endSession();
   }
 }
 
@@ -341,40 +385,81 @@ export async function updateSubcategory(req, res) {
   }
 }
 
+// export async function deleteSubcategory(req, res) {
+//   try {
+//     const { subcategoryId } = req.params;
+
+//     const sub = await menuSubcategoryModel.findById(subcategoryId);
+//     if (!sub) {
+//       return res.status(404).json({
+//         message: "Subcategory not found",
+//         error: true,
+//         success: false,
+//       });
+//     }
+
+//     sub.isArchived = true;
+//     await sub.save();
+
+//     // Archive items under subcategory
+//     await masterMenuItemModel.updateMany(
+//       { subcategoryId },
+//       { isArchived: true }
+//     );
+
+//     return res.json({
+//       success: true,
+//       error: false,
+//       message: "Subcategory archived",
+//     });
+//   } catch (err) {
+//     console.error("deleteSubcategory:", err);
+//     return res.status(500).json({
+//       message: "Server error",
+//       error: true,
+//       success: false,
+//     });
+//   }
+// }
+
 export async function deleteSubcategory(req, res) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { subcategoryId } = req.params;
 
-    const sub = await menuSubcategoryModel.findById(subcategoryId);
-    if (!sub) {
-      return res.status(404).json({
-        message: "Subcategory not found",
-        error: true,
-        success: false,
-      });
+    if (!mongoose.Types.ObjectId.isValid(subcategoryId)) {
+      return res.status(400).json({ message: "Invalid subcategoryId" });
     }
 
-    sub.isArchived = true;
-    await sub.save();
+    const subcategory = await menuSubcategoryModel
+      .findById(subcategoryId)
+      .session(session);
 
-    // Archive items under subcategory
-    await masterMenuItemModel.updateMany(
-      { subcategoryId },
-      { isArchived: true }
-    );
+    if (!subcategory) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: "Subcategory not found" });
+    }
+
+    // 1️⃣ Delete items under subcategory
+    await masterMenuItemModel.deleteMany({ subcategoryId }, { session });
+
+    // 2️⃣ Delete subcategory
+    await menuSubcategoryModel.deleteOne({ _id: subcategoryId }, { session });
+
+    await session.commitTransaction();
 
     return res.json({
       success: true,
-      error: false,
-      message: "Subcategory archived",
+      message: "Subcategory permanently deleted",
     });
   } catch (err) {
+    await session.abortTransaction();
     console.error("deleteSubcategory:", err);
-    return res.status(500).json({
-      message: "Server error",
-      error: true,
-      success: false,
-    });
+    return res.status(500).json({ message: "Server error" });
+  } finally {
+    session.endSession();
   }
 }
 
@@ -484,6 +569,7 @@ export async function updateMasterItem(req, res) {
       return res.status(400).json({ message: "Invalid itemId" });
     }
 
+    /* ---------- PARSE BODY ---------- */
     const body = req.body?.data ? JSON.parse(req.body.data) : req.body;
 
     const {
@@ -493,6 +579,7 @@ export async function updateMasterItem(req, res) {
       isVeg,
       defaultStation,
       removedImages = [],
+      existingImagesOrder = [], // 🔥 NEW
     } = body;
 
     const item = await MasterMenuItem.findById(itemId);
@@ -513,6 +600,23 @@ export async function updateMasterItem(req, res) {
       }
     }
 
+    /* ---------- REORDER EXISTING IMAGES ---------- */
+    if (existingImagesOrder.length) {
+      const ordered = [];
+
+      // keep order sent from frontend
+      for (const url of existingImagesOrder) {
+        if (item.images.includes(url)) {
+          ordered.push(url);
+        }
+      }
+
+      // add remaining images (new uploads)
+      const remaining = item.images.filter((img) => !ordered.includes(img));
+
+      item.images = [...ordered, ...remaining];
+    }
+
     /* ---------- PRIMARY IMAGE ---------- */
     item.image = item.images[0] || "";
 
@@ -523,7 +627,7 @@ export async function updateMasterItem(req, res) {
     if (isVeg !== undefined) item.isVeg = Boolean(isVeg);
     if (defaultStation !== undefined) item.defaultStation = defaultStation;
 
-    item.version = Date.now();
+    item.version = Date.now(); // 🔥 forces frontend refresh
     await item.save();
 
     return res.json({
@@ -535,39 +639,62 @@ export async function updateMasterItem(req, res) {
     return res.status(500).json({ message: "Server error" });
   }
 }
+// export async function deleteMasterItem(req, res) {
+//   try {
+//     const { itemId } = req.params;
+
+//     const item = await masterMenuItemModel.findById(itemId);
+//     if (!item) {
+//       return res.status(404).json({
+//         message: "Item not found",
+//         error: true,
+//         success: false,
+//       });
+//     }
+
+//     item.isArchived = true;
+//     await item.save();
+
+//     return res.json({
+//       success: true,
+//       error: false,
+//       message: "Item archived",
+//     });
+//   } catch (err) {
+//     console.error("deleteMasterItem:", err);
+//     return res.status(500).json({
+//       message: "Server error",
+//       error: true,
+//       success: false,
+//     });
+//   }
+// }
+
+// src/controller/masterMenu.controller.js
+
 export async function deleteMasterItem(req, res) {
   try {
     const { itemId } = req.params;
 
-    const item = await masterMenuItemModel.findById(itemId);
-    if (!item) {
-      return res.status(404).json({
-        message: "Item not found",
-        error: true,
-        success: false,
-      });
+    if (!mongoose.Types.ObjectId.isValid(itemId)) {
+      return res.status(400).json({ message: "Invalid itemId" });
     }
 
-    item.isArchived = true;
-    await item.save();
+    const deleted = await masterMenuItemModel.deleteOne({ _id: itemId });
+
+    if (deleted.deletedCount === 0) {
+      return res.status(404).json({ message: "Item not found" });
+    }
 
     return res.json({
       success: true,
-      error: false,
-      message: "Item archived",
+      message: "Item permanently deleted",
     });
   } catch (err) {
     console.error("deleteMasterItem:", err);
-    return res.status(500).json({
-      message: "Server error",
-      error: true,
-      success: false,
-    });
+    return res.status(500).json({ message: "Server error" });
   }
 }
-
-// src/controller/masterMenu.controller.js
-
 /**
  * GET /api/master-menu/categories
  * Brand admin only

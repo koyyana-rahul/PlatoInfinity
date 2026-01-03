@@ -1,55 +1,70 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import EditItemModal from "./modals/EditItemModal";
-import Axios from "../../../api/axios";
-import masterMenuApi from "../../../api/masterMenu.api";
-import toast from "react-hot-toast";
-import { Pencil, Trash2, Leaf, Flame } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  Leaf,
+  Flame,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
-export default function ItemCard({ item, refresh }) {
+export default function ItemCard({ item, onDelete, refresh }) {
   const [editOpen, setEditOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
-  /* ---------------- NORMALIZE DATA ---------------- */
+  const images =
+    item.images?.length > 0 ? item.images : item.image ? [item.image] : [];
+
+  const [index, setIndex] = useState(0);
+  const touchStartX = useRef(null);
 
   const price = item.price ?? item.basePrice ?? 0;
 
-  /* ---------------- DELETE ---------------- */
+  /* ---------------- RESET ON ITEM CHANGE ---------------- */
+  useEffect(() => {
+    setIndex(0);
+  }, [item._id]);
 
-  const remove = async () => {
-    if (deleting) return;
+  /* ---------------- NAVIGATION ---------------- */
 
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${item.name}"?`
-    );
-    if (!confirmed) return;
-
-    try {
-      setDeleting(true);
-      const api = masterMenuApi.deleteItem(item._id);
-      await Axios({ url: api.url, method: api.method });
-      toast.success("Item archived");
-      refresh?.();
-    } catch (err) {
-      console.error("Delete item:", err);
-      toast.error("Failed to delete item");
-    } finally {
-      setDeleting(false);
-    }
+  const prev = (e) => {
+    e?.stopPropagation();
+    setIndex((p) => (p === 0 ? images.length - 1 : p - 1));
   };
 
-  /* ---------------- UI ---------------- */
+  const next = (e) => {
+    e?.stopPropagation();
+    setIndex((p) => (p === images.length - 1 ? 0 : p + 1));
+  };
+
+  /* ---------------- TOUCH SWIPE ---------------- */
+
+  const onTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const onTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const diff = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(diff) > 40) diff > 0 ? prev() : next();
+    touchStartX.current = null;
+  };
 
   return (
     <>
       <div className="group bg-white rounded-2xl p-3 shadow-sm hover:shadow-md transition relative">
-        {/* IMAGE */}
-        <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-100">
-          {item.image ? (
+        {/* IMAGE CAROUSEL */}
+        <div
+          className="relative aspect-square rounded-xl overflow-hidden bg-gray-100"
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
+          {images.length ? (
             <img
-              src={item.image}
+              src={images[index]}
               alt={item.name}
-              loading="lazy"
-              className="w-full h-full object-cover transition-transform md:group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-300 lg:group-hover:scale-105"
+              draggable={false}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-xs text-gray-400">
@@ -57,8 +72,53 @@ export default function ItemCard({ item, refresh }) {
             </div>
           )}
 
-          {/* VEG / NON-VEG BADGE */}
-          <div className="absolute top-2 left-2 bg-white p-1 rounded-md shadow">
+          {/* CAROUSEL CONTROLS (ALL SCREENS) */}
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={prev}
+                className="
+                  absolute left-1 sm:left-2 top-1/2 -translate-y-1/2
+                  h-7 w-7 sm:h-8 sm:w-8
+                  rounded-full bg-black/50 text-white
+                  flex items-center justify-center
+                  opacity-100 lg:opacity-0 lg:group-hover:opacity-100
+                  transition z-30
+                "
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              <button
+                onClick={next}
+                className="
+                  absolute right-1 sm:right-2 top-1/2 -translate-y-1/2
+                  h-7 w-7 sm:h-8 sm:w-8
+                  rounded-full bg-black/50 text-white
+                  flex items-center justify-center
+                  opacity-100 lg:opacity-0 lg:group-hover:opacity-100
+                  transition z-30
+                "
+              >
+                <ChevronRight size={16} />
+              </button>
+
+              {/* DOTS */}
+              <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1.5 z-20">
+                {images.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      i === index ? "bg-white" : "bg-white/40"
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* VEG / NON-VEG */}
+          <div className="absolute top-2 left-2 bg-white p-1 rounded-md shadow z-40">
             {item.isVeg ? (
               <Leaf size={14} className="text-green-600" />
             ) : (
@@ -66,29 +126,26 @@ export default function ItemCard({ item, refresh }) {
             )}
           </div>
 
-          {/* DESKTOP HOVER ACTIONS */}
+          {/* EDIT / DELETE — DESKTOP ONLY */}
           <div
             className="
               absolute inset-0 bg-black/30
-              hidden md:flex
-              opacity-0 md:group-hover:opacity-100
-              items-center justify-center gap-3
-              transition
+              hidden lg:flex
+              opacity-0 group-hover:opacity-100
+              items-center justify-center gap-4
+              transition z-20
             "
           >
             <button
               onClick={() => setEditOpen(true)}
-              className="bg-white p-2 rounded-full hover:scale-110 transition"
-              aria-label="Edit item"
+              className="bg-white p-2.5 rounded-full hover:scale-110 transition"
             >
               <Pencil size={16} />
             </button>
 
             <button
-              onClick={remove}
-              disabled={deleting}
-              className="bg-white p-2 rounded-full text-red-600 hover:scale-110 transition disabled:opacity-50"
-              aria-label="Delete item"
+              onClick={onDelete}
+              className="bg-white p-2.5 rounded-full text-red-600 hover:scale-110 transition"
             >
               <Trash2 size={16} />
             </button>
@@ -98,29 +155,20 @@ export default function ItemCard({ item, refresh }) {
         {/* INFO */}
         <div className="mt-3 space-y-1">
           <h4 className="font-bold text-sm truncate">{item.name}</h4>
-
           <p className="text-xs text-gray-500">₹{Number(price).toFixed(2)}</p>
-
-          {item.defaultStation && (
-            <p className="text-[10px] text-gray-400 truncate">
-              {item.defaultStation}
-            </p>
-          )}
         </div>
 
-        {/* MOBILE ACTIONS */}
-        <div className="mt-3 flex gap-2 md:hidden">
+        {/* ACTION BUTTONS — MOBILE + TABLET */}
+        <div className="mt-3 flex gap-2 lg:hidden">
           <button
             onClick={() => setEditOpen(true)}
-            className="flex-1 py-2 rounded-xl border text-xs font-bold hover:bg-gray-50 transition"
+            className="flex-1 py-2 rounded-xl border text-xs font-bold"
           >
             Edit
           </button>
-
           <button
-            onClick={remove}
-            disabled={deleting}
-            className="flex-1 py-2 rounded-xl border text-xs font-bold text-red-600 hover:bg-red-50 transition disabled:opacity-50"
+            onClick={onDelete}
+            className="flex-1 py-2 rounded-xl border text-xs font-bold text-red-600"
           >
             Delete
           </button>
@@ -132,7 +180,10 @@ export default function ItemCard({ item, refresh }) {
         <EditItemModal
           item={item}
           onClose={() => setEditOpen(false)}
-          onSuccess={refresh}
+          onSuccess={() => {
+            refresh();
+            setEditOpen(false);
+          }}
         />
       )}
     </>
