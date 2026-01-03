@@ -7,43 +7,35 @@ export function initAxiosInterceptors() {
   if (initialized) return;
   initialized = true;
 
-  const PUBLIC_ROUTES = [
-    "/api/auth/login",
-    "/api/auth/register",
-    "/api/auth/verify-email",
-    "/api/auth/forgot-password",
-    "/api/auth/reset-password",
-    "/api/auth/refresh-token",
-  ];
-
   Axios.interceptors.response.use(
     (res) => res,
     async (err) => {
       const original = err.config;
 
+      // If not 401 → just throw
       if (err.response?.status !== 401) {
         return Promise.reject(err);
       }
 
+      // Prevent infinite loop
       if (original._retry) {
         return Promise.reject(err);
       }
 
-      if (PUBLIC_ROUTES.some((r) => original.url?.includes(r))) {
+      // ❗ NEVER refresh on auth routes
+      if (original.url?.includes("/api/auth")) {
         return Promise.reject(err);
       }
 
       original._retry = true;
 
       try {
-        // ✅ refresh using cookie
+        // Try refresh token
         await AuthAxios.post("/api/auth/refresh-token");
-
-        // retry original request
-        return Axios(original);
-      } catch {
-        window.location.replace("/login");
-        return Promise.reject(err);
+        return Axios(original); // retry original request
+      } catch (refreshError) {
+        // ✅ DO NOTHING HERE (no redirect)
+        return Promise.reject(refreshError);
       }
     }
   );

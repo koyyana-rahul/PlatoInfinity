@@ -3,7 +3,7 @@ import { Pencil, Trash2 } from "lucide-react";
 export default function CategoryBar({
   categories = [],
   activeCategoryId,
-  onSelect, // parent MUST reset subcategory to null (ALL)
+  onSelect,
   onEdit,
   onDelete,
 }) {
@@ -16,31 +16,36 @@ export default function CategoryBar({
   }
 
   return (
-    <div className="sticky top-0 z-40 bg-white border-b border-gray-100">
+    <div className="sticky top-0 z-40 bg-white border-b">
       <div
         className="
-          flex gap-5 overflow-x-auto px-4 py-4
+          flex gap-6
+          overflow-x-auto
+          px-4 py-4
           scrollbar-hide
           touch-pan-x
         "
-        role="tablist"
-        aria-label="Menu Categories"
       >
         {categories.map((cat) => {
           const isActive = cat.id === activeCategoryId;
 
           return (
-            <div key={cat.id} className="relative flex-shrink-0 group">
-              {/* CATEGORY BUTTON */}
+            <div
+              key={cat.id}
+              className="
+                relative
+                flex-shrink-0
+                group
+              "
+            >
+              {/* ================= CATEGORY ================= */}
               <button
                 type="button"
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => onSelect(cat.id)} // 🔥 parent resets subcategory
+                onClick={() => onSelect(cat.id)}
                 className={`
                   flex flex-col items-center gap-2
                   transition-all duration-200
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-black
+                  focus:outline-none
                   ${
                     isActive
                       ? "scale-110"
@@ -53,20 +58,20 @@ export default function CategoryBar({
                   className={`
                     w-14 h-14 rounded-full
                     flex items-center justify-center
-                    text-xl shadow-sm transition-all
+                    shadow-sm
+                    transition-all
                     ${
                       isActive
-                        ? "bg-yellow-400 text-black ring-4 ring-yellow-100"
-                        : "bg-gray-100 text-gray-500"
+                        ? "bg-yellow-400 ring-4 ring-yellow-100"
+                        : "bg-gray-100"
                     }
                   `}
                 >
                   {cat.icon || "🍽️"}
                 </div>
 
-                {/* LABEL */}
+                {/* NAME */}
                 <span
-                  title={cat.name}
                   className={`
                     max-w-[64px] truncate
                     text-[10px] font-black uppercase tracking-widest
@@ -77,16 +82,18 @@ export default function CategoryBar({
                 </span>
               </button>
 
-              {/* ADMIN ACTIONS */}
+              {/* ================= ACTIONS ================= */}
               {(onEdit || onDelete) && (
                 <div
                   className="
-                    absolute -top-1 -right-1
-                    hidden group-hover:flex
-                    md:flex md:opacity-0 md:group-hover:opacity-100
-                    transition
+                    absolute -top-2 -right-2
+                    flex gap-1
+                    opacity-100 sm:opacity-0
+                    group-hover:opacity-100
+                    transition-opacity
                   "
                 >
+                  {/* EDIT */}
                   {onEdit && (
                     <button
                       type="button"
@@ -95,15 +102,24 @@ export default function CategoryBar({
                         onEdit(cat);
                       }}
                       className="
-                        p-1 bg-white rounded-full shadow border
-                        text-gray-400 hover:text-blue-600
+                        h-8 w-8
+                        rounded-full
+                        bg-white border
+                        shadow-sm
+                        flex items-center justify-center
+                        text-gray-500
+                        hover:text-blue-600
+                        hover:bg-blue-50
+                        active:scale-95
+                        transition
                       "
                       aria-label="Edit category"
                     >
-                      <Pencil size={12} />
+                      <Pencil size={14} />
                     </button>
                   )}
 
+                  {/* DELETE */}
                   {onDelete && (
                     <button
                       type="button"
@@ -112,12 +128,20 @@ export default function CategoryBar({
                         onDelete(cat.id);
                       }}
                       className="
-                        p-1 bg-white rounded-full shadow border
-                        text-gray-400 hover:text-red-600
+                        h-8 w-8
+                        rounded-full
+                        bg-white border
+                        shadow-sm
+                        flex items-center justify-center
+                        text-gray-500
+                        hover:text-red-600
+                        hover:bg-red-50
+                        active:scale-95
+                        transition
                       "
                       aria-label="Delete category"
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={14} />
                     </button>
                   )}
                 </div>

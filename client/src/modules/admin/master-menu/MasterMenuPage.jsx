@@ -14,13 +14,15 @@ import EditCategoryModal from "./modals/EditCategoryModal";
 import CreateSubcategoryModal from "./modals/CreateSubCategoryModal";
 import EditSubCategoryModal from "./modals/EditSubCategoryModal";
 import CreateItemModal from "./modals/CreateItemModal";
+import ConfirmDeleteModal from "./modals/ConfirmDeleteModal";
 
-/* 🔥 Collect ALL items under a category */
+/* ================= HELPERS ================= */
 const getAllCategoryItems = (category) => {
   if (!category) return [];
-  const direct = category.items || [];
-  const fromSubs = category.subcategories?.flatMap((s) => s.items || []) || [];
-  return [...direct, ...fromSubs];
+  return [
+    ...(category.items || []),
+    ...(category.subcategories?.flatMap((s) => s.items || []) || []),
+  ];
 };
 
 export default function MasterMenuPage() {
@@ -28,12 +30,15 @@ export default function MasterMenuPage() {
   const [loading, setLoading] = useState(true);
 
   const [activeCategoryId, setActiveCategoryId] = useState(null);
-  const [activeSubcategoryId, setActiveSubcategoryId] = useState(null); // null = ALL
+  const [activeSubcategoryId, setActiveSubcategoryId] = useState(null);
 
   const [vegFilter, setVegFilter] = useState("all");
   const [modal, setModal] = useState({ type: null, data: null });
 
-  /* ---------------- API ---------------- */
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  /* ================= API ================= */
 
   const loadMenu = async () => {
     try {
@@ -57,7 +62,7 @@ export default function MasterMenuPage() {
     loadMenu();
   }, []);
 
-  /* ---------------- DERIVED ---------------- */
+  /* ================= DERIVED ================= */
 
   const activeCategory = useMemo(
     () => menu.find((c) => c.id === activeCategoryId),
@@ -68,25 +73,43 @@ export default function MasterMenuPage() {
   const activeSubcategory =
     subcategories.find((s) => s.id === activeSubcategoryId) || null;
 
-  const isAllSection = activeSubcategoryId === null;
+  const visibleItems = useMemo(() => {
+    if (!activeCategory) return [];
+    const items =
+      activeSubcategoryId === null
+        ? getAllCategoryItems(activeCategory)
+        : activeSubcategory?.items || [];
 
-  const filterItems = (items = []) => {
     if (vegFilter === "veg") return items.filter((i) => i.isVeg);
     if (vegFilter === "nonveg") return items.filter((i) => !i.isVeg);
     return items;
-  };
-
-  const visibleItems = useMemo(() => {
-    if (!activeCategory) return [];
-    const items = isAllSection
-      ? getAllCategoryItems(activeCategory)
-      : activeSubcategory?.items || [];
-    return filterItems(items);
-  }, [activeCategory, activeSubcategory, isAllSection, vegFilter]);
+  }, [activeCategory, activeSubcategory, activeSubcategoryId, vegFilter]);
 
   const closeModal = () => setModal({ type: null, data: null });
 
-  /* ---------------- UI ---------------- */
+  /* ================= DELETE ================= */
+
+  const confirmAndDelete = ({ title, description, action }) => {
+    setConfirmDelete({ title, description, action });
+  };
+
+  const executeDelete = async () => {
+    if (!confirmDelete) return;
+    setDeleteLoading(true);
+
+    try {
+      await confirmDelete.action();
+      toast.success("Deleted successfully");
+      setConfirmDelete(null);
+      loadMenu();
+    } catch {
+      toast.error("Delete failed");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  /* ================= UI ================= */
 
   return (
     <div className="min-h-screen bg-[#F8F9FB] flex flex-col">
@@ -110,12 +133,9 @@ export default function MasterMenuPage() {
                 <button
                   key={v.id}
                   onClick={() => setVegFilter(v.id)}
-                  className={`px-3 py-1.5 text-[9px] font-black uppercase rounded-full flex items-center gap-1
-                    ${
-                      vegFilter === v.id
-                        ? "bg-black text-white"
-                        : "text-gray-500"
-                    }`}
+                  className={`px-3 py-1.5 text-[9px] font-black rounded-full ${
+                    vegFilter === v.id ? "bg-black text-white" : "text-gray-500"
+                  }`}
                 >
                   {v.icon}
                 </button>
@@ -125,7 +145,7 @@ export default function MasterMenuPage() {
             {/* ✅ ADD CATEGORY */}
             <button
               onClick={() => setModal({ type: "category" })}
-              className="bg-black text-white px-3 py-2 rounded-xl text-[10px] font-black flex items-center gap-1"
+              className="bg-black text-white px-3 py-2 rounded-xl text-[10px] font-black"
             >
               <Plus size={12} /> Category
             </button>
@@ -141,6 +161,15 @@ export default function MasterMenuPage() {
           setActiveCategoryId(id);
           setActiveSubcategoryId(null);
         }}
+        onEdit={(cat) => setModal({ type: "editCategory", data: cat })}
+        onDelete={(id) =>
+          confirmAndDelete({
+            title: "Delete Category",
+            description:
+              "This will permanently delete the category and all its items.",
+            action: () => Axios(masterMenuApi.deleteCategory(id)),
+          })
+        }
       />
 
       {/* MAIN */}
@@ -152,24 +181,41 @@ export default function MasterMenuPage() {
               activeSubcategoryId={activeSubcategoryId}
               onSelect={setActiveSubcategoryId}
               onAdd={() =>
-                setModal({
-                  type: "subcategory",
-                  data: activeCategory.id,
+                setModal({ type: "subcategory", data: activeCategory.id })
+              }
+              onEdit={(sub) => setModal({ type: "editSubcategory", data: sub })}
+              onDelete={(id) =>
+                confirmAndDelete({
+                  title: "Delete Section",
+                  description: "All items inside this section will be deleted.",
+                  action: () => Axios(masterMenuApi.deleteSubcategory(id)),
                 })
               }
             />
 
             <ItemGrid
-              title={isAllSection ? "All Items" : activeSubcategory?.name}
+              title={
+                activeSubcategoryId === null
+                  ? "All Items"
+                  : activeSubcategory?.name
+              }
               items={visibleItems}
-              isAllSection={isAllSection}
+              isAllSection={activeSubcategoryId === null}
               onAddItem={() =>
                 setModal({
                   type: "item",
                   data: {
                     categoryId: activeCategory.id,
-                    subcategoryId: isAllSection ? null : activeSubcategory.id,
+                    subcategoryId: activeSubcategoryId,
                   },
+                })
+              }
+              onDeleteItem={(id) =>
+                confirmAndDelete({
+                  title: "Delete Item",
+                  description:
+                    "This item will be permanently removed from menu.",
+                  action: () => Axios(masterMenuApi.deleteItem(id)),
                 })
               }
               refresh={loadMenu}
@@ -216,6 +262,16 @@ export default function MasterMenuPage() {
           onSuccess={loadMenu}
         />
       )}
+
+      {/* CONFIRM DELETE */}
+      <ConfirmDeleteModal
+        open={!!confirmDelete}
+        title={confirmDelete?.title}
+        description={confirmDelete?.description}
+        loading={deleteLoading}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={executeDelete}
+      />
     </div>
   );
 }

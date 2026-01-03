@@ -32,11 +32,13 @@ function hashString(raw) {
   return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
+const isProd = process.env.NODE_ENV === "production";
+
 function cookieOptions() {
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    secure: isProd,
+    sameSite: isProd ? "None" : "Lax",
     // maxAge omitted for accessToken cookie (token expiry enforced by JWT); you can set if desired
   };
 }
@@ -206,18 +208,20 @@ export async function loginController(req, res) {
   user.refreshToken = refreshToken;
   await user.save();
 
+  const isProd = process.env.NODE_ENV === "production";
+
   // 🍪 Set cookies
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "none",
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
     maxAge: 15 * 60 * 1000, // 15 min
   });
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "none",
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 
@@ -286,10 +290,12 @@ export async function refreshTokenController(req, res) {
   // 🔁 Issue new access token
   const newAccessToken = signAccessToken(user._id);
 
+  const isProd = process.env.NODE_ENV === "production";
+
   res.cookie("accessToken", newAccessToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "none",
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
     maxAge: 15 * 60 * 1000,
   });
 

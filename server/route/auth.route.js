@@ -13,11 +13,11 @@ import {
   userDetailsController,
   uploadAvatarController,
   setPasswordController,
-  acceptInviteController,
 } from "../controller/auth.controller.js";
 
 import { requireAuth } from "../middleware/requireAuth.js";
 import upload from "../config/multer.js";
+import { acceptInviteController } from "../controller/auth.invite.controller.js";
 // import { acceptInviteController } from "../controller/invite.controller.js";
 
 const authRouter = express.Router();
