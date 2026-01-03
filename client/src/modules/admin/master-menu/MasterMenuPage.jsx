@@ -39,7 +39,6 @@ export default function MasterMenuPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   /* ================= API ================= */
-
   const loadMenu = async () => {
     try {
       setLoading(true);
@@ -63,7 +62,6 @@ export default function MasterMenuPage() {
   }, []);
 
   /* ================= DERIVED ================= */
-
   const activeCategory = useMemo(
     () => menu.find((c) => c.id === activeCategoryId),
     [menu, activeCategoryId]
@@ -83,12 +81,11 @@ export default function MasterMenuPage() {
     if (vegFilter === "veg") return items.filter((i) => i.isVeg);
     if (vegFilter === "nonveg") return items.filter((i) => !i.isVeg);
     return items;
-  }, [activeCategory, activeSubcategory, activeSubcategoryId, vegFilter]);
+  }, [activeCategory, activeSubcategoryId, vegFilter]);
 
   const closeModal = () => setModal({ type: null, data: null });
 
   /* ================= DELETE ================= */
-
   const confirmAndDelete = ({ title, description, action }) => {
     setConfirmDelete({ title, description, action });
   };
@@ -96,7 +93,6 @@ export default function MasterMenuPage() {
   const executeDelete = async () => {
     if (!confirmDelete) return;
     setDeleteLoading(true);
-
     try {
       await confirmDelete.action();
       toast.success("Deleted successfully");
@@ -110,20 +106,19 @@ export default function MasterMenuPage() {
   };
 
   /* ================= UI ================= */
-
   return (
-    <div className="min-h-screen bg-[#F8F9FB] flex flex-col">
-      {/* HEADER */}
-      <header className="sticky top-0 z-40 bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between">
+    <div className="min-h-screen bg-[#f2f2f2] flex flex-col">
+      {/* ================= HEADER (STICKY) ================= */}
+      <header className="sticky top-0 z-50 bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 h-[56px] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-yellow-400 p-2 rounded-xl">
+            <div className="bg-black text-white p-2 rounded-md">
               <UtensilsCrossed size={18} />
             </div>
-            <h1 className="font-black uppercase text-sm">Master Menu</h1>
+            <span className="text-sm font-medium">Master Menu</span>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex items-center gap-3">
             <div className="flex bg-gray-100 rounded-full p-1">
               {[
                 { id: "all", icon: <Filter size={12} /> },
@@ -133,7 +128,7 @@ export default function MasterMenuPage() {
                 <button
                   key={v.id}
                   onClick={() => setVegFilter(v.id)}
-                  className={`px-3 py-1.5 text-[9px] font-black rounded-full ${
+                  className={`px-3 py-1.5 text-[11px] rounded-full ${
                     vegFilter === v.id ? "bg-black text-white" : "text-gray-500"
                   }`}
                 >
@@ -142,94 +137,92 @@ export default function MasterMenuPage() {
               ))}
             </div>
 
-            {/* ✅ ADD CATEGORY */}
             <button
               onClick={() => setModal({ type: "category" })}
-              className="bg-black text-white px-3 py-2 rounded-xl text-[10px] font-black"
+              className="bg-black text-white px-4 py-2 rounded-md text-xs"
             >
-              <Plus size={12} /> Category
+              <Plus size={12} />
+              <p>Category</p>
             </button>
           </div>
         </div>
       </header>
 
-      {/* CATEGORY BAR */}
-      <CategoryBar
-        categories={menu}
-        activeCategoryId={activeCategoryId}
-        onSelect={(id) => {
-          setActiveCategoryId(id);
-          setActiveSubcategoryId(null);
-        }}
-        onEdit={(cat) => setModal({ type: "editCategory", data: cat })}
-        onDelete={(id) =>
-          confirmAndDelete({
-            title: "Delete Category",
-            description:
-              "This will permanently delete the category and all its items.",
-            action: () => Axios(masterMenuApi.deleteCategory(id)),
-          })
-        }
-      />
+      {/* ================= CATEGORY BAR (STICKY) ================= */}
+      <div className="sticky top-[56px] z-40 bg-white border-b">
+        <div className="px-2 py-1">
+          <CategoryBar
+            categories={menu}
+            activeCategoryId={activeCategoryId}
+            onSelect={(id) => {
+              setActiveCategoryId(id);
+              setActiveSubcategoryId(null);
+            }}
+            onEdit={(cat) => setModal({ type: "editCategory", data: cat })}
+            onDelete={(id) =>
+              confirmAndDelete({
+                title: "Delete Category",
+                description:
+                  "This will permanently delete the category and all its items.",
+                action: () => Axios(masterMenuApi.deleteCategory(id)),
+              })
+            }
+          />
+        </div>
+      </div>
 
-      {/* MAIN */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 pt-4 pb-32">
-        {!loading && activeCategory && (
-          <>
-            <SubcategoryBar
-              subcategories={subcategories}
-              activeSubcategoryId={activeSubcategoryId}
-              onSelect={setActiveSubcategoryId}
-              onAdd={() =>
-                setModal({ type: "subcategory", data: activeCategory.id })
-              }
-              onEdit={(sub) => setModal({ type: "editSubcategory", data: sub })}
-              onDelete={(id) =>
-                confirmAndDelete({
-                  title: "Delete Section",
-                  description: "All items inside this section will be deleted.",
-                  action: () => Axios(masterMenuApi.deleteSubcategory(id)),
-                })
-              }
-            />
+      {/* ================= SUBCATEGORY BAR (STICKY) ================= */}
+      <div className="sticky top-[108px] z-30 bg-[#eeeeee] border-b">
+        <div className="max-w-7xl mx-auto px-4 py-2">
+          <SubcategoryBar
+            subcategories={subcategories}
+            activeSubcategoryId={activeSubcategoryId}
+            onSelect={setActiveSubcategoryId}
+            onAdd={() =>
+              setModal({ type: "subcategory", data: activeCategory.id })
+            }
+            onEdit={(sub) => setModal({ type: "editSubcategory", data: sub })}
+            onDelete={(id) =>
+              confirmAndDelete({
+                title: "Delete Section",
+                description: "All items inside this section will be deleted.",
+                action: () => Axios(masterMenuApi.deleteSubcategory(id)),
+              })
+            }
+          />
+        </div>
+      </div>
 
-            <ItemGrid
-              title={
-                activeSubcategoryId === null
-                  ? "All Items"
-                  : activeSubcategory?.name
-              }
-              items={visibleItems}
-              isAllSection={activeSubcategoryId === null}
-              onAddItem={() =>
-                setModal({
-                  type: "item",
-                  data: {
-                    categoryId: activeCategory.id,
-                    subcategoryId: activeSubcategoryId,
-                  },
-                })
-              }
-              onDeleteItem={(id) =>
-                confirmAndDelete({
-                  title: "Delete Item",
-                  description:
-                    "This item will be permanently removed from menu.",
-                  action: () => Axios(masterMenuApi.deleteItem(id)),
-                })
-              }
-              refresh={loadMenu}
-            />
-          </>
-        )}
+      {/* ================= ITEM GRID ================= */}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 pt-3 pb-24">
+        <ItemGrid
+          title={activeSubcategoryId === null ? "All" : activeSubcategory?.name}
+          items={visibleItems}
+          isAllSection={activeSubcategoryId === null}
+          onAddItem={() =>
+            setModal({
+              type: "item",
+              data: {
+                categoryId: activeCategory.id,
+                subcategoryId: activeSubcategoryId,
+              },
+            })
+          }
+          onDeleteItem={(id) =>
+            confirmAndDelete({
+              title: "Delete Item",
+              description: "This item will be permanently removed from menu.",
+              action: () => Axios(masterMenuApi.deleteItem(id)),
+            })
+          }
+          refresh={loadMenu}
+        />
       </main>
 
       {/* ================= MODALS ================= */}
-
       {modal.type === "category" && (
         <CreateCategoryModal onClose={closeModal} onSuccess={loadMenu} />
       )}
-
       {modal.type === "editCategory" && (
         <EditCategoryModal
           category={modal.data}
@@ -237,7 +230,6 @@ export default function MasterMenuPage() {
           onSuccess={loadMenu}
         />
       )}
-
       {modal.type === "subcategory" && (
         <CreateSubcategoryModal
           categoryId={modal.data}
@@ -245,7 +237,6 @@ export default function MasterMenuPage() {
           onSuccess={loadMenu}
         />
       )}
-
       {modal.type === "editSubcategory" && (
         <EditSubCategoryModal
           subcategory={modal.data}
@@ -253,7 +244,6 @@ export default function MasterMenuPage() {
           onSuccess={loadMenu}
         />
       )}
-
       {modal.type === "item" && (
         <CreateItemModal
           categoryId={modal.data.categoryId}
@@ -263,7 +253,6 @@ export default function MasterMenuPage() {
         />
       )}
 
-      {/* CONFIRM DELETE */}
       <ConfirmDeleteModal
         open={!!confirmDelete}
         title={confirmDelete?.title}
