@@ -11,11 +11,10 @@ import ItemGrid from "./ItemGrid";
 
 import CreateCategoryModal from "./modals/CreateCategoryModal";
 import EditCategoryModal from "./modals/EditCategoryModal";
-import CreateSubcategoryModal from "./modals/CreateSubCategoryModal";
-import EditSubCategoryModal from "./modals/EditSubCategoryModal";
 import CreateItemModal from "./modals/CreateItemModal";
 import ConfirmDeleteModal from "./modals/ConfirmDeleteModal";
-
+import CreateSubcategoryModal from "./modals/CreateSubcategoryModal";
+import EditSubcategoryModal from "./modals/EditSubcategoryModal";
 /* ================= HELPERS ================= */
 const getAllCategoryItems = (category) => {
   if (!category) return [];
@@ -238,7 +237,7 @@ export default function MasterMenuPage() {
         />
       )}
       {modal.type === "editSubcategory" && (
-        <EditSubCategoryModal
+        <EditSubcategoryModal
           subcategory={modal.data}
           onClose={closeModal}
           onSuccess={loadMenu}

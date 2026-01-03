@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "name": "plato-infinity-fullstack",
   "builds": [
     {
       "src": "server/index.js",
@@ -14,10 +15,13 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/server/index.js" },
+    {
+      "source": "/api/(.*)",
+      "destination": "server/index.js"
+    },
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "client/$1"
     }
   ]
 }
