@@ -1,79 +1,152 @@
 import mongoose, { Schema } from "mongoose";
 import mongoosePaginate from "mongoose-paginate-v2";
 
+/* ================= USER SCHEMA ================= */
+
 const userSchema = new mongoose.Schema(
   {
-    name: { type: String, required: [true, "provide name"], trim: true },
+    /* ---------- BASIC INFO ---------- */
+    name: {
+      type: String,
+      required: [true, "Provide name"],
+      trim: true,
+    },
+
     email: {
       type: String,
-      unique: true,
-      sparse: true,
       lowercase: true,
       trim: true,
+      unique: true,
+      sparse: true,
       required: function () {
         return this.role === "BRAND_ADMIN" || this.role === "MANAGER";
       },
     },
-    password: { type: String, select: false },
-    staffPin: { type: String, select: false, sparse: true }, // 4-digit PIN, unique per restaurant
+
+    password: {
+      type: String,
+      select: false,
+    },
+
+    /* ---------- ROLE & ACCESS ---------- */
     role: {
       type: String,
       enum: ["BRAND_ADMIN", "MANAGER", "CHEF", "WAITER", "CASHIER"],
       required: true,
       index: true,
     },
-    brandId: { type: Schema.Types.ObjectId, ref: "Brand" },
+
+    brandId: {
+      type: Schema.Types.ObjectId,
+      ref: "Brand",
+      index: true,
+    },
+
     restaurantId: {
       type: Schema.Types.ObjectId,
       ref: "Restaurant",
       index: true,
     },
+
+    /* ---------- STAFF PIN (ONLY FOR STAFF) ---------- */
+    staffPin: {
+      type: String,
+      select: false,
+      default: null, // IMPORTANT
+    },
+
     kitchenStationId: {
       type: Schema.Types.ObjectId,
       ref: "KitchenStation",
       default: null,
     },
-    isActive: { type: Boolean, default: true },
-    avatar: { type: String, default: "" },
-    mobile: { type: String, trim: true, sparse: true },
-    refreshToken: { type: String, select: false },
-    emailVerifyToken: {
-      type: String,
-      select: false,
+
+    /* ---------- STATUS ---------- */
+    isActive: {
+      type: Boolean,
+      default: false,
     },
-    emailVerifyExpires: {
-      type: Date,
-      select: false,
-    },
+
     verify_email: {
       type: Boolean,
       default: false,
     },
+
+    avatar: {
+      type: String,
+      default: "",
+    },
+
+    mobile: {
+      type: String,
+      trim: true,
+      sparse: true,
+    },
+
+    refreshToken: {
+      type: String,
+      select: false,
+    },
+
     lastLoginAt: Date,
+
+    /* ---------- SECURITY ---------- */
+    emailVerifyToken: { type: String, select: false },
+    emailVerifyExpires: { type: Date, select: false },
+
     forgotPasswordOtpHash: { type: String, select: false },
     forgotPasswordExpiry: { type: Date, select: false },
-    meta: { type: Schema.Types.Mixed, default: {} },
+
+    /* ---------- META ---------- */
+    meta: {
+      type: Schema.Types.Mixed,
+      default: {},
+    },
   },
   { timestamps: true }
 );
 
+/* ================= CRITICAL INDEX FIX ================= */
+/**
+ * Enforces:
+ * - staffPin unique PER restaurant
+ * - ONLY when staffPin exists
+ * - managers & admins are ignored
+ */
 userSchema.index(
   { restaurantId: 1, staffPin: 1 },
-  { unique: true, sparse: true }
+  {
+    unique: true,
+    partialFilterExpression: {
+      staffPin: { $type: "string" },
+    },
+  }
 );
 
-// helper to generate a staff pin
+/* ================= STAFF PIN GENERATOR ================= */
+
 userSchema.statics.generateStaffPin = async function (restaurantId) {
-  const maxAttempts = 12;
-  for (let i = 0; i < maxAttempts; i++) {
+  const MAX_ATTEMPTS = 12;
+
+  for (let i = 0; i < MAX_ATTEMPTS; i++) {
     const pin = Math.floor(1000 + Math.random() * 9000).toString();
-    const exists = await this.findOne({ restaurantId, staffPin: pin }).lean();
+
+    const exists = await this.findOne({
+      restaurantId,
+      staffPin: pin,
+    }).lean();
+
     if (!exists) return pin;
   }
+
   throw new Error("Unable to generate unique staff PIN");
 };
 
-userSchema.plugin(mongoosePaginate);
-const userModel = mongoose.model("User", userSchema);
+/* ================= PLUGINS ================= */
 
-export default userModel;
+userSchema.plugin(mongoosePaginate);
+
+/* ================= MODEL ================= */
+
+const User = mongoose.model("User", userSchema);
+export default User;

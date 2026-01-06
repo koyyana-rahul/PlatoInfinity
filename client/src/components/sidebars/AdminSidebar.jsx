@@ -16,7 +16,7 @@ export default function AdminSidebar({ open, onClose }) {
     { name: "Dashboard", icon: FaTachometerAlt, path: "dashboard" },
     { name: "Master Menu", icon: FaUtensils, path: "master-menu" },
     { name: "Restaurants", icon: FaStore, path: "restaurants" },
-    { name: "Managers", icon: FaUsers, path: "managers" },
+    // { name: "Managers", icon: FaUsers, path: "managers" },
     { name: "Reports", icon: FaChartBar, path: "reports" },
     { name: "Settings", icon: FaCog, path: "settings" },
   ];

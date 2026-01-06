@@ -12,12 +12,12 @@ import {
   updateUserDetailsController,
   userDetailsController,
   uploadAvatarController,
-  setPasswordController,
+  // setPasswordController,
 } from "../controller/auth.controller.js";
 
 import { requireAuth } from "../middleware/requireAuth.js";
 import upload from "../config/multer.js";
-import { acceptInviteController } from "../controller/auth.invite.controller.js";
+// import { acceptInviteController } from "../controller/auth.invite.controller.js";
 // import { acceptInviteController } from "../controller/invite.controller.js";
 
 const authRouter = express.Router();
@@ -48,7 +48,7 @@ authRouter.post(
 
 authRouter.put("/update-profile", requireAuth, updateUserDetailsController);
 authRouter.get("/me", requireAuth, userDetailsController);
-authRouter.post("/accept-invite", acceptInviteController);
-authRouter.post("/set-password", setPasswordController);
+// authRouter.post("/accept-invite", acceptInviteController);
+// authRouter.post("/set-password", setPasswordController);
 
 export default authRouter;

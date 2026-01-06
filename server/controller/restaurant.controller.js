@@ -1,62 +1,67 @@
 // src/controllers/restaurant.controller.js
 import RestaurantModel from "../models/restaurant.model.js";
 import AuditLog from "../models/auditLog.model.js"; // optional
+import axios from "axios";
 
+// controllers/restaurant.controller.js
 export async function createRestaurantController(req, res) {
   try {
     const admin = req.user;
-    const { name, address = "", phone = "", timezone = "" } = req.body;
-    if (!name)
-      return res
-        .status(400)
-        .json({ message: "name required", error: true, success: false });
+    const { name, phone, address, addressText, placeId, location } = req.body;
 
-    // create branch under admin.brandId - ensure admin has a brandId
-    if (!admin.brandId)
-      return res.status(400).json({
-        message:
-          "Admin does not have a brandId. Create or assign a brand first.",
-        error: true,
-        success: false,
-      });
-
-    const restaurant = await RestaurantModel.create({
-      brandId: admin.brandId,
-      name,
-      address,
-      phone,
-      timezone,
-    });
-
-    try {
-      await AuditLog.create({
-        actorType: "USER",
-        actorId: String(admin._id),
-        action: "CREATE_RESTAURANT",
-        entityType: "Restaurant",
-        entityId: String(restaurant._id),
-      });
-    } catch (e) {
-      /* ignore */
+    if (!name) {
+      return res.status(400).json({ message: "Restaurant name required" });
     }
 
+    /* ========= CASE 1: Indian Address (NEW) ========= */
+    let finalAddressText = addressText;
+    let finalLocation = location;
+
+    if (address && address.pincode) {
+      finalAddressText =
+        addressText ||
+        `${address.village || ""}, ${address.mandal || ""}, ${
+          address.district || ""
+        }, ${address.state || ""} - ${address.pincode}`;
+
+      // Optional: fallback geo (India center)
+      finalLocation = {
+        type: "Point",
+        coordinates: [78.9629, 20.5937],
+      };
+    }
+
+    /* ========= CASE 2: Google Maps (OLD – still works) ========= */
+    if (!finalAddressText || !finalLocation) {
+      return res.status(400).json({
+        message: "Address information missing",
+      });
+    }
+
+    const restaurant = await Restaurant.create({
+      brandId: admin.brandId,
+      name,
+      phone,
+      addressText: finalAddressText,
+      placeId: placeId || "INDIA_MANUAL",
+      location: finalLocation,
+      meta: {
+        address, // 🔥 store structured Indian address
+      },
+    });
+
     return res.status(201).json({
-      message: "Restaurant (branch) created",
-      error: false,
       success: true,
       data: restaurant,
     });
   } catch (err) {
-    console.error("createRestaurantController error:", err);
-    if (err.code === 11000)
-      return res.status(409).json({
-        message: "Duplicate branch (name/phone)",
-        error: true,
-        success: false,
-      });
-    return res
-      .status(500)
-      .json({ message: "Server error", error: true, success: false });
+    console.error("createRestaurantController:", err);
+
+    if (err.code === 11000) {
+      return res.status(409).json({ message: "Restaurant already exists" });
+    }
+
+    return res.status(500).json({ message: "Server error" });
   }
 }
 

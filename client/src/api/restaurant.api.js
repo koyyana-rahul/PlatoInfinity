@@ -13,10 +13,7 @@ const restaurantApi = {
     method: "GET",
   }),
 
-  inviteManager: (id) => ({
-    url: `/api/restaurants/${id}/managers/invite`,
-    method: "POST",
-  }),
+  
 };
 
 export default restaurantApi;

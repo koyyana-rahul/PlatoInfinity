@@ -6,11 +6,14 @@ import {
   listManagersController,
   inviteManagerController,
   removeManagerController,
+  resendInviteController,
 } from "../controller/manager.controller.js";
 
-const router = express.Router();
+/* 🔥 mergeParams IS REQUIRED */
+const router = express.Router({ mergeParams: true });
 
 /**
+ * BASE PATH:
  * /api/restaurants/:restaurantId/managers
  */
 
@@ -26,6 +29,13 @@ router.post(
   requireAuth,
   requireRole("BRAND_ADMIN"),
   inviteManagerController
+);
+
+router.post(
+  "/:managerId/resend-invite",
+  requireAuth,
+  requireRole("BRAND_ADMIN"),
+  resendInviteController
 );
 
 router.delete(

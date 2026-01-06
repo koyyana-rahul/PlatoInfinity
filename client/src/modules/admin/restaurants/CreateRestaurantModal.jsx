@@ -1,50 +1,59 @@
+// src/pages/restaurants/components/CreateRestaurantModal.jsx
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { FaTimes } from "react-icons/fa";
-
 import Axios from "../../../api/axios";
-import restaurantApi from "../../../api/restaurant.api";
-
-const DEFAULT_FORM = {
-  name: "",
-  phone: "",
-  timezone: "Asia/Kolkata",
-  address: {
-    line1: "",
-    city: "",
-    state: "",
-    pincode: "",
-  },
-};
+import IndiaAddressForm from "../../../components/address/IndiaAddressForm";
 
 export default function CreateRestaurantModal({ onClose, onSuccess }) {
-  const [form, setForm] = useState(DEFAULT_FORM);
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    address: {
+      state: "",
+      district: "",
+      mandal: "",
+      village: "",
+      pincode: "",
+    },
+  });
+
   const [loading, setLoading] = useState(false);
 
-  const validate = () => {
-    if (!form.name.trim()) {
-      toast.error("Restaurant name is required");
-      return false;
-    }
-    if (!form.address.city || !form.address.state) {
-      toast.error("City and State are required");
-      return false;
-    }
-    return true;
-  };
+  /* ---------- SUBMIT ---------- */
+  const submit = async () => {
+    const { name, phone, address } = form;
 
-  const handleSubmit = async () => {
-    if (!validate()) return;
+    if (!name.trim()) {
+      toast.error("Restaurant name is required");
+      return;
+    }
+
+    if (!address.state || address.pincode?.length !== 6) {
+      toast.error("Valid state and 6-digit pincode are required");
+      return;
+    }
+
+    const addressText = [
+      address.village,
+      address.mandal,
+      address.district,
+      address.state,
+      address.pincode,
+    ]
+      .filter(Boolean)
+      .join(", ");
 
     try {
       setLoading(true);
 
-      await Axios({
-        ...restaurantApi.create,
-        data: form,
+      await Axios.post("/api/restaurants", {
+        name: name.trim(),
+        phone: phone?.trim(),
+        address,
+        addressText,
       });
 
-      toast.success("Restaurant created");
+      toast.success("Restaurant created successfully 🎉");
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -58,94 +67,83 @@ export default function CreateRestaurantModal({ onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
-      <div className="bg-white w-full max-w-xl rounded-2xl shadow-xl overflow-hidden">
-        {/* HEADER */}
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <div>
-            <h2 className="text-lg font-bold">Create Restaurant</h2>
-            <p className="text-sm text-gray-600">
-              Add a new branch under your brand
-            </p>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded">
-            <FaTimes />
+      <div className="bg-white w-full max-w-xl rounded-2xl p-6 space-y-5 shadow-xl animate-scaleIn">
+        {/* ---------- HEADER ---------- */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-800">
+            Create Restaurant
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+            aria-label="Close"
+          >
+            ×
           </button>
         </div>
 
-        {/* BODY */}
-        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+        {/* ---------- RESTAURANT NAME ---------- */}
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-gray-600">
+            Restaurant Name <span className="text-red-500">*</span>
+          </label>
           <input
-            className="input"
-            placeholder="Restaurant name *"
+            className="w-full h-11 rounded-lg border border-gray-300 px-3 text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            placeholder="e.g. Paradise Biryani"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
+        </div>
 
+        {/* ---------- PHONE ---------- */}
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-gray-600">
+            Phone (optional)
+          </label>
           <input
-            className="input"
-            placeholder="Phone"
+            className="w-full h-11 rounded-lg border border-gray-300 px-3 text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            placeholder="e.g. 9876543210"
+            inputMode="numeric"
             value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-          />
-
-          <input
-            className="input"
-            placeholder="Address line"
-            value={form.address.line1}
             onChange={(e) =>
               setForm({
                 ...form,
-                address: { ...form.address, line1: e.target.value },
+                phone: e.target.value.replace(/\D/g, ""),
               })
             }
           />
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <input
-              className="input"
-              placeholder="City *"
-              value={form.address.city}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  address: { ...form.address, city: e.target.value },
-                })
-              }
-            />
-            <input
-              className="input"
-              placeholder="State *"
-              value={form.address.state}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  address: { ...form.address, state: e.target.value },
-                })
-              }
-            />
-            <input
-              className="input"
-              placeholder="Pincode"
-              value={form.address.pincode}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  address: { ...form.address, pincode: e.target.value },
-                })
-              }
-            />
-          </div>
         </div>
 
-        {/* FOOTER */}
-        <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50">
-          <button onClick={onClose} className="px-4 py-2 text-gray-600">
+        {/* ---------- ADDRESS ---------- */}
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-gray-600">
+            Address <span className="text-red-500">*</span>
+          </label>
+
+          <IndiaAddressForm
+            value={form.address}
+            onChange={(address) => setForm({ ...form, address })}
+          />
+        </div>
+
+        {/* ---------- ACTIONS ---------- */}
+        <div className="flex justify-end gap-3 pt-4">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+          >
             Cancel
           </button>
+
           <button
+            onClick={submit}
             disabled={loading}
-            onClick={handleSubmit}
-            className="bg-[#00684A] text-white px-5 py-2 rounded-lg"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white
+                       px-5 py-2 rounded-lg text-sm font-medium
+                       disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? "Creating..." : "Create Restaurant"}
           </button>

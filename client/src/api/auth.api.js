@@ -1,10 +1,12 @@
+// src/api/auth.api.js
 const authApi = {
-  acceptInvite: {
-    url: "/api/auth/accept-invite",
-    method: "post",
+  verifyInvite: {
+    url: "/api/auth/invite/verify",
+    method: "get",
   },
+
   setPassword: {
-    url: "/api/auth/set-password",
+    url: "/api/auth/invite/set-password",
     method: "post",
   },
 };

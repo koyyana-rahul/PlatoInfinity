@@ -215,3 +215,16 @@
     );
   }
 }
+
+/* :root {
+  --admin-header-height: 56px;
+  --admin-sidebar-width: 256px;
+  --admin-bg: #f5f7f6;
+} */
+
+/* Tablet / Desktop */
+/* @media (min-width: 640px) {
+  :root {
+    --admin-header-height: 72px;
+  }
+} */

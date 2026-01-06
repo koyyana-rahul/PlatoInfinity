@@ -7,6 +7,7 @@ import crypto from "crypto";
 import UserModel from "../models/user.model.js";
 import uploadImageClodinary from "../utils/uploadImageClodinary.js";
 import getInviteEmailTemplate from "../utils/getInviteEmailTemplate.js";
+import userModel from "../models/user.model.js";
 // import uploadImageClodinary from "../utils/uploadImageClodinary.js"; // optional, used in uploadAvatar
 
 // Initialize Resend
@@ -654,62 +655,66 @@ export async function userDetailsController(req, res) {
 // import bcrypt from "bcryptjs";
 // import User from "../models/user.model.js";
 
-export async function acceptInviteController(req, res) {
-  const { token } = req.query;
+// export async function acceptInviteController(req, res) {
+//   const { token } = req.query;
 
-  if (!token) {
-    return res.status(400).json({ message: "Invalid invite link" });
-  }
+//   if (!token) {
+//     return res.status(400).json({ message: "Invalid invite link" });
+//   }
 
-  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+//   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
-  const user = await User.findOne({
-    "meta.inviteTokenHash": tokenHash,
-    "meta.inviteExpiresAt": { $gt: Date.now() },
-  }).select("name email role");
+//   const user = await userModel
+//     .findOne({
+//       "meta.inviteTokenHash": tokenHash,
+//       "meta.inviteExpiresAt": { $gt: Date.now() },
+//     })
+//     .select("name email role");
 
-  if (!user) {
-    return res.status(400).json({ message: "Invite expired or invalid" });
-  }
+//   if (!user) {
+//     return res.status(400).json({
+//       message: "Invite expired or already used",
+//     });
+//   }
 
-  res.json({
-    success: true,
-    data: {
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-  });
-}
+//   return res.json({
+//     success: true,
+//     data: {
+//       name: user.name,
+//       email: user.email,
+//       role: user.role,
+//     },
+//   });
+// }
 
-export async function setPasswordController(req, res) {
-  const { token, password } = req.body;
+// export async function setPasswordController(req, res) {
+//   const { token, password } = req.body;
 
-  if (!token || !password || password.length < 6) {
-    return res.status(400).json({ message: "Invalid request" });
-  }
+//   if (!token || !password || password.length < 6) {
+//     return res.status(400).json({ message: "Invalid request" });
+//   }
 
-  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+//   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
-  const user = await User.findOne({
-    "meta.inviteTokenHash": tokenHash,
-    "meta.inviteExpiresAt": { $gt: Date.now() },
-  });
+//   const user = await User.findOne({
+//     "meta.inviteTokenHash": tokenHash,
+//     "meta.inviteExpiresAt": { $gt: Date.now() },
+//   });
 
-  if (!user) {
-    return res.status(400).json({ message: "Invite expired" });
-  }
+//   if (!user) {
+//     return res.status(400).json({ message: "Invite expired" });
+//   }
 
-  user.password = await bcrypt.hash(password, 10);
-  user.isActive = true;
-  user.verify_email = true;
-  user.meta.inviteTokenHash = undefined;
-  user.meta.inviteExpiresAt = undefined;
+//   user.password = await bcrypt.hash(password, 10);
+//   user.isActive = true;
+//   user.verify_email = true;
+//   user.meta.inviteTokenHash = undefined;
+//   user.meta.inviteExpiresAt = undefined;
 
-  await user.save();
+//   await user.save();
 
-  res.json({ success: true, message: "Password set successfully" });
-}
+//   res.json({ success: true, message: "Password set successfully" });
+// }
 
 // Export default for convenience as well (routes may import named exports)
 export default {
@@ -724,5 +729,5 @@ export default {
   // uploadAvatarController,
   updateUserDetailsController,
   userDetailsController,
-  setPasswordController,
+  // setPasswordController,
 };

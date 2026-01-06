@@ -146,3 +146,37 @@ export async function removeManagerController(req, res) {
     });
   }
 }
+
+// controller/manager.controller.js
+export async function resendInviteController(req, res) {
+  const { managerId } = req.params;
+
+  const user = await User.findById(managerId);
+  if (!user || user.isActive) {
+    return res.status(400).json({ message: "Invalid invite" });
+  }
+
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  user.meta.inviteTokenHash = crypto
+    .createHash("sha256")
+    .update(rawToken)
+    .digest("hex");
+  user.meta.inviteExpiresAt = Date.now() + 86400000;
+
+  await user.save();
+
+  const inviteUrl = `${process.env.FRONTEND_URL}/accept-invite?token=${rawToken}`;
+
+  await resend.emails.send({
+    from: process.env.RESEND_FROM_EMAIL,
+    to: user.email,
+    subject: "Your manager invite – Resent",
+    html: `
+      <p>Hello ${user.name},</p>
+      <p>Your invite has been resent.</p>
+      <a href="${inviteUrl}">Accept Invite</a>
+    `,
+  });
+
+  res.json({ success: true });
+}
