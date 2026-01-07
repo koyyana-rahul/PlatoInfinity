@@ -4,9 +4,9 @@ import Axios from "../../../api/axios";
 import tableApi from "../../../api/table.api";
 import { FiHash, FiUsers } from "react-icons/fi";
 
-export default function CreateTableModal({ onClose, onSuccess }) {
+export default function CreateTableModal({ restaurantId, onClose, onSuccess }) {
   const [form, setForm] = useState({
-    tableNumber: "",
+    tableCode: "", // 👈 ONLY NUMBER / CODE
     seatingCapacity: 4,
   });
 
@@ -14,7 +14,7 @@ export default function CreateTableModal({ onClose, onSuccess }) {
 
   /* ================= VALIDATION ================= */
   const validate = () => {
-    if (!form.tableNumber.trim()) {
+    if (!form.tableCode.trim()) {
       toast.error("Table number is required");
       return false;
     }
@@ -31,13 +31,16 @@ export default function CreateTableModal({ onClose, onSuccess }) {
   const submit = async () => {
     if (!validate()) return;
 
+    // ✅ STANDARDIZED TABLE NAME
+    const tableNumber = `Table ${form.tableCode.trim()}`;
+
     try {
       setLoading(true);
 
       const res = await Axios({
-        ...tableApi.create(),
+        ...tableApi.create(restaurantId),
         data: {
-          tableNumber: form.tableNumber.trim(),
+          tableNumber, // 👈 ALWAYS "Table X"
           seatingCapacity: Number(form.seatingCapacity),
         },
       });
@@ -61,21 +64,24 @@ export default function CreateTableModal({ onClose, onSuccess }) {
         <div className="px-6 py-5 border-b">
           <h2 className="text-xl font-semibold text-gray-900">Add New Table</h2>
           <p className="text-sm text-gray-600 mt-1">
-            A QR code will be generated automatically for this table
+            Table name will be generated automatically
           </p>
         </div>
 
         {/* ================= BODY ================= */}
         <div className="px-6 py-6 space-y-5">
+          {/* TABLE NUMBER */}
           <InputField
             label="Table Number"
             icon={FiHash}
-            placeholder="T1, Table 5, VIP-2"
-            value={form.tableNumber}
-            onChange={(v) => setForm({ ...form, tableNumber: v })}
+            placeholder="1, 5, VIP-2"
+            value={form.tableCode}
+            onChange={(v) => setForm({ ...form, tableCode: v })}
+            helper="Final name: Table {number}"
             required
           />
 
+          {/* SEATING */}
           <InputField
             label="Seating Capacity"
             icon={FiUsers}
@@ -88,8 +94,9 @@ export default function CreateTableModal({ onClose, onSuccess }) {
           {/* INFO */}
           <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-900">
             <p>
-              Customers can scan the QR on this table to view the menu and place
-              orders directly.
+              Example:
+              <br />
+              <span className="font-semibold">Input: 5 → Table 5</span>
             </p>
           </div>
         </div>
@@ -132,6 +139,7 @@ function InputField({
   type = "text",
   required,
   min,
+  helper,
 }) {
   return (
     <div className="space-y-1">
@@ -156,6 +164,8 @@ function InputField({
           "
         />
       </div>
+
+      {helper && <p className="text-xs text-gray-500 mt-1">{helper}</p>}
     </div>
   );
 }

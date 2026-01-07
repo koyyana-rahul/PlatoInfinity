@@ -3,6 +3,7 @@ import { requireAuth } from "../middleware/requireAuth.js";
 import { requireRole } from "../middleware/requireRole.js";
 import {
   createTableController,
+  deleteTableController,
   listTablesController,
 } from "../controller/table.controller.js";
 
@@ -24,4 +25,11 @@ tableRouter.get(
   listTablesController
 );
 
+// Delete table (soft delete)
+tableRouter.delete(
+  "/restaurants/:restaurantId/tables/:tableId",
+  requireAuth,
+  requireRole("MANAGER"),
+  deleteTableController
+);
 export default tableRouter;

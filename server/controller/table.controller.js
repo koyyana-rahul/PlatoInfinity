@@ -1,13 +1,15 @@
 import Table from "../models/table.model.js";
 import QRCode from "qrcode";
 import { uploadQrToCloudinary } from "../utils/uploadQrToCloudinary.js";
+import brandModel from "../models/brand.model.js";
+import restaurantModel from "../models/restaurant.model.js";
 
 /**
  * CREATE TABLE
  */
+
 export async function createTableController(req, res) {
   try {
-    const restaurant = req.user.restaurant;
     const restaurantId = req.user.restaurantId;
     const { tableNumber, seatingCapacity = 4 } = req.body;
 
@@ -18,14 +20,39 @@ export async function createTableController(req, res) {
       });
     }
 
-    if (!tableNumber || !tableNumber.trim()) {
+    if (!tableNumber?.trim()) {
       return res.status(400).json({
         success: false,
         message: "Table number is required",
       });
     }
 
-    // 1️⃣ Create table
+    /* ================= FETCH RESTAURANT SAFELY ================= */
+    const restaurant = await restaurantModel
+      .findById(restaurantId)
+      .select("name slug brandId")
+      .lean();
+
+    if (!restaurant) {
+      return res.status(404).json({
+        success: false,
+        message: "Restaurant not found",
+      });
+    }
+
+    /* ================= FETCH BRAND SAFELY ================= */
+    let brandSlug = "brand";
+    if (restaurant.brandId) {
+      const brand = await brandModel
+        .findById(restaurant.brandId)
+        .select("slug")
+        .lean();
+      if (brand?.slug) brandSlug = brand.slug;
+    }
+
+    const restaurantSlug = restaurant.name || "restaurant";
+
+    /* ================= CREATE TABLE ================= */
     const table = await Table.create({
       restaurantId,
       tableNumber: tableNumber.trim(),
@@ -35,16 +62,14 @@ export async function createTableController(req, res) {
       isArchived: false,
     });
 
-    // 2️⃣ QR target URL (CUSTOMER SCAN ENTRY)
-    const qrUrl = `${process.env.FRONTEND_URL}/scan?rid=${restaurantId}&tid=${table._id}`;
+    /* ================= CUSTOMER FRIENDLY QR URL ================= */
+    const qrUrl = `${process.env.FRONTEND_URL}/${brandSlug}/${restaurantSlug}/table/${table._id}`;
 
-    // 3️⃣ Generate QR image
+    /* ================= GENERATE QR ================= */
     const qrBase64 = await QRCode.toDataURL(qrUrl);
 
-    // 4️⃣ Upload QR to Cloudinary
     const upload = await uploadQrToCloudinary(qrBase64, `table-${table._id}`);
 
-    // 5️⃣ Save QR info
     table.qrUrl = qrUrl;
     table.qrImageUrl = upload.secure_url;
     await table.save();
@@ -69,7 +94,6 @@ export async function createTableController(req, res) {
     });
   }
 }
-
 /**
  * LIST TABLES
  */
@@ -100,6 +124,64 @@ export async function listTablesController(req, res) {
   } catch (err) {
     console.error("listTablesController:", err);
     res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
+/**
+ * DELETE TABLE (Soft Delete)
+ * Manager only
+ */
+export async function deleteTableController(req, res) {
+  try {
+    const restaurantId = req.user?.restaurantId;
+    const { tableId } = req.params;
+
+    if (!restaurantId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized restaurant",
+      });
+    }
+
+    if (!tableId) {
+      return res.status(400).json({
+        success: false,
+        message: "Table ID is required",
+      });
+    }
+
+    // ✅ Ensure table belongs to this restaurant
+    const table = await Table.findOne({
+      _id: tableId,
+      restaurantId,
+      isArchived: false,
+    });
+
+    if (!table) {
+      return res.status(404).json({
+        success: false,
+        message: "Table not found",
+      });
+    }
+
+    // ✅ Soft delete
+    table.isArchived = true;
+    table.isActive = false;
+    await table.save();
+
+    return res.json({
+      success: true,
+      message: "Table deleted successfully",
+      data: {
+        tableId: table._id,
+      },
+    });
+  } catch (err) {
+    console.error("deleteTableController:", err);
+    return res.status(500).json({
       success: false,
       message: "Server error",
     });

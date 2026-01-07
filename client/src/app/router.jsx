@@ -28,10 +28,10 @@ import ManagersPage from "../modules/admin/managers/ManagersPage";
 import MasterMenuPage from "../modules/admin/master-menu/MasterMenuPage";
 import ManagerLayout from "../layouts/ManagerLayout";
 import ManagerDashboard from "../modules/manager/ManagerDashboard";
-import RestaurantMenuPage from "../modules/manager/restaurant-menu/RestaurantMenuPage";
 import StaffPage from "../modules/manager/staff/staffPage";
 import KitchenStationsPage from "../modules/manager/kitchen-stations/KitchenStationsPage";
 import TablesPage from "../modules/manager/tables/TablesPage";
+import BranchMenuPage from "../modules/manager/branch-menu/pages/BranchMenuPage";
 
 /* -------- FALLBACK -------- */
 const NotFound = () => (
@@ -92,7 +92,7 @@ const router = createBrowserRouter([
       },
       {
         path: "restaurants/:restaurantId/menu",
-        element: <RestaurantMenuPage />,
+        element: <BranchMenuPage />,
       },
       {
         path: "restaurants/:restaurantId/staff",

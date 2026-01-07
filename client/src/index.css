@@ -138,6 +138,10 @@
     @apply h-12 text-sm font-semibold;
   }
 
+  input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0px 1000px white inset !important;
+    box-shadow: 0 0 0px 1000px white inset !important;
+  }
   .icon-left {
     @apply absolute left-4 top-1/2 -translate-y-1/2;
     color: var(--muted);

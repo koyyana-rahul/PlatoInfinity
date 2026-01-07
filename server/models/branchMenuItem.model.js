@@ -29,6 +29,12 @@ const branchMenuItemSchema = new mongoose.Schema(
     // master sync management
     masterDisabled: { type: Boolean, default: false },
     lastMasterVersion: { type: Number, default: 0 },
+    masterSnapshot: {
+      name: String,
+      basePrice: Number,
+      defaultStation: String,
+    },
+
     overrides: {
       price: { type: Boolean, default: false },
       name: { type: Boolean, default: false },
