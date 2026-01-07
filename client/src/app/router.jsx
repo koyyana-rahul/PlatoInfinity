@@ -26,6 +26,12 @@ import AdminDashboard from "../modules/admin/AdminDashboard";
 import RestaurantsPage from "../modules/admin/restaurants/RestaurantsPage";
 import ManagersPage from "../modules/admin/managers/ManagersPage";
 import MasterMenuPage from "../modules/admin/master-menu/MasterMenuPage";
+import ManagerLayout from "../layouts/ManagerLayout";
+import ManagerDashboard from "../modules/manager/ManagerDashboard";
+import RestaurantMenuPage from "../modules/manager/restaurant-menu/RestaurantMenuPage";
+import StaffPage from "../modules/manager/staff/staffPage";
+import KitchenStationsPage from "../modules/manager/kitchen-stations/KitchenStationsPage";
+import TablesPage from "../modules/manager/tables/TablesPage";
 
 /* -------- FALLBACK -------- */
 const NotFound = () => (
@@ -74,6 +80,37 @@ const router = createBrowserRouter([
         element: <MasterMenuPage />,
       },
     ],
+  },
+
+  {
+    path: "/:brandSlug/manager",
+    element: <ManagerLayout />,
+    children: [
+      {
+        path: "restaurants/:restaurantId/dashboard",
+        element: <ManagerDashboard />,
+      },
+      {
+        path: "restaurants/:restaurantId/menu",
+        element: <RestaurantMenuPage />,
+      },
+      {
+        path: "restaurants/:restaurantId/staff",
+        element: <StaffPage />,
+      },
+      {
+        path: "restaurants/:restaurantId/kitchen-stations",
+        element: <KitchenStationsPage />,
+      },
+      {
+        path: "restaurants/:restaurantId/tables",
+        element: <TablesPage />,
+      },
+    ],
+  },
+  {
+    // path: "/:brandSlug/staff",
+    // element: < />
   },
 
   /* ================= FALLBACK ================= */

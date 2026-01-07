@@ -90,7 +90,7 @@ export default function AdminHeader({ onMenuClick }) {
             </span>
 
             <span className="text-[10px] text-gray-400 uppercase tracking-widest">
-              Admin Panel
+              {user.role} Panel
             </span>
           </div>
         </div>
@@ -137,7 +137,7 @@ export default function AdminHeader({ onMenuClick }) {
           >
             <div className="px-4 py-3 border-b">
               <p className="text-[10px] text-gray-400 uppercase tracking-widest">
-                Admin Account
+                {user.role} Account
               </p>
               <p className="font-semibold text-sm text-gray-800 truncate">
                 {user.name}

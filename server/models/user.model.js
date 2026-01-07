@@ -47,6 +47,10 @@ const userSchema = new mongoose.Schema(
       ref: "Restaurant",
       index: true,
     },
+    staffCode: {
+      type: String,
+      index: true,
+    },
 
     /* ---------- STAFF PIN (ONLY FOR STAFF) ---------- */
     staffPin: {
@@ -67,6 +71,20 @@ const userSchema = new mongoose.Schema(
       default: false,
     },
 
+    onDuty: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    lastShifIn: {
+      type: Date,
+      default: null,
+    },
+    lastShiftOut: {
+      type: Date,
+      default: null,
+    },
+
     verify_email: {
       type: Boolean,
       default: false,
@@ -80,7 +98,7 @@ const userSchema = new mongoose.Schema(
     mobile: {
       type: String,
       trim: true,
-      sparse: true,
+      default: undefined,
     },
 
     refreshToken: {
@@ -114,11 +132,22 @@ const userSchema = new mongoose.Schema(
  * - managers & admins are ignored
  */
 userSchema.index(
-  { restaurantId: 1, staffPin: 1 },
+  { restaurantId: 1, staffPin: 1, staffCode: 1 },
   {
     unique: true,
     partialFilterExpression: {
       staffPin: { $type: "string" },
+    },
+  }
+);
+
+userSchema.index(
+  { mobile: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: {
+      mobile: { $type: "string" },
     },
   }
 );
