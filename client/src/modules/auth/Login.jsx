@@ -44,7 +44,8 @@ export default function Login() {
       await new Promise((r) => setTimeout(r, 200));
 
       // 2️⃣ FETCH USER
-      const meRes = await Axios(SummaryApi.me);
+      // const meRes = await Axios(SummaryApi.me);
+      const meRes = await Axios.get("/api/auth/me", { withCredentials: true });
       const user = meRes.data.data;
 
       dispatch(setUserDetails(user));

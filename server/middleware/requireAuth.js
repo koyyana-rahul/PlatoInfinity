@@ -23,7 +23,7 @@ export async function requireAuth(req, res, next) {
     }
 
     // 2️⃣ Verify JWT
-    const secret = process.env.JWT_SECRET_ACCESS || process.env.JWT_SECRET;
+    const secret = process.env.JWT_SECRET;
 
     if (!secret) {
       console.error("JWT secret missing");
