@@ -40,7 +40,7 @@ function cookieOptions() {
   return {
     httpOnly: true,
     secure: true,
-    sameSite: isProd ? "none" : "Lax",
+    sameSite: isProd ? "None" : "Lax",
     domain: ".platoinfinity.xyz",
     path: "/",
     // maxAge omitted for accessToken cookie (token expiry enforced by JWT); you can set if desired

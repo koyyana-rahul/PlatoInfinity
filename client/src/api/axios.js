@@ -1,8 +1,11 @@
 import axios from "axios";
 
 const Axios = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: "https://api.platoinfinity.xyz",
   withCredentials: true, // ✅ cookie auth
+  headers: {
+    "Content-Type": "application/json",
+  },
   timeout: 15000,
 });
 
