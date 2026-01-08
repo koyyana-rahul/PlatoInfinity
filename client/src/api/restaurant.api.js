@@ -12,8 +12,6 @@ const restaurantApi = {
     url: `/api/restaurants/${id}/managers`,
     method: "GET",
   }),
-
-  
 };
 
 export default restaurantApi;
