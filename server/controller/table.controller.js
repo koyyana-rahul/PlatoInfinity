@@ -3,10 +3,98 @@ import QRCode from "qrcode";
 import { uploadQrToCloudinary } from "../utils/uploadQrToCloudinary.js";
 import brandModel from "../models/brand.model.js";
 import restaurantModel from "../models/restaurant.model.js";
+import { generateTableQR } from "../utils/generateTableQR.js";
 
 /**
  * CREATE TABLE
  */
+
+// export async function createTableController(req, res) {
+//   try {
+//     const restaurantId = req.user.restaurantId;
+//     const { tableNumber, seatingCapacity = 4 } = req.body;
+
+//     if (!restaurantId) {
+//       return res.status(401).json({
+//         success: false,
+//         message: "Unauthorized restaurant",
+//       });
+//     }
+
+//     if (!tableNumber?.trim()) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Table number is required",
+//       });
+//     }
+
+//     /* ================= FETCH RESTAURANT SAFELY ================= */
+//     const restaurant = await restaurantModel
+//       .findById(restaurantId)
+//       .select("name slug brandId")
+//       .lean();
+
+//     if (!restaurant) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Restaurant not found",
+//       });
+//     }
+
+//     /* ================= FETCH BRAND SAFELY ================= */
+//     let brandSlug = "brand";
+//     if (restaurant.brandId) {
+//       const brand = await brandModel
+//         .findById(restaurant.brandId)
+//         .select("slug")
+//         .lean();
+//       if (brand?.slug) brandSlug = brand.slug;
+//     }
+
+//     const restaurantSlug = restaurant.name || "restaurant";
+
+//     /* ================= CREATE TABLE ================= */
+//     const table = await Table.create({
+//       restaurantId,
+//       tableNumber: tableNumber.trim(),
+//       seatingCapacity,
+//       status: "FREE",
+//       isActive: true,
+//       isArchived: false,
+//     });
+
+//     /* ================= CUSTOMER FRIENDLY QR URL ================= */
+//     const qrUrl = `${process.env.FRONTEND_URL}/${brandSlug}/${restaurantSlug}/table/${table._id}`;
+
+//     /* ================= GENERATE QR ================= */
+//     const qrBase64 = await QRCode.toDataURL(qrUrl);
+
+//     const upload = await uploadQrToCloudinary(qrBase64, `table-${table._id}`);
+
+//     table.qrUrl = qrUrl;
+//     table.qrImageUrl = upload.secure_url;
+//     await table.save();
+
+//     return res.status(201).json({
+//       success: true,
+//       data: table,
+//     });
+//   } catch (err) {
+//     console.error("createTableController:", err);
+
+//     if (err.code === 11000) {
+//       return res.status(409).json({
+//         success: false,
+//         message: "Table number already exists",
+//       });
+//     }
+
+//     return res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//     });
+//   }
+// }
 
 export async function createTableController(req, res) {
   try {
@@ -14,10 +102,7 @@ export async function createTableController(req, res) {
     const { tableNumber, seatingCapacity = 4 } = req.body;
 
     if (!restaurantId) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized restaurant",
-      });
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
     if (!tableNumber?.trim()) {
@@ -27,30 +112,40 @@ export async function createTableController(req, res) {
       });
     }
 
-    /* ================= FETCH RESTAURANT SAFELY ================= */
+    /* ================= RESTAURANT ================= */
     const restaurant = await restaurantModel
       .findById(restaurantId)
       .select("name slug brandId")
       .lean();
 
     if (!restaurant) {
-      return res.status(404).json({
-        success: false,
-        message: "Restaurant not found",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Restaurant not found" });
     }
 
-    /* ================= FETCH BRAND SAFELY ================= */
+    /* ================= BRAND ================= */
     let brandSlug = "brand";
+    let brandName = "PLATO";
+    let brandLogoUrl = null;
+
     if (restaurant.brandId) {
       const brand = await brandModel
         .findById(restaurant.brandId)
-        .select("slug")
+        .select("slug name logoUrl")
         .lean();
+
       if (brand?.slug) brandSlug = brand.slug;
+      // if (brand?.name) brandName = brand.name;
+      if (brand?.logoUrl) brandLogoUrl = brand.logoUrl;
     }
 
-    const restaurantSlug = restaurant.name || "restaurant";
+    {
+      console.log(brandLogoUrl);
+    }
+
+    const restaurantSlug =
+      restaurant.slug || restaurant.name.toLowerCase().replace(/\s+/g, "-");
 
     /* ================= CREATE TABLE ================= */
     const table = await Table.create({
@@ -62,11 +157,16 @@ export async function createTableController(req, res) {
       isArchived: false,
     });
 
-    /* ================= CUSTOMER FRIENDLY QR URL ================= */
+    /* ================= CUSTOMER QR URL ================= */
     const qrUrl = `${process.env.FRONTEND_URL}/${brandSlug}/${restaurantSlug}/table/${table._id}`;
 
-    /* ================= GENERATE QR ================= */
-    const qrBase64 = await QRCode.toDataURL(qrUrl);
+    /* ================= GENERATE PROFESSIONAL QR ================= */
+    const qrBase64 = await generateTableQR({
+      url: qrUrl,
+      tableNumber: table.tableNumber,
+      // brandName,
+      brandLogoUrl,
+    });
 
     const upload = await uploadQrToCloudinary(qrBase64, `table-${table._id}`);
 

@@ -28,10 +28,10 @@ import ManagersPage from "../modules/admin/managers/ManagersPage";
 import MasterMenuPage from "../modules/admin/master-menu/MasterMenuPage";
 import ManagerLayout from "../layouts/ManagerLayout";
 import ManagerDashboard from "../modules/manager/ManagerDashboard";
-import StaffPage from "../modules/manager/staff/staffPage";
 import KitchenStationsPage from "../modules/manager/kitchen-stations/KitchenStationsPage";
 import TablesPage from "../modules/manager/tables/TablesPage";
 import BranchMenuPage from "../modules/manager/branch-menu/pages/BranchMenuPage";
+import StaffPage from "../modules/manager/staff/StaffPage";
 
 /* -------- FALLBACK -------- */
 const NotFound = () => (

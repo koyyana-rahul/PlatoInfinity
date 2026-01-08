@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import BranchMenuItem from "../models/branchMenuItem.model.js";
 import MasterMenuItem from "../models/masterMenuItem.model.js";
 import AuditLog from "../models/auditLog.model.js";
+import Stock from "../models/stock.model.js";
 
 /* =========================================================
    1️⃣ IMPORT MASTER MENU → BRANCH
@@ -247,29 +248,60 @@ export async function bulkToggleBranchMenu(req, res) {
 /* =========================================================
    6️⃣ UPDATE STOCK (REAL WORLD SAFE)
    ========================================================= */
+
 export async function updateBranchStock(req, res) {
   try {
     const { restaurantId, itemId } = req.params;
-    const { stock } = req.body || {};
+    const { stockQty } = req.body;
 
-    if (typeof stock !== "number" || stock < 0) {
-      return res.status(400).json({ message: "Invalid stock value" });
+    // ✅ allow null (unlimited)
+    if (stockQty !== null && (typeof stockQty !== "number" || stockQty < 0)) {
+      return res.status(400).json({
+        success: false,
+        message: "Stock must be a number ≥ 0 or null",
+      });
     }
 
-    const item = await BranchMenuItem.findOneAndUpdate(
-      { _id: itemId, restaurantId },
-      { $set: { stock } },
-      { new: true }
-    );
+    const item = await BranchMenuItem.findOne({
+      _id: itemId,
+      restaurantId,
+      isArchived: false,
+    });
 
     if (!item) {
-      return res.status(404).json({ message: "Item not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Menu item not found",
+      });
     }
 
-    res.json({ success: true, data: item });
+    // ✅ upsert stock
+    const stock = await Stock.findOneAndUpdate(
+      { restaurantId, branchMenuItemId: itemId },
+      {
+        $set: {
+          stockQty,
+          lastAdjustedAt: new Date(),
+          lastAdjustedBy: req.user._id,
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    // ✅ sync menu behavior
+    item.trackStock = stockQty !== null;
+    await item.save();
+
+    res.json({
+      success: true,
+      data: stock,
+    });
   } catch (err) {
     console.error("updateBranchStock:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 }
 

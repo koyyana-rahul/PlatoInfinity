@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCcw,
+  Package,
 } from "lucide-react";
 
 import VegNonVegIcon from "../../../../components/ui/VegNonVegIcon";
@@ -15,20 +16,15 @@ export default function BranchItemCard({ item, onDelete, refresh, onSync }) {
   const [editOpen, setEditOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
 
+  /* ---------------- IMAGES ---------------- */
   const images =
     item.images?.length > 0 ? item.images : item.image ? [item.image] : [];
 
   const [index, setIndex] = useState(0);
   const touchStartX = useRef(null);
 
-  const price = item.price ?? 0;
+  useEffect(() => setIndex(0), [item._id]);
 
-  /* ---------------- RESET ON ITEM CHANGE ---------------- */
-  useEffect(() => {
-    setIndex(0);
-  }, [item._id]);
-
-  /* ---------------- SLIDER ---------------- */
   const prev = (e) => {
     e?.stopPropagation();
     setIndex((i) => (i === 0 ? images.length - 1 : i - 1));
@@ -50,10 +46,20 @@ export default function BranchItemCard({ item, onDelete, refresh, onSync }) {
     touchStartX.current = null;
   };
 
-  /* ---------------- STATUS ---------------- */
+  /* ---------------- STATUS LOGIC ---------------- */
+  const price = item.price ?? 0;
   const isOff = item.status === "OFF";
+
+  const stockQty = item.stockQty;
+  const isUnlimited = item.trackStock && stockQty === null;
   const isOutOfStock =
-    item.trackStock && item.stockQty === 0 && item.autoHideWhenZero;
+    item.trackStock && stockQty === 0 && item.autoHideWhenZero;
+
+  const stockLabel = !item.trackStock
+    ? "No stock tracking"
+    : isUnlimited
+    ? "Unlimited"
+    : `${stockQty} left`;
 
   return (
     <>
@@ -61,10 +67,10 @@ export default function BranchItemCard({ item, onDelete, refresh, onSync }) {
         className={`
           group bg-white rounded-xl p-3 shadow-sm
           hover:shadow-md transition
-          ${isOff ? "opacity-60" : ""}
+          ${isOff ? "opacity-60 grayscale-[0.2]" : ""}
         `}
       >
-        {/* IMAGE */}
+        {/* ================= IMAGE ================= */}
         <div
           className="relative aspect-square rounded-lg overflow-hidden bg-gray-100"
           onTouchStart={onTouchStart}
@@ -86,23 +92,12 @@ export default function BranchItemCard({ item, onDelete, refresh, onSync }) {
           {/* SLIDER */}
           {images.length > 1 && (
             <>
-              <button
-                onClick={prev}
-                className="absolute left-2 top-1/2 -translate-y-1/2
-                           h-7 w-7 rounded-full bg-black/50 text-white
-                           flex items-center justify-center"
-              >
+              <IconBtn left onClick={prev}>
                 <ChevronLeft size={14} />
-              </button>
-
-              <button
-                onClick={next}
-                className="absolute right-2 top-1/2 -translate-y-1/2
-                           h-7 w-7 rounded-full bg-black/50 text-white
-                           flex items-center justify-center"
-              >
+              </IconBtn>
+              <IconBtn right onClick={next}>
                 <ChevronRight size={14} />
-              </button>
+              </IconBtn>
             </>
           )}
 
@@ -122,27 +117,18 @@ export default function BranchItemCard({ item, onDelete, refresh, onSync }) {
 
           {/* VEG / NON-VEG */}
           <div className="absolute top-2 left-2 z-20">
-            <div className="backdrop-blur bg-black/20 rounded-sm p-0.5">
+            <div className="bg-black/30 backdrop-blur rounded-sm p-0.5">
               <VegNonVegIcon isVeg={item.masterItemId?.isVeg} size={10} />
             </div>
           </div>
 
-          {/* STATUS BADGES */}
-          {isOff && (
-            <div
-              className="absolute top-2 right-2 text-[10px]
-                            bg-red-600 text-white px-2 py-0.5 rounded"
-            >
-              OFF
-            </div>
-          )}
+          {/* STATUS */}
+          <StatusBadge isOff={isOff} />
 
+          {/* OUT OF STOCK */}
           {isOutOfStock && (
-            <div
-              className="absolute bottom-2 right-2 text-[10px]
-                            bg-orange-600 text-white px-2 py-0.5 rounded"
-            >
-              Out of stock
+            <div className="absolute inset-0 bg-white/80 flex items-center justify-center text-sm font-bold text-red-600">
+              OUT OF STOCK
             </div>
           )}
 
@@ -152,45 +138,42 @@ export default function BranchItemCard({ item, onDelete, refresh, onSync }) {
                           opacity-0 group-hover:opacity-100
                           items-center justify-center gap-4 transition"
           >
-            <button
-              onClick={() => setEditOpen(true)}
-              className="bg-white p-2 rounded-full hover:scale-110 transition"
-            >
+            <ActionBtn onClick={() => setEditOpen(true)}>
               <Pencil size={16} />
-            </button>
+            </ActionBtn>
 
-            <button
-              onClick={onDelete}
-              className="bg-white p-2 rounded-full text-red-600 hover:scale-110 transition"
-            >
+            <ActionBtn danger onClick={onDelete}>
               <Trash2 size={16} />
-            </button>
+            </ActionBtn>
 
-            <button
-              onClick={onSync}
-              className="bg-white p-2 rounded-full text-blue-600 hover:scale-110 transition"
-              title="Sync with master"
-            >
+            <ActionBtn info onClick={onSync} title="Sync with master">
               <RefreshCcw size={16} />
-            </button>
+            </ActionBtn>
           </div>
         </div>
 
-        {/* INFO */}
+        {/* ================= INFO ================= */}
         <div className="mt-3 space-y-1">
-          <h4 className="text-sm font-medium truncate">{item.name}</h4>
+          <h4 className="text-sm font-semibold truncate">{item.name}</h4>
 
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-gray-900">
+            <p className="text-sm font-bold text-gray-900">
               ₹{Number(price).toFixed(2)}
             </p>
 
+            {/* STOCK */}
             {item.trackStock && (
               <button
                 onClick={() => setStockOpen(true)}
-                className="text-xs text-gray-500 underline"
+                className="
+                  flex items-center gap-1
+                  text-xs font-medium
+                  px-2 py-0.5 rounded-full
+                  bg-gray-100 hover:bg-gray-200
+                "
               >
-                Stock
+                <Package size={12} />
+                {stockLabel}
               </button>
             )}
           </div>
@@ -207,7 +190,7 @@ export default function BranchItemCard({ item, onDelete, refresh, onSync }) {
         </div>
       </div>
 
-      {/* EDIT */}
+      {/* ================= MODALS ================= */}
       {editOpen && (
         <EditBranchItemModal
           item={item}
@@ -219,7 +202,6 @@ export default function BranchItemCard({ item, onDelete, refresh, onSync }) {
         />
       )}
 
-      {/* STOCK */}
       {stockOpen && (
         <UpdateStockModal
           item={item}
@@ -231,5 +213,54 @@ export default function BranchItemCard({ item, onDelete, refresh, onSync }) {
         />
       )}
     </>
+  );
+}
+
+/* ================= SMALL UI PARTS ================= */
+
+function IconBtn({ children, onClick, left, right }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        absolute top-1/2 -translate-y-1/2
+        ${left ? "left-2" : "right-2"}
+        h-7 w-7 rounded-full
+        bg-black/50 text-white
+        flex items-center justify-center
+      `}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ActionBtn({ children, onClick, danger, info }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        bg-white p-2 rounded-full
+        hover:scale-110 transition
+        ${danger ? "text-red-600" : ""}
+        ${info ? "text-blue-600" : ""}
+      `}
+    >
+      {children}
+    </button>
+  );
+}
+
+function StatusBadge({ isOff }) {
+  return (
+    <div
+      className={`
+        absolute top-2 right-2 text-[10px]
+        px-2 py-0.5 rounded-full font-semibold
+        ${isOff ? "bg-red-600 text-white" : "bg-emerald-600 text-white"}
+      `}
+    >
+      {isOff ? "OFF" : "ON"}
+    </div>
   );
 }
