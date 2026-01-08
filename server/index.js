@@ -156,7 +156,7 @@ import mongoose from "mongoose";
 
 import connectDB from "./config/connectDB.js";
 
-// ROUTERS
+// ROUTES
 import authRouter from "./route/auth.route.js";
 import brandRouter from "./route/brand.route.js";
 import restaurantRouter from "./route/restaurant.route.js";
@@ -192,7 +192,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ---------- CORS (FINAL FIX) ----------
+// ---------- CORS ----------
 const allowedOrigins = [
   "https://platoinfinity.xyz",
   "https://www.platoinfinity.xyz",
@@ -200,26 +200,27 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: function (origin, callback) {
+    origin(origin, callback) {
       if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
+      if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error("CORS not allowed"), false);
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// IMPORTANT: handle preflight
-app.options("*", cors());
+// ✅ SAFE preflight handler (NO "*")
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 // ---------- HEALTH ----------
-app.get("/", (req, res) => res.json({ message: "Plato API Server", ok: true }));
+app.get("/", (req, res) => res.json({ ok: true, service: "Plato API" }));
 
 app.get("/health", (req, res) => res.json({ ok: true, time: new Date() }));
 
@@ -249,6 +250,7 @@ app.use("/api", billShareRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/waiter", waiterRouter);
 
+// ---------- ERROR HANDLER ----------
 app.use(handleJsonError);
 
 // ---------- SERVER ----------
@@ -274,7 +276,9 @@ async function startServer() {
     app.locals.emitToStation = emitToStation;
     registerEmitFunc(emitToStation);
 
-    server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+    server.listen(PORT, () => {
+      console.log(`🚀 Plato API running on port ${PORT}`);
+    });
   } catch (err) {
     console.error("❌ Server startup failed", err);
     process.exit(1);
