@@ -104,7 +104,11 @@ async function startServer() {
 
     const { io, emitToStation } = initSocketServer(server, {
       cors: {
-        origin: process.env.FRONTEND_URL || "*",
+        origin:
+          process.env.FRONTEND_URL ||
+          "https://platoinfinity.xyz" ||
+          "https://www.platoinfinity.xyz" ||
+          "*",
         methods: ["GET", "POST"],
         credentials: true,
       },
