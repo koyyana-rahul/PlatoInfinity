@@ -49,9 +49,8 @@ app.use(
   cors({
     origin: [
       // process.env.FRONTEND_URL ||
-        "https://platoinfinity.xyz" ||
-        "https://www.platoinfinity.xyz" ||
-        // "*",
+      "https://platoinfinity.xyz" || "https://www.platoinfinity.xyz",
+      // "*",
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
@@ -113,9 +112,8 @@ async function startServer() {
       cors: {
         origin: [
           // process.env.FRONTEND_URL ||
-            "https://platoinfinity.xyz" ||
-            "https://www.platoinfinity.xyz" ||
-            // "*",
+          "https://platoinfinity.xyz" || "https://www.platoinfinity.xyz",
+          // "*",
         ],
         methods: ["GET", "POST"],
         credentials: true,
