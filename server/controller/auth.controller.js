@@ -162,6 +162,7 @@ export async function verifyEmailController(req, res) {
     }
 
     user.verify_email = true;
+    user.isActive = true;
     user.emailVerifyToken = undefined;
     user.emailVerifyExpires = undefined;
     user.lastLoginAt = new Date();
