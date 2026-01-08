@@ -39,7 +39,7 @@ const isProd = process.env.NODE_ENV === "production";
 function cookieOptions() {
   return {
     httpOnly: true,
-    secure: isProd,
+    secure: true,
     sameSite: isProd ? "None" : "Lax",
     // maxAge omitted for accessToken cookie (token expiry enforced by JWT); you can set if desired
   };
@@ -219,14 +219,14 @@ export async function loginController(req, res) {
   // 🍪 Set cookies
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    secure: isProd,
+    secure: true,
     sameSite: isProd ? "none" : "lax",
     maxAge: 15 * 60 * 1000, // 15 min
   });
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: isProd,
+    secure: true,
     sameSite: isProd ? "none" : "lax",
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
@@ -300,7 +300,7 @@ export async function refreshTokenController(req, res) {
 
   res.cookie("accessToken", newAccessToken, {
     httpOnly: true,
-    secure: isProd,
+    secure: true,
     sameSite: isProd ? "none" : "lax",
     maxAge: 15 * 60 * 1000,
   });
