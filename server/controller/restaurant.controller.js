@@ -13,32 +13,32 @@ export async function createRestaurantController(req, res) {
       return res.status(400).json({ message: "Restaurant name required" });
     }
 
-    /* ========= CASE 1: Indian Address (NEW) ========= */
-    let finalAddressText = addressText;
-    let finalLocation = location;
-
-    if (address && address.pincode) {
-      finalAddressText =
-        addressText ||
-        `${address.village || ""}, ${address.mandal || ""}, ${
-          address.district || ""
-        }, ${address.state || ""} - ${address.pincode}`;
-
-      // Optional: fallback geo (India center)
-      finalLocation = {
-        type: "Point",
-        coordinates: [78.9629, 20.5937],
-      };
+    if (!address || !address.pincode) {
+      return res
+        .status(400)
+        .json({ message: "Address with pincode is required" });
     }
 
-    /* ========= CASE 2: Google Maps (OLD – still works) ========= */
-    if (!finalAddressText || !finalLocation) {
-      return res.status(400).json({
-        message: "Address information missing",
-      });
-    }
+    /* ========= Process Address & Location ========= */
+    const finalAddressText =
+      addressText ||
+      [
+        address.village,
+        address.mandal,
+        address.district,
+        address.state,
+        address.pincode,
+      ]
+        .filter(Boolean)
+        .join(", ");
 
-    const restaurant = await Restaurant.create({
+    // Use provided location or fallback to a default
+    const finalLocation = location || {
+      type: "Point",
+      coordinates: [78.9629, 20.5937], // Fallback: India center
+    };
+
+    const restaurant = await RestaurantModel.create({
       brandId: admin.brandId,
       name,
       phone,
