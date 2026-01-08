@@ -41,6 +41,8 @@ export default function Login() {
         data: form,
       });
 
+      await new Promise((r) => setTimeout(r, 200));
+
       // 2️⃣ FETCH USER
       const meRes = await Axios(SummaryApi.me);
       const user = meRes.data.data;
