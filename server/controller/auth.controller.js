@@ -41,6 +41,7 @@ function cookieOptions() {
     httpOnly: true,
     secure: true,
     sameSite: isProd ? "None" : "Lax",
+    domain: "platoinfinity.xyz",
     // maxAge omitted for accessToken cookie (token expiry enforced by JWT); you can set if desired
   };
 }
@@ -218,16 +219,12 @@ export async function loginController(req, res) {
 
   // 🍪 Set cookies
   res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: isProd ? "none" : "lax",
+    ...cookieOptions(),
     maxAge: 15 * 60 * 1000, // 15 min
   });
 
   res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: isProd ? "none" : "lax",
+    ...cookieOptions(),
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 
@@ -299,9 +296,7 @@ export async function refreshTokenController(req, res) {
   const isProd = process.env.NODE_ENV === "production";
 
   res.cookie("accessToken", newAccessToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: isProd ? "none" : "lax",
+    ...cookieOptions(),
     maxAge: 15 * 60 * 1000,
   });
 
