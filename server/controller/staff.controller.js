@@ -1,24 +1,33 @@
-import UserModel from "../models/user.model.js";
+import User from "../models/user.model.js";
+import Shift from "../models/shift.model.js";
+import Restaurant from "../models/restaurant.model.js";
 import generatedAccessToken from "../utils/generatedAccessToken.js";
 import generatedRefreshToken from "../utils/generatedRefreshToken.js";
 import { cookieOptions } from "../utils/cookieOptions.js";
 import { generateStaffCode } from "../utils/generateStaffCode.js";
 
 /* ======================================================
-   UTIL: Generate Unique PIN (per restaurant)
+   UTIL: Generate Unique Staff PIN (PER RESTAURANT)
 ====================================================== */
-async function generateUniquePin(restaurantId, maxTries = 15) {
-  for (let i = 0; i < maxTries; i++) {
+export async function generateUniquePin(restaurantId) {
+  const MAX_ATTEMPTS = 15;
+
+  for (let i = 0; i < MAX_ATTEMPTS; i++) {
     const pin = Math.floor(1000 + Math.random() * 9000).toString();
 
-    const exists = await UserModel.exists({ restaurantId, staffPin: pin });
+    const exists = await User.exists({
+      restaurantId,
+      staffPin: pin,
+    });
+
     if (!exists) return pin;
   }
+
   throw new Error("PIN_GENERATION_FAILED");
 }
 
 /* ======================================================
-   CREATE STAFF
+   CREATE STAFF (MANAGER ONLY)
 ====================================================== */
 export async function createStaffController(req, res) {
   try {
@@ -37,7 +46,7 @@ export async function createStaffController(req, res) {
     }
 
     if (!name?.trim()) {
-      return res.status(400).json({ message: "Staff name is required" });
+      return res.status(400).json({ message: "Staff name required" });
     }
 
     if (!["WAITER", "CHEF", "CASHIER"].includes(role)) {
@@ -45,21 +54,19 @@ export async function createStaffController(req, res) {
     }
 
     if (mobile) {
-      const mobileExists = await UserModel.exists({
-        restaurantId,
-        mobile,
-      });
-      if (mobileExists) {
-        return res.status(409).json({
-          message: "Mobile already assigned in this restaurant",
-        });
+      const exists = await User.exists({ restaurantId, mobile });
+      if (exists) {
+        return res
+          .status(409)
+          .json({ message: "Mobile already used in this restaurant" });
       }
     }
 
+    /* 🔑 CRITICAL: Generate PIN BEFORE create */
     const staffPin = await generateUniquePin(restaurantId);
-    const staffCode = await generateStaffCode(UserModel, restaurantId, role);
+    const staffCode = await generateStaffCode(User, restaurantId, role);
 
-    const staff = await UserModel.create({
+    const staff = await User.create({
       name: name.trim(),
       role,
       staffCode,
@@ -72,194 +79,147 @@ export async function createStaffController(req, res) {
       onDuty: false,
     });
 
+    /* ✅ RETURN GENERATED PIN (NOT FROM DB DOC) */
     return res.status(201).json({
       success: true,
       data: {
         id: staff._id,
         name: staff.name,
-        staffCode: staff.staffCode,
         role: staff.role,
-        staffPin,
+        staffCode,
+        staffPin, // 👈 SHOW ONLY ONCE
       },
     });
   } catch (err) {
-    console.error("CREATE STAFF ERROR:", err);
-
-    if (err.message === "PIN_GENERATION_FAILED") {
-      return res.status(500).json({ message: "PIN generation failed" });
-    }
-
-    return res.status(500).json({ message: "Server error" });
+    console.error("createStaffController:", err);
+    res.status(500).json({ message: "Server error" });
   }
 }
 
 /* ======================================================
-   LIST STAFF (SEARCH)
+   LIST STAFF (MANAGER)
 ====================================================== */
 export async function listStaffController(req, res) {
   try {
-    const { restaurantId } = req.params;
-    const { q } = req.query;
     const manager = req.user;
+    const { restaurantId } = req.params;
 
     if (String(manager.restaurantId) !== String(restaurantId)) {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
-    const filter = { restaurantId };
-
-    if (q) {
-      filter.$or = [
-        { staffCode: new RegExp(q, "i") },
-        { name: new RegExp(q, "i") },
-        { mobile: new RegExp(q, "i") },
-      ];
-    }
-
-    const staff = await UserModel.find(filter)
+    const staff = await User.find({
+      restaurantId,
+      role: { $in: ["WAITER", "CHEF", "CASHIER"] },
+    })
       .select(
-        "_id name role mobile staffCode staffPin isActive onDuty lastShiftIn lastShiftOut createdAt"
+        "_id name role staffCode staffPin mobile isActive onDuty lastShiftIn lastShiftOut createdAt"
       )
       .sort({ createdAt: -1 })
       .lean();
 
     res.json({ success: true, data: staff });
   } catch (err) {
-    console.error("LIST STAFF ERROR:", err);
+    console.error("listStaffController:", err);
     res.status(500).json({ message: "Server error" });
   }
 }
 
 /* ======================================================
-   REGENERATE PIN
+   REGENERATE STAFF PIN (MANAGER)
 ====================================================== */
 export async function regenerateStaffPinController(req, res) {
   try {
-    const { restaurantId, staffId } = req.params;
     const manager = req.user;
+    const { restaurantId, staffId } = req.params;
 
     if (String(manager.restaurantId) !== String(restaurantId)) {
-      return res.status(403).json({ message: "Unauthorized access" });
+      return res.status(403).json({ message: "Unauthorized" });
     }
 
-    const staff = await UserModel.findOne({
+    /* 🔑 MUST SELECT staffPin */
+    const staff = await User.findOne({
       _id: staffId,
       restaurantId,
       isActive: true,
-    });
-
-    if (!staff) {
-      return res.status(404).json({ message: "Active staff not found" });
-    }
-
-    staff.staffPin = await generateUniquePin(restaurantId);
-    await staff.save();
-
-    res.json({
-      success: true,
-      data: { staffPin: staff.staffPin },
-    });
-  } catch (err) {
-    console.error("REGENERATE PIN ERROR:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-}
-
-/* ======================================================
-   TOGGLE ACTIVE / INACTIVE
-====================================================== */
-export async function toggleStaffActiveController(req, res) {
-  try {
-    const { restaurantId, staffId } = req.params;
-    const manager = req.user;
-
-    if (String(manager.restaurantId) !== String(restaurantId)) {
-      return res.status(403).json({ message: "Unauthorized access" });
-    }
-
-    const staff = await UserModel.findOne({ _id: staffId, restaurantId });
+    }).select("+staffPin");
 
     if (!staff) {
       return res.status(404).json({ message: "Staff not found" });
     }
 
+    const newPin = await generateUniquePin(restaurantId);
+
+    staff.staffPin = newPin;
+    await staff.save();
+
+    return res.json({
+      success: true,
+      data: {
+        staffId: staff._id,
+        staffPin: newPin, // 👈 SHOW ONCE
+      },
+    });
+  } catch (err) {
+    console.error("regenerateStaffPinController:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+/* ======================================================
+   TOGGLE STAFF ACTIVE / INACTIVE
+====================================================== */
+export async function toggleStaffActiveController(req, res) {
+  try {
+    const manager = req.user;
+    const { restaurantId, staffId } = req.params;
+
+    if (String(manager.restaurantId) !== String(restaurantId)) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const staff = await User.findOne({ _id: staffId, restaurantId });
+    if (!staff) return res.status(404).json({ message: "Staff not found" });
+
     staff.isActive = !staff.isActive;
 
     if (!staff.isActive) {
-      staff.staffPin = undefined;
       staff.onDuty = false;
       staff.lastShiftOut = new Date();
     }
 
     await staff.save();
 
-    res.json({
-      success: true,
-      data: { isActive: staff.isActive },
-    });
+    res.json({ success: true, isActive: staff.isActive });
   } catch (err) {
-    console.error("TOGGLE STAFF ERROR:", err);
+    console.error("toggleStaffActiveController:", err);
     res.status(500).json({ message: "Server error" });
   }
 }
 
 /* ======================================================
-   SHIFT START
+   STAFF LOGIN (QR + PIN)
 ====================================================== */
-export async function startShiftController(req, res) {
-  try {
-    const staff = req.user;
+// src/controllers/staff.controller.js
 
-    if (!staff.isActive) {
-      return res.status(403).json({ message: "Staff inactive" });
-    }
-
-    if (staff.onDuty) {
-      return res.status(400).json({ message: "Shift already started" });
-    }
-
-    staff.onDuty = true;
-    staff.lastShiftIn = new Date();
-    await staff.save();
-
-    res.json({ success: true, shiftIn: staff.lastShiftIn });
-  } catch (err) {
-    console.error("START SHIFT ERROR:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-}
-
-/* ======================================================
-   SHIFT END
-====================================================== */
-export async function endShiftController(req, res) {
-  try {
-    const staff = req.user;
-
-    if (!staff.onDuty) {
-      return res.status(400).json({ message: "Shift not started" });
-    }
-
-    staff.onDuty = false;
-    staff.lastShiftOut = new Date();
-    await staff.save();
-
-    res.json({ success: true, shiftOut: staff.lastShiftOut });
-  } catch (err) {
-    console.error("END SHIFT ERROR:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-}
-
-/* ======================================================
-   STAFF LOGIN
-====================================================== */
+// src/controllers/staff.controller.js
 export async function staffLoginController(req, res) {
   try {
-    const { restaurantId, staffPin } = req.body;
+    const { staffPin, qrToken } = req.body;
 
-    const staff = await UserModel.findOne({
-      restaurantId,
+    const shift = await Shift.findOne({
+      qrToken,
+      status: "OPEN",
+      qrIsActive: true,
+      qrExpiresAt: { $gt: new Date() },
+    });
+
+    if (!shift) {
+      return res.status(401).json({ message: "Invalid or expired QR" });
+    }
+
+    const staff = await User.findOne({
+      restaurantId: shift.restaurantId,
       staffPin,
       isActive: true,
       role: { $in: ["WAITER", "CHEF", "CASHIER"] },
@@ -269,27 +229,72 @@ export async function staffLoginController(req, res) {
       return res.status(401).json({ message: "Invalid PIN" });
     }
 
+    // 🔑 Always resolve brand via restaurant
+    const restaurant = await Restaurant.findById(shift.restaurantId)
+      .populate("brandId", "slug")
+      .select("brandId")
+      .lean();
+
+    if (!restaurant?.brandId?.slug) {
+      return res.status(500).json({ message: "Brand not configured" });
+    }
+
+    staff.onDuty = true;
+    staff.lastShiftIn = new Date();
+
     const accessToken = generatedAccessToken(staff._id);
     const refreshToken = generatedRefreshToken(staff._id);
 
     staff.refreshToken = refreshToken;
-    staff.lastLoginAt = new Date();
     await staff.save();
 
     res.cookie("accessToken", accessToken, cookieOptions());
     res.cookie("refreshToken", refreshToken, cookieOptions());
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         id: staff._id,
         name: staff.name,
-        staffCode: staff.staffCode,
         role: staff.role,
+        restaurantId: staff.restaurantId,
+        brandSlug: restaurant.brandId.slug, // ✅ FIX
       },
     });
   } catch (err) {
-    console.error("STAFF LOGIN ERROR:", err);
+    console.error("staffLoginController:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+/* ======================================================
+   STAFF SHIFT END (LOGOUT)
+====================================================== */
+export async function endStaffShiftController(req, res) {
+  try {
+    const staff = req.user; // REAL User document
+
+    if (!["WAITER", "CHEF", "CASHIER"].includes(staff.role)) {
+      return res.status(403).json({ message: "Staff only" });
+    }
+
+    // ✅ IDMPOTENT BEHAVIOR
+    if (staff.onDuty) {
+      staff.onDuty = false;
+      staff.lastShiftOut = new Date();
+      staff.refreshToken = null;
+      await staff.save();
+    }
+
+    // ✅ Always clear cookies (safe even if already cleared)
+    res.clearCookie("accessToken", cookieOptions());
+    res.clearCookie("refreshToken", cookieOptions());
+
+    return res.json({
+      success: true,
+      message: "Shift ended",
+    });
+  } catch (err) {
+    console.error("endStaffShiftController:", err);
     res.status(500).json({ message: "Server error" });
   }
 }

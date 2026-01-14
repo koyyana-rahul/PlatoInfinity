@@ -587,7 +587,7 @@ export async function userDetailsController(req, res) {
 
     const user = await UserModel.findById(userId)
       .select(
-        "-password -refresh_token -forgot_password_otp -forgot_password_expiry"
+        "-password -refresh_token -forgotPasswordOtpHash -forgotPasswordExpiry "
       )
       .populate("brandId", "name slug logoUrl")
       .lean();

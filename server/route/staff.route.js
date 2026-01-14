@@ -4,23 +4,21 @@ import { requireRole } from "../middleware/requireRole.js";
 
 import {
   createStaffController,
-  // deactivateStaffController,
   listStaffController,
   regenerateStaffPinController,
-  staffLoginController,
   toggleStaffActiveController,
-  startShiftController,
-  endShiftController,
+  staffLoginController,
+  endStaffShiftController,
 } from "../controller/staff.controller.js";
 
 const staffRouter = express.Router();
 
 /* ======================================================
-   MANAGER ROUTES (Protected)
+   MANAGER ROUTES
 ====================================================== */
 
 /**
- * Create staff (Waiter / Chef / Cashier)
+ * Create staff (WAITER / CHEF / CASHIER)
  */
 staffRouter.post(
   "/restaurants/:restaurantId/staff",
@@ -30,9 +28,7 @@ staffRouter.post(
 );
 
 /**
- * List staff (supports search)
- * Query params:
- *  ?q=staffCode | name | mobile
+ * List all staff of restaurant
  */
 staffRouter.get(
   "/restaurants/:restaurantId/staff",
@@ -52,7 +48,7 @@ staffRouter.post(
 );
 
 /**
- * Toggle staff active / inactive (soft remove)
+ * Activate / Deactivate staff
  */
 staffRouter.patch(
   "/restaurants/:restaurantId/staff/:staffId/toggle-active",
@@ -61,43 +57,24 @@ staffRouter.patch(
   toggleStaffActiveController
 );
 
-/**
- * Permanently deactivate staff (optional / admin-level)
- */
-// staffRouter.patch(
-//   "/restaurants/:restaurantId/staff/:staffId/deactivate",
-//   requireAuth,
-//   requireRole("MANAGER"),
-//   deactivateStaffController
-// );
-
 /* ======================================================
-   STAFF ROUTES
+   STAFF AUTH ROUTES
 ====================================================== */
 
 /**
- * Staff login using Staff PIN
+ * STAFF LOGIN (QR + PIN)
+ * body: { staffPin, qrToken }
  */
 staffRouter.post("/auth/staff-login", staffLoginController);
 
 /**
- * Shift start (Attendance IN)
+ * STAFF LOGOUT (END DUTY)
  */
 staffRouter.post(
-  "/shift/start",
+  "/staff/shift/end",
   requireAuth,
   requireRole("WAITER", "CHEF", "CASHIER"),
-  startShiftController
-);
-
-/**
- * Shift end (Attendance OUT)
- */
-staffRouter.post(
-  "/shift/end",
-  requireAuth,
-  requireRole("WAITER", "CHEF", "CASHIER"),
-  endShiftController
+  endStaffShiftController
 );
 
 export default staffRouter;

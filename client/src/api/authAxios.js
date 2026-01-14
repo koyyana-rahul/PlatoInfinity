@@ -2,6 +2,7 @@ import axios from "axios";
 
 const AuthAxios = axios.create({
   baseURL: "https://api.platoinfinity.xyz",
+  // baseURL: "http://localhost:8080",
   withCredentials: true, // refresh token uses cookie
   headers: {
     "Content-Type": "application/json",

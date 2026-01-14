@@ -11,6 +11,7 @@ import {
   FiCoffee,
   FiDollarSign,
   FiInfo,
+  FiCheckCircle,
 } from "react-icons/fi";
 
 /* ================= ROLE CONFIG ================= */
@@ -20,25 +21,23 @@ const ROLES = [
     label: "Waiter",
     icon: FiUser,
     desc: "Takes orders & serves customers",
-    codePrefix: "WTR",
   },
   {
     value: "CHEF",
     label: "Chef",
     icon: FiCoffee,
     desc: "Prepares food at kitchen station",
-    codePrefix: "CHF",
   },
   {
     value: "CASHIER",
     label: "Cashier",
     icon: FiDollarSign,
     desc: "Handles billing & payments",
-    codePrefix: "CSH",
   },
 ];
 
 export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
+  /* ================= FORM ================= */
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -48,6 +47,9 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
   });
 
   const [loading, setLoading] = useState(false);
+
+  /* ================= CREATED STAFF (PIN VIEW) ================= */
+  const [createdStaff, setCreatedStaff] = useState(null);
 
   /* ================= ROLE DROPDOWN ================= */
   const [roleOpen, setRoleOpen] = useState(false);
@@ -65,12 +67,10 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
   /* ================= CLICK OUTSIDE ================= */
   useEffect(() => {
     const handler = (e) => {
-      if (roleRef.current && !roleRef.current.contains(e.target)) {
+      if (roleRef.current && !roleRef.current.contains(e.target))
         setRoleOpen(false);
-      }
-      if (stationRef.current && !stationRef.current.contains(e.target)) {
+      if (stationRef.current && !stationRef.current.contains(e.target))
         setStationOpen(false);
-      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -134,12 +134,10 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
         },
       });
 
-      toast.success(
-        `Staff created • Code ${res.data?.data?.staffCode || "assigned"}`
-      );
+      const staff = res.data.data;
 
-      onSuccess?.(res.data?.data);
-      onClose();
+      setCreatedStaff(staff); // 🔑 SHOW PIN SCREEN
+      onSuccess?.(staff);
     } catch (err) {
       toast.error(
         err?.response?.data?.message ||
@@ -150,7 +148,49 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
     }
   };
 
-  /* ================= UI ================= */
+  /* =====================================================
+     ✅ PIN DISPLAY (ONE TIME ONLY)
+  ===================================================== */
+  if (createdStaff) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4">
+        <div className="bg-white w-full max-w-sm rounded-2xl shadow-xl p-6 text-center">
+          <FiCheckCircle className="mx-auto text-emerald-600" size={36} />
+
+          <h3 className="text-xl font-semibold text-gray-900 mt-3">
+            Staff Created
+          </h3>
+
+          <p className="text-sm text-gray-500 mt-1">
+            Save this PIN. You won’t be able to see it again.
+          </p>
+
+          <div className="mt-6 bg-gray-100 rounded-xl py-4">
+            <p className="text-xs text-gray-500">Staff Code</p>
+            <p className="font-mono text-lg font-semibold">
+              {createdStaff.staffCode}
+            </p>
+
+            <p className="text-xs text-gray-500 mt-4">Staff PIN</p>
+            <p className="font-mono text-3xl tracking-widest font-bold text-emerald-600">
+              {createdStaff.staffPin}
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="mt-6 w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-semibold"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* =====================================================
+     CREATE FORM UI
+  ===================================================== */
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
       <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
@@ -182,7 +222,7 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
             />
           </div>
 
-          {/* ROLE DROPDOWN */}
+          {/* ROLE */}
           <Dropdown
             label="Role"
             open={roleOpen}
@@ -205,11 +245,7 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
                 title={r.label}
                 desc={r.desc}
                 onClick={() => {
-                  setForm({
-                    ...form,
-                    role: r.value,
-                    kitchenStationId: "",
-                  });
+                  setForm({ ...form, role: r.value, kitchenStationId: "" });
                   setRoleOpen(false);
                 }}
               />
@@ -225,7 +261,7 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
             inputMode="numeric"
           />
 
-          {/* ✅ KITCHEN STATION DROPDOWN */}
+          {/* CHEF STATION */}
           {form.role === "CHEF" && (
             <Dropdown
               label="Kitchen Station"
@@ -259,9 +295,7 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
           {/* INFO */}
           <div className="flex gap-3 bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-sm">
             <FiInfo />
-            <p>
-              A unique Staff Code & 4-digit PIN will be generated automatically.
-            </p>
+            <p>A unique Staff Code & 4-digit PIN will be generated.</p>
           </div>
         </div>
 
@@ -283,7 +317,7 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
   );
 }
 
-/* ================= REUSABLE UI ================= */
+/* ================= UI HELPERS ================= */
 
 function Dropdown({
   label,

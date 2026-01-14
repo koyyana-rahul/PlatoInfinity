@@ -1,50 +1,45 @@
 import { NavLink } from "react-router-dom";
 import {
-  FaTachometerAlt,
-  FaUtensils,
-  FaUsers,
-  FaChair,
-  FaChartBar,
-  FaCog,
-  FaFire,
-  FaQrcode, // ✅ NEW ICON
+  FaCashRegister,
+  FaReceipt,
+  FaChartLine,
+  FaMoneyBillWave,
+  FaSignOutAlt,
 } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import clsx from "clsx";
 
-export default function ManagerSidebar({ open, onClose }) {
+export default function CashierSidebar({ open, onClose, brandSlug }) {
   const user = useSelector((s) => s.user);
 
-  const brandSlug = user?.brand?.slug;
   const restaurantId = user?.restaurantId;
 
-  // 🛑 Safety
+  // 🛑 Safety guard
   if (!brandSlug || !restaurantId) return null;
 
-  const basePath = `/${brandSlug}/manager/restaurants/${restaurantId}`;
+  const basePath = `/${brandSlug}/staff/cashier/restaurants/${restaurantId}`;
 
   const menu = [
-    { name: "Dashboard", icon: FaTachometerAlt, path: "dashboard" },
-    { name: "Menu", icon: FaUtensils, path: "menu" },
-
     {
-      name: "Kitchen Stations",
-      icon: FaFire,
-      path: "kitchen-stations",
+      name: "Billing",
+      icon: FaCashRegister,
+      path: "",
     },
-
-    { name: "Staff", icon: FaUsers, path: "staff" },
-
-    // ✅ STAFF QR PAGE
     {
-      name: "Staff Login QR",
-      icon: FaQrcode,
-      path: "staff-qr",
+      name: "Invoices",
+      icon: FaReceipt,
+      path: "invoices",
     },
-
-    { name: "Tables", icon: FaChair, path: "tables" },
-    { name: "Reports", icon: FaChartBar, path: "reports" },
-    { name: "Settings", icon: FaCog, path: "settings" },
+    {
+      name: "Payments",
+      icon: FaMoneyBillWave,
+      path: "payments",
+    },
+    {
+      name: "Summary",
+      icon: FaChartLine,
+      path: "summary",
+    },
   ];
 
   return (
@@ -73,11 +68,12 @@ export default function ManagerSidebar({ open, onClose }) {
               key={name}
               to={`${basePath}/${path}`}
               onClick={onClose}
+              end={path === ""}
               className={({ isActive }) =>
                 clsx(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition",
                   isActive
-                    ? "bg-emerald-50 text-emerald-700"
+                    ? "bg-blue-50 text-blue-700"
                     : "text-gray-700 hover:bg-gray-100"
                 )
               }
@@ -86,6 +82,22 @@ export default function ManagerSidebar({ open, onClose }) {
               <span className="truncate">{name}</span>
             </NavLink>
           ))}
+
+          {/* ================= SHIFT ACTION ================= */}
+          <div className="pt-4 mt-4 border-t">
+            <button
+              className="w-full flex items-center gap-3 px-3 py-2.5
+                         rounded-lg text-sm font-medium text-red-600
+                         hover:bg-red-50 transition"
+              onClick={() => {
+                // 🔌 hook shift end here
+                console.log("End cashier shift");
+              }}
+            >
+              <FaSignOutAlt size={16} />
+              End Shift
+            </button>
+          </div>
         </nav>
       </aside>
     </>

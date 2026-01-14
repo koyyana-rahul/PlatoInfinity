@@ -1,3 +1,4 @@
+// src/modules/auth/Redirect.jsx
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -14,47 +15,56 @@ export default function Redirect() {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    let isMounted = true;
-
-    const bootstrap = async () => {
+    const redirectUser = async () => {
       try {
-        /* ================= FETCH CURRENT USER ================= */
         const res = await Axios(summaryApi.me);
-        const user = res.data?.data;
+        const user = res?.data?.data;
 
         if (!user) {
           navigate("/login", { replace: true });
           return;
         }
 
-        /* ================= STORE USER ================= */
         dispatch(setUserDetails(user));
 
-        /* ================= EMAIL CHECK ================= */
+        /* ================= STAFF (NO EMAIL CHECK) ================= */
+        if (["CHEF", "WAITER", "CASHIER"].includes(user.role)) {
+          if (!user.restaurantId || !user.brand?.slug) {
+            toast.error("Restaurant or brand not assigned");
+            navigate("/staff/login", { replace: true });
+            return;
+          }
+
+          dispatch(setBrandDetails(user.brand));
+
+          navigate(
+            `/${user.brand.slug}/staff/${user.role.toLowerCase()}/restaurants/${
+              user.restaurantId
+            }`,
+            { replace: true }
+          );
+          return;
+        }
+
+        /* ================= EMAIL USERS ================= */
         if (!user.verify_email) {
-          toast.error("Please verify your email first");
+          toast.error("Please verify your email");
           navigate("/login", { replace: true });
           return;
         }
 
-        /* ================= BRAND CHECK ================= */
-        if (!user.brand) {
+        if (!user.brand?.slug) {
           navigate("/onboarding/create-brand", { replace: true });
           return;
         }
 
-        /* ================= STORE BRAND ================= */
         dispatch(setBrandDetails(user.brand));
 
-        /* ================= ROLE BASED REDIRECT ================= */
-
-        // 🔐 BRAND ADMIN
         if (user.role === "BRAND_ADMIN") {
           navigate(`/${user.brand.slug}/admin/dashboard`, { replace: true });
           return;
         }
 
-        // 🧑‍💼 MANAGER
         if (user.role === "MANAGER") {
           if (!user.restaurantId) {
             toast.error("Restaurant not assigned");
@@ -69,8 +79,7 @@ export default function Redirect() {
           return;
         }
 
-        /* ================= FALLBACK ================= */
-        toast.error("Unsupported user role");
+        toast.error("Unsupported role");
         navigate("/login", { replace: true });
       } catch (err) {
         console.error("Redirect error:", err);
@@ -78,12 +87,8 @@ export default function Redirect() {
       }
     };
 
-    if (isMounted) bootstrap();
-
-    return () => {
-      isMounted = false;
-    };
+    redirectUser();
   }, [dispatch, navigate]);
 
-  return null; // purely logical route
+  return null;
 }

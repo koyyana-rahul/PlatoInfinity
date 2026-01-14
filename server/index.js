@@ -38,6 +38,7 @@ import { initSocketServer } from "./socket/index.js";
 import { registerEmitFunc } from "./socket/emitter.js";
 import { initCronJobs } from "./cron.js";
 import { handleJsonError } from "./middleware/handleJsonError.js";
+import shiftRouter from "./route/shift.route.js";
 
 // ---------- APP ----------
 const app = express();
@@ -49,6 +50,7 @@ app.use(express.urlencoded({ extended: true }));
 const allowedOrigins = [
   "https://platoinfinity.xyz",
   "https://www.platoinfinity.xyz",
+  // "http://localhost:5173",
 ];
 
 app.use(
@@ -86,7 +88,8 @@ app.use("/api/auth", authRouter);
 app.use("/api/brand", brandRouter);
 app.use("/api/restaurants", restaurantRouter);
 app.use("/api/restaurants/:restaurantId/managers", managerRouter);
-app.use("/api/staff", staffRouter);
+app.use("/api", staffRouter);
+app.use("/api/shifts", shiftRouter);
 app.use("/api/branch-menu", menuRouter);
 app.use("/api", sessionRouter);
 app.use("/api", orderRouter);

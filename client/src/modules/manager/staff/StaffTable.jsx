@@ -1,4 +1,3 @@
-// src/modules/manager/staff/StaffTable.jsx
 import { useState } from "react";
 import toast from "react-hot-toast";
 import Axios from "../../../api/axios";
@@ -16,6 +15,8 @@ import {
   FiClock,
   FiAlertTriangle,
   FiPhone,
+  FiEye,
+  FiEyeOff,
 } from "react-icons/fi";
 
 /* ================= ROLE ICON MAP ================= */
@@ -44,6 +45,16 @@ export default function StaffTable({
   const [toggleTarget, setToggleTarget] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // 👁 PIN VISIBILITY MAP
+  const [showPinMap, setShowPinMap] = useState({});
+
+  const toggleShowPin = (staffId) => {
+    setShowPinMap((prev) => ({
+      ...prev,
+      [staffId]: !prev[staffId],
+    }));
+  };
+
   /* ================= REGENERATE PIN ================= */
   const regeneratePin = async () => {
     try {
@@ -53,12 +64,23 @@ export default function StaffTable({
         staffApi.regeneratePin(restaurantId, pinTarget._id)
       );
 
-      toast.success("PIN regenerated");
+      const newPin = res.data?.data?.staffPin;
+      if (!newPin) {
+        toast.error("PIN generation failed");
+        return;
+      }
 
-      // ✅ Local update
+      toast.success("New PIN generated");
+
       onUpdateStaff(pinTarget._id, {
-        staffPin: res.data?.data?.staffPin,
+        staffPin: newPin,
       });
+
+      // auto-show newly generated PIN
+      setShowPinMap((prev) => ({
+        ...prev,
+        [pinTarget._id]: true,
+      }));
 
       setPinTarget(null);
     } catch (err) {
@@ -79,7 +101,6 @@ export default function StaffTable({
         toggleTarget.isActive ? "Staff deactivated" : "Staff activated"
       );
 
-      // ✅ Local update
       onToggleStaff(toggleTarget._id);
 
       setToggleTarget(null);
@@ -105,6 +126,7 @@ export default function StaffTable({
       <div className="bg-white border rounded-xl divide-y">
         {staff.map((s) => {
           const Icon = ROLE_ICON[s.role] || FiUser;
+          const showPin = showPinMap[s._id];
 
           return (
             <div
@@ -124,13 +146,13 @@ export default function StaffTable({
                     {s.staffCode}
                   </p>
 
-                  {/* 📞 PHONE */}
+                  {/* PHONE */}
                   <p className="text-xs text-gray-700 flex items-center gap-1">
                     <FiPhone className="text-gray-500" />
                     {s.mobile || "—"}
                   </p>
 
-                  {/* ⏱ SHIFT */}
+                  {/* SHIFT */}
                   <p className="text-xs text-gray-600">
                     In:{" "}
                     <span className="font-medium text-gray-800">
@@ -152,9 +174,26 @@ export default function StaffTable({
 
               {/* ================= META ================= */}
               <div className="flex justify-between items-center text-xs">
-                <span className="font-mono text-gray-800">
-                  PIN: {s.isActive ? s.staffPin : "--"}
-                </span>
+                <div className="flex items-center gap-2 font-mono text-gray-800">
+                  <span>
+                    PIN:{" "}
+                    {s.isActive
+                      ? showPin
+                        ? s.staffPin || "----"
+                        : "••••"
+                      : "--"}
+                  </span>
+
+                  {s.isActive && s.staffPin && (
+                    <button
+                      onClick={() => toggleShowPin(s._id)}
+                      className="text-gray-500 hover:text-gray-800"
+                      title={showPin ? "Hide PIN" : "Show PIN"}
+                    >
+                      {showPin ? <FiEyeOff /> : <FiEye />}
+                    </button>
+                  )}
+                </div>
 
                 <span
                   className={`flex items-center gap-1 font-semibold ${

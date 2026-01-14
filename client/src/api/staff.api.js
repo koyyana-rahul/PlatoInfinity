@@ -1,35 +1,43 @@
+// src/api/staff.api.js
+
 const staffApi = {
-  /* ================= STAFF CRUD ================= */
+  /* =====================================================
+     MANAGER → STAFF MANAGEMENT
+  ===================================================== */
+
+  create: (restaurantId) => ({
+    url: `/api/restaurants/${restaurantId}/staff`,
+    method: "POST",
+  }),
 
   list: (restaurantId, search = "") => ({
-    url: `/api/staff/restaurants/${restaurantId}/staff`,
+    url: `/api/restaurants/${restaurantId}/staff`,
     method: "GET",
     params: search ? { q: search } : {},
   }),
 
-  create: (restaurantId) => ({
-    url: `/api/staff/restaurants/${restaurantId}/staff`,
-    method: "POST",
-  }),
-
   regeneratePin: (restaurantId, staffId) => ({
-    url: `/api/staff/restaurants/${restaurantId}/staff/${staffId}/regenerate-pin`,
+    url: `/api/restaurants/${restaurantId}/staff/${staffId}/regenerate-pin`,
     method: "POST",
   }),
 
   toggleActive: (restaurantId, staffId) => ({
-    url: `/api/staff/restaurants/${restaurantId}/staff/${staffId}/toggle-active`,
+    url: `/api/restaurants/${restaurantId}/staff/${staffId}/toggle-active`,
     method: "PATCH",
   }),
 
-  /* ================= STAFF AUTH ================= */
+  /* =====================================================
+     STAFF AUTH (PIN LOGIN)
+  ===================================================== */
 
   staffLogin: {
-    url: "/api/staff/auth/staff-login",
+    url: "/api/auth/staff-login",
     method: "POST",
   },
 
-  /* ================= ATTENDANCE ================= */
+  /* =====================================================
+     STAFF SHIFT / ATTENDANCE
+  ===================================================== */
 
   startShift: {
     url: "/api/staff/shift/start",

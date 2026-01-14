@@ -1,9 +1,8 @@
-// src/routes/index.jsx
+// src/router/index.jsx
 import { createBrowserRouter } from "react-router-dom";
-
 import App from "../App";
 
-/* -------- AUTH -------- */
+/* ================= AUTH ================= */
 import Login from "../modules/auth/Login";
 import Register from "../modules/auth/Register";
 import VerifyEmail from "../modules/auth/VerifyEmail";
@@ -12,28 +11,48 @@ import VerifyOtp from "../modules/auth/VerifyOtp";
 import ResetPassword from "../modules/auth/ResetPassword";
 import Redirect from "../modules/auth/Redirect";
 
-/* -------- INVITE -------- */
+/* ================= STAFF AUTH ================= */
+import StaffPinLogin from "../modules/staff/login/StaffPinLogin";
+
+/* ================= INVITE ================= */
 import AcceptInvite from "../modules/auth/invite/AcceptInvite";
 import SetPassword from "../modules/auth/invite/SetPassword";
 
-/* -------- ONBOARDING -------- */
+/* ================= ONBOARDING ================= */
 import CreateBrand from "../modules/onboarding/CreateBrand";
 import BrandSuccess from "../modules/onboarding/BrandSuccess";
 
-/* -------- ADMIN -------- */
+/* ================= ADMIN ================= */
 import AdminLayout from "../layouts/AdminLayout";
 import AdminDashboard from "../modules/admin/AdminDashboard";
 import RestaurantsPage from "../modules/admin/restaurants/RestaurantsPage";
 import ManagersPage from "../modules/admin/managers/ManagersPage";
 import MasterMenuPage from "../modules/admin/master-menu/MasterMenuPage";
+
+/* ================= MANAGER ================= */
 import ManagerLayout from "../layouts/ManagerLayout";
 import ManagerDashboard from "../modules/manager/ManagerDashboard";
+import BranchMenuPage from "../modules/manager/branch-menu/pages/BranchMenuPage";
 import KitchenStationsPage from "../modules/manager/kitchen-stations/KitchenStationsPage";
 import TablesPage from "../modules/manager/tables/TablesPage";
-import BranchMenuPage from "../modules/manager/branch-menu/pages/BranchMenuPage";
 import StaffPage from "../modules/manager/staff/StaffPage";
+import ShiftQrPanel from "../modules/manager/staff/ShiftQrPanel";
 
-/* -------- FALLBACK -------- */
+/* ================= STAFF ================= */
+import StaffLayout from "../layouts/StaffLayout";
+
+/* ---- Chef ---- */
+import ChefDashboard from "../modules/staff/chef/pages/ChefDashboard";
+import ChefQueue from "../modules/staff/chef/pages/ChefQueue";
+import ChefHistory from "../modules/staff/chef/pages/ChefHistory";
+
+/* ---- Waiter ---- */
+import WaiterDashboard from "../modules/staff/waiter/WaiterDashboard";
+
+/* ---- Cashier ---- */
+import CashierDashboard from "../modules/staff/cashier/CashierDashboard";
+
+/* ================= FALLBACK ================= */
 const NotFound = () => (
   <div className="min-h-screen flex items-center justify-center text-gray-500">
     Page not found
@@ -41,13 +60,10 @@ const NotFound = () => (
 );
 
 const router = createBrowserRouter([
-  /* ================= ROOT LAYOUT ================= */
-  {
-    path: "/",
-    element: <App />, // layout wrapper (providers, outlet)
-  },
+  /* ================= ROOT ================= */
+  { path: "/", element: <App /> },
 
-  /* ================= AUTH ================= */
+  /* ================= PUBLIC AUTH ================= */
   { path: "/login", element: <Login /> },
   { path: "/register", element: <Register /> },
   { path: "/verify-email", element: <VerifyEmail /> },
@@ -56,7 +72,10 @@ const router = createBrowserRouter([
   { path: "/reset-password", element: <ResetPassword /> },
   { path: "/redirect", element: <Redirect /> },
 
-  /* ================= INVITE FLOW ================= */
+  /* ================= STAFF LOGIN ================= */
+  { path: "/staff/login", element: <StaffPinLogin /> },
+
+  /* ================= INVITE ================= */
   { path: "/accept-invite", element: <AcceptInvite /> },
   { path: "/set-password", element: <SetPassword /> },
 
@@ -64,7 +83,7 @@ const router = createBrowserRouter([
   { path: "/onboarding/create-brand", element: <CreateBrand /> },
   { path: "/onboarding/brand-success", element: <BrandSuccess /> },
 
-  /* ================= ADMIN (BRAND SCOPED) ================= */
+  /* ================= ADMIN ================= */
   {
     path: "/:brandSlug/admin",
     element: <AdminLayout />,
@@ -75,13 +94,11 @@ const router = createBrowserRouter([
         path: "restaurants/:restaurantId/managers",
         element: <ManagersPage />,
       },
-      {
-        path: "master-menu",
-        element: <MasterMenuPage />,
-      },
+      { path: "master-menu", element: <MasterMenuPage /> },
     ],
   },
 
+  /* ================= MANAGER ================= */
   {
     path: "/:brandSlug/manager",
     element: <ManagerLayout />,
@@ -99,6 +116,10 @@ const router = createBrowserRouter([
         element: <StaffPage />,
       },
       {
+        path: "restaurants/:restaurantId/staff-qr",
+        element: <ShiftQrPanel />,
+      },
+      {
         path: "restaurants/:restaurantId/kitchen-stations",
         element: <KitchenStationsPage />,
       },
@@ -108,9 +129,38 @@ const router = createBrowserRouter([
       },
     ],
   },
+
+  /* ================= STAFF ================= */
   {
-    // path: "/:brandSlug/staff",
-    // element: < />
+    path: "/:brandSlug/staff",
+    element: <StaffLayout />,
+    children: [
+      /* ---------- CHEF ---------- */
+      {
+        path: "chef/restaurants/:restaurantId",
+        element: <ChefDashboard />, // Live Orders
+      },
+      {
+        path: "chef/restaurants/:restaurantId/queue",
+        element: <ChefQueue />,
+      },
+      {
+        path: "chef/restaurants/:restaurantId/history",
+        element: <ChefHistory />,
+      },
+
+      /* ---------- WAITER ---------- */
+      {
+        path: "waiter/restaurants/:restaurantId",
+        element: <WaiterDashboard />,
+      },
+
+      /* ---------- CASHIER ---------- */
+      {
+        path: "cashier/restaurants/:restaurantId",
+        element: <CashierDashboard />,
+      },
+    ],
   },
 
   /* ================= FALLBACK ================= */

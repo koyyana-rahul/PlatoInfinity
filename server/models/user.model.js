@@ -56,7 +56,9 @@ const userSchema = new mongoose.Schema(
     staffPin: {
       type: String,
       select: false,
-      default: null, // IMPORTANT
+      default: null,
+      // required: true,
+      // index: true, // IMPORTANT
     },
 
     kitchenStationId: {
@@ -76,7 +78,7 @@ const userSchema = new mongoose.Schema(
       default: false,
       index: true,
     },
-    lastShifIn: {
+    lastShiftIn: {
       type: Date,
       default: null,
     },
