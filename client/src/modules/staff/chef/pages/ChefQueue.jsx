@@ -8,9 +8,9 @@ export default function ChefQueue() {
 
   const { orders, loading, reload } = useKitchenOrders(station);
 
-  // 🧠 Queue = OPEN orders where ALL items are still PENDING
+  // 🧠 Queue = orders where ALL items are still NEW
   const queuedOrders = orders.filter((order) =>
-    order.items.every((i) => i.itemStatus === "PENDING")
+    order.items.every((i) => i.itemStatus === "NEW")
   );
 
   if (loading) {

@@ -13,13 +13,13 @@ const whatsappRouter = express.Router();
 whatsappRouter.post(
   "/bill/:billId/whatsapp",
   requireAuth,
-  requireRole("WAITER", "MANAGER"),
+  requireRole("WAITER", "MANAGER", "CASHIER"),
   sendBillOnWhatsAppController
 );
 whatsappRouter.post(
   "/bill/:sessionId/generate",
   requireAuth,
-  requireRole("WAITER", "MANAGER"),
+  requireRole("WAITER", "MANAGER", "CASHIER"),
   generateBillController
 );
 

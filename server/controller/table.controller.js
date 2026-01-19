@@ -194,6 +194,79 @@ export async function createTableController(req, res) {
     });
   }
 }
+
+// src/controllers/table.controller.js
+
+export async function getPublicTableController(req, res) {
+  try {
+    const { tableId } = req.params;
+
+    const table = await Table.findById(tableId)
+      .populate({
+        path: "restaurantId",
+        select: "_id name brandId",
+        populate: {
+          path: "brandId",
+          select: "_id name slug logoUrl",
+        },
+      })
+      .lean();
+
+    if (!table || table.isArchived || !table.isActive) {
+      return res.status(404).json({
+        success: false,
+        message: "Table not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        _id: table._id,
+        tableNumber: table.tableNumber,
+        seatingCapacity: table.seatingCapacity,
+        restaurantId: table.restaurantId?._id || null,
+
+        // 🔥 THIS IS REQUIRED FOR CUSTOMER HEADER
+        brand: table.restaurantId?.brandId || null,
+      },
+    });
+  } catch (err) {
+    console.error("getPublicTableController:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
+// export async function getPublicTableController(req, res) {
+//   try {
+//     const { tableId } = req.params;
+
+//     const table = await Table.findById(tableId)
+//       .select("_id restaurantId tableNumber name seatingCapacity status isActive isArchived")
+//       .lean();
+
+//     if (!table || table.isArchived || !table.isActive) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Table not found",
+//       });
+//     }
+
+//     return res.json({
+//       success: true,
+//       data: table,
+//     });
+//   } catch (err) {
+//     console.error("getPublicTableController:", err);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//     });
+//   }
+// }
 /**
  * LIST TABLES
  */

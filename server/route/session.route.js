@@ -8,6 +8,7 @@ import {
   shiftTableController,
   closeSessionController,
   getSessionController,
+  listRestaurantSessionsController,
 } from "../controller/session.controller.js";
 import requireSessionAuth from "../middleware/requireSessionAuth.js";
 
@@ -31,7 +32,7 @@ sessionRouter.post(
 sessionRouter.post(
   "/restaurants/:restaurantId/sessions/:sessionId/close",
   requireAuth,
-  requireRole("WAITER", "MANAGER"),
+  requireRole("WAITER", "MANAGER", "CASHIER"),
   closeSessionController
 );
 // Manager/waiter fetch session
@@ -40,6 +41,14 @@ sessionRouter.get(
   requireAuth,
   requireRole("WAITER", "MANAGER"),
   getSessionController
+);
+
+// List sessions for a restaurant (waiter/manager/cashier)
+sessionRouter.get(
+  "/restaurants/:restaurantId/sessions",
+  requireAuth,
+  requireRole("WAITER", "MANAGER", "CASHIER"),
+  listRestaurantSessionsController
 );
 
 // Public: customer joins session via QR -> sends restaurantId + tableId + tablePin

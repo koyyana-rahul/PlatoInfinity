@@ -5,7 +5,7 @@ import Table from "../models/table.model.js";
 import CartItem from "../models/cartItem.model.js";
 import SessionModel from "../models/session.model.js";
 import AuditLog from "../models/auditLog.model.js";
-import { emitToStation } from "../socket/index.js";
+import { emitKitchenEvent } from "../socket/emitter.js";
 
 /**
  * ============================
@@ -85,7 +85,7 @@ export async function placeOrderController(req, res) {
         price: menuItem.price,
         quantity: cart.quantity,
         station: menuItem.station,
-        status: "PLACED",
+        itemStatus: "NEW",
       });
 
       totalAmount += menuItem.price * cart.quantity;
@@ -167,11 +167,17 @@ export async function placeOrderController(req, res) {
      * 9️⃣ 🔥 EMIT TO KITCHEN (YOUR REQUIRED FORMAT)
      */
     for (const item of order.items) {
-      emitToStation(session.restaurantId, item.station, "order:placed", {
-        orderId: order._id,
-        tableId: session.tableId,
-        item,
-      });
+      emitKitchenEvent(
+        req.app.locals.io,
+        session.restaurantId,
+        item.station,
+        "order:placed",
+        {
+          orderId: order._id,
+          tableId: session.tableId,
+          item,
+        }
+      );
     }
 
     /**
@@ -206,6 +212,14 @@ export async function placeOrderController(req, res) {
  */
 export async function listSessionOrdersController(req, res) {
   const { sessionId } = req.params;
+
+  if (req.sessionDoc && String(req.sessionDoc._id) !== String(sessionId)) {
+    return res.status(403).json({
+      message: "Forbidden",
+      error: true,
+      success: false,
+    });
+  }
 
   if (!mongoose.Types.ObjectId.isValid(sessionId)) {
     return res.status(400).json({
@@ -246,6 +260,7 @@ export async function listKitchenOrdersController(req, res) {
     restaurantId,
     orderStatus: "OPEN",
     "items.station": station,
+    "items.itemStatus": { $ne: "SERVED" },
   }).sort({ createdAt: 1 });
 
   res.json({
@@ -276,8 +291,10 @@ export async function updateOrderItemStatusController(req, res) {
     const { status } = req.body;
     const chefId = req.user._id;
 
-    const allowed = ["PREPARING", "READY", "SERVED"];
-    if (!allowed.includes(status)) {
+    const normalizedStatus = status === "PREPARING" ? "IN_PROGRESS" : status;
+
+    const allowed = ["IN_PROGRESS", "READY", "SERVED"];
+    if (!allowed.includes(normalizedStatus)) {
       return res.status(400).json({
         message: "Invalid status",
         error: true,
@@ -297,35 +314,38 @@ export async function updateOrderItemStatusController(req, res) {
     const item = order.items.id(itemId);
 
     // ❌ Prevent backward transitions
-    const flow = ["PLACED", "PREPARING", "READY", "SERVED"];
-    if (flow.indexOf(status) <= flow.indexOf(item.status)) {
+    const flow = ["NEW", "IN_PROGRESS", "READY", "SERVED"];
+    const current = item.itemStatus || "NEW";
+    if (flow.indexOf(normalizedStatus) <= flow.indexOf(current)) {
       throw new Error("Invalid status transition");
     }
 
-    item.status = status;
+    item.itemStatus = normalizedStatus;
     item.chefId = chefId;
 
     const now = new Date();
-    if (status === "PREPARING") item.preparingAt = now;
-    if (status === "READY") item.readyAt = now;
-    if (status === "SERVED") item.servedAt = now;
+    if (normalizedStatus === "IN_PROGRESS") item.claimedAt = now;
+    if (normalizedStatus === "READY") item.readyAt = now;
+    if (normalizedStatus === "SERVED") item.servedAt = now;
 
     await order.save({ session: mongoSession });
 
     await mongoSession.commitTransaction();
 
     // 🔥 SOCKET EMIT
-    emitToStation({
-      restaurantId: order.restaurantId,
-      stationName: item.station,
-      eventPayload: {
+    emitKitchenEvent(
+      req.app.locals.io,
+      order.restaurantId,
+      item.station,
+      "order:itemStatus",
+      {
         type: "ORDER_ITEM_STATUS",
         orderId,
         itemId,
-        status,
+        status: normalizedStatus,
         tableId: order.tableId,
-      },
-    });
+      }
+    );
 
     return res.json({
       success: true,
@@ -355,7 +375,7 @@ export async function completeOrderController(req, res) {
   const { orderId } = req.params;
 
   await Order.findByIdAndUpdate(orderId, {
-    orderStatus: "COMPLETED",
+    orderStatus: "PAID",
   });
 
   res.json({

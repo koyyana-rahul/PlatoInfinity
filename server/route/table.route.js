@@ -21,7 +21,7 @@ tableRouter.post(
 tableRouter.get(
   "/restaurants/:restaurantId/tables",
   requireAuth,
-  requireRole("MANAGER"),
+  requireRole("MANAGER", "WAITER"),
   listTablesController
 );
 

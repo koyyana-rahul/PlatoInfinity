@@ -6,12 +6,24 @@ import {
   FaBell,
   FaSignOutAlt,
 } from "react-icons/fa";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
 
+import toast from "react-hot-toast";
+import { useState } from "react";
+
+import Axios from "../../../api/axios";
+import staffApi from "../../../api/staff.api";
+import { logout } from "../../../store/auth/userSlice";
+
 export default function WaiterSidebar({ open, onClose, brandSlug }) {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const user = useSelector((s) => s.user);
   const restaurantId = user?.restaurantId;
+
+  const [loading, setLoading] = useState(false);
 
   // 🛑 SAFETY
   if (!brandSlug || !restaurantId) return null;
@@ -69,18 +81,29 @@ export default function WaiterSidebar({ open, onClose, brandSlug }) {
           {/* ================= SHIFT ACTION ================= */}
           <div className="pt-4 mt-4 border-t">
             <button
-              onClick={() => {
-                // 🔌 wire end-shift API here
-                console.log("End waiter shift");
+              onClick={async () => {
+                try {
+                  if (loading) return;
+                  setLoading(true);
+                  await Axios(staffApi.endShift);
+                  dispatch(logout());
+                  toast.success("Shift ended");
+                  navigate("/staff/login", { replace: true });
+                } catch (err) {
+                  toast.error(err?.response?.data?.message || "Failed to end shift");
+                } finally {
+                  setLoading(false);
+                }
               }}
+              disabled={loading}
               className="
                 w-full flex items-center gap-3 px-3 py-2.5
                 rounded-lg text-sm font-medium text-red-600
-                hover:bg-red-50 transition
+                hover:bg-red-50 transition disabled:opacity-60
               "
             >
               <FaSignOutAlt size={16} />
-              End Shift
+              {loading ? "Ending..." : "End Shift"}
             </button>
           </div>
         </nav>

@@ -6,11 +6,23 @@ import {
   FaMoneyBillWave,
   FaSignOutAlt,
 } from "react-icons/fa";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
 
+import toast from "react-hot-toast";
+import { useState } from "react";
+
+import Axios from "../../../api/axios";
+import staffApi from "../../../api/staff.api";
+import { logout } from "../../../store/auth/userSlice";
+
 export default function CashierSidebar({ open, onClose, brandSlug }) {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const user = useSelector((s) => s.user);
+
+  const [loading, setLoading] = useState(false);
 
   const restaurantId = user?.restaurantId;
 
@@ -88,14 +100,29 @@ export default function CashierSidebar({ open, onClose, brandSlug }) {
             <button
               className="w-full flex items-center gap-3 px-3 py-2.5
                          rounded-lg text-sm font-medium text-red-600
-                         hover:bg-red-50 transition"
+                         hover:bg-red-50 transition disabled:opacity-60"
+              disabled={loading}
               onClick={() => {
-                // 🔌 hook shift end here
-                console.log("End cashier shift");
+                (async () => {
+                  try {
+                    if (loading) return;
+                    setLoading(true);
+                    await Axios(staffApi.endShift);
+                    dispatch(logout());
+                    toast.success("Shift ended");
+                    navigate("/staff/login", { replace: true });
+                  } catch (err) {
+                    toast.error(
+                      err?.response?.data?.message || "Failed to end shift"
+                    );
+                  } finally {
+                    setLoading(false);
+                  }
+                })();
               }}
             >
               <FaSignOutAlt size={16} />
-              End Shift
+              {loading ? "Ending..." : "End Shift"}
             </button>
           </div>
         </nav>

@@ -1,4 +1,5 @@
 import Order from "../models/order.model.js";
+import { emitKitchenEvent } from "../socket/emitter.js";
 
 export async function listKitchenOrders(req, res) {
   try {
@@ -54,21 +55,23 @@ export async function updateKitchenItemStatus(req, res) {
     const { orderId, itemId } = req.params;
     const { status } = req.body;
 
-    if (!["PREPARING", "READY", "SERVED"].includes(status)) {
+    const normalizedStatus = status === "PREPARING" ? "IN_PROGRESS" : status;
+
+    if (!["IN_PROGRESS", "READY", "SERVED"].includes(normalizedStatus)) {
       return res
         .status(400)
         .json({ success: false, message: "Invalid status" });
     }
 
     const update = {
-      "items.$.itemStatus": status,
+      "items.$.itemStatus": normalizedStatus,
       "items.$.chefId": req.user._id,
       "items.$.updatedAt": new Date(),
     };
 
-    if (status === "PREPARING") update["items.$.preparedAt"] = new Date();
-    if (status === "READY") update["items.$.readyAt"] = new Date();
-    if (status === "SERVED") update["items.$.servedAt"] = new Date();
+    if (normalizedStatus === "IN_PROGRESS") update["items.$.claimedAt"] = new Date();
+    if (normalizedStatus === "READY") update["items.$.readyAt"] = new Date();
+    if (normalizedStatus === "SERVED") update["items.$.servedAt"] = new Date();
 
     const order = await Order.findOneAndUpdate(
       { _id: orderId, "items._id": itemId },
@@ -85,10 +88,10 @@ export async function updateKitchenItemStatus(req, res) {
 
     // 🔥 SOCKET EVENTS
     emitKitchenEvent(
-      req.app.get("io"),
+      req.app.locals.io,
       order.restaurantId,
       item.station,
-      `order:${status.toLowerCase()}`,
+      `order:${normalizedStatus.toLowerCase()}`,
       {
         orderId,
         itemId,
@@ -99,7 +102,10 @@ export async function updateKitchenItemStatus(req, res) {
     // ✅ AUTO CLOSE ORDER
     const remaining = order.items.some((i) => i.itemStatus !== "SERVED");
     if (!remaining) {
-      order.orderStatus = "COMPLETED";
+      order.meta = {
+        ...(order.meta || {}),
+        allItemsServedAt: new Date(),
+      };
       await order.save();
     }
 

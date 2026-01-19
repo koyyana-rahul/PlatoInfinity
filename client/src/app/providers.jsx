@@ -17,6 +17,12 @@ function Bootstrap() {
   useEffect(() => {
     async function hydrateAuth() {
       try {
+        const pathname =
+          typeof window !== "undefined" ? window.location.pathname : "";
+        if (pathname.includes("/table/")) {
+          return;
+        }
+
         const res = await Axios(SummaryApi.me);
 
         const user = res.data.data;
