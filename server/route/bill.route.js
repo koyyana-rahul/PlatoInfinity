@@ -22,7 +22,7 @@ const billRouter = express.Router();
 billRouter.post(
   "/bill/session/:sessionId",
   requireAuth,
-  requireRole("WAITER", "MANAGER"),
+  requireRole("WAITER", "MANAGER", "CASHIER"),
   generateBillController
 );
 
@@ -30,7 +30,7 @@ billRouter.post(
 billRouter.post(
   "/bill/:billId/pay",
   requireAuth,
-  requireRole("WAITER", "MANAGER"),
+  requireRole("WAITER", "MANAGER", "CASHIER"),
   payBillController
 );
 

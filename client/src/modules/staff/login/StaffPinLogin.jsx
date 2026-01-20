@@ -1,12 +1,17 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
+import { useDispatch } from "react-redux";
 
 import Axios from "../../../api/axios";
 import staffApi from "../../../api/staff.api";
+import SummaryApi from "../../../api/summaryApi";
+import { setUserDetails } from "../../../store/auth/userSlice";
+import { setBrandDetails } from "../../../store/brand/brandSlice";
 
 export default function StaffLogin() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [params] = useSearchParams();
 
   const qrToken = params.get("token"); // 🔑 from QR
@@ -47,13 +52,27 @@ export default function StaffLogin() {
         },
       });
 
-      const { role, restaurantId, brandSlug } = res.data.data;
+      // Hydrate full profile (sets brand + role + restaurantId + onDuty etc)
+      const meRes = await Axios(SummaryApi.me);
+      const user = meRes?.data?.data;
+      if (user) {
+        dispatch(setUserDetails(user));
+        if (user.brand) dispatch(setBrandDetails(user.brand));
 
-      // 🔁 Role-based redirect
-      navigate(
-        `/${brandSlug}/staff/${role.toLowerCase()}/restaurants/${restaurantId}`,
-        { replace: true }
-      );
+        navigate(
+          `/${user.brand.slug}/staff/${user.role.toLowerCase()}/restaurants/${
+            user.restaurantId
+          }`,
+          { replace: true }
+        );
+      } else {
+        // fallback to response data
+        const { role, restaurantId, brandSlug } = res.data.data;
+        navigate(
+          `/${brandSlug}/staff/${role.toLowerCase()}/restaurants/${restaurantId}`,
+          { replace: true }
+        );
+      }
     } catch (error) {
       console.error("Staff login error:", error);
       toast.error(

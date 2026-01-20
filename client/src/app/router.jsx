@@ -28,6 +28,8 @@ import AdminDashboard from "../modules/admin/AdminDashboard";
 import RestaurantsPage from "../modules/admin/restaurants/RestaurantsPage";
 import ManagersPage from "../modules/admin/managers/ManagersPage";
 import MasterMenuPage from "../modules/admin/master-menu/MasterMenuPage";
+import AdminReports from "../modules/admin/AdminReports";
+import AdminSettings from "../modules/admin/AdminSettings";
 
 /* ================= MANAGER ================= */
 import ManagerLayout from "../layouts/ManagerLayout";
@@ -37,6 +39,8 @@ import KitchenStationsPage from "../modules/manager/kitchen-stations/KitchenStat
 import TablesPage from "../modules/manager/tables/TablesPage";
 import StaffPage from "../modules/manager/staff/StaffPage";
 import ShiftQrPanel from "../modules/manager/staff/ShiftQrPanel";
+import ManagerReports from "../modules/manager/ManagerReports";
+import ManagerSettings from "../modules/manager/ManagerSettings";
 
 /* ================= STAFF ================= */
 import StaffLayout from "../layouts/StaffLayout";
@@ -48,9 +52,23 @@ import ChefHistory from "../modules/staff/chef/pages/ChefHistory";
 
 /* ---- Waiter ---- */
 import WaiterDashboard from "../modules/staff/waiter/WaiterDashboard";
+import WaiterOrders from "../modules/staff/waiter/WaiterOrders";
+import WaiterBills from "../modules/staff/waiter/WaiterBills";
+import WaiterAlerts from "../modules/staff/waiter/WaiterAlerts";
 
 /* ---- Cashier ---- */
 import CashierDashboard from "../modules/staff/cashier/CashierDashboard";
+import CashierInvoices from "../modules/staff/cashier/CashierInvoices";
+import CashierPayments from "../modules/staff/cashier/CashierPayments";
+import CashierSummary from "../modules/staff/cashier/CashierSummary";
+
+/* ================= CUSTOMER ================= */
+import CustomerLayout from "../layouts/CustomerLayout";
+import CustomerJoin from "../modules/customer/CustomerJoin";
+import CustomerMenu from "../modules/customer/CustomerMenu";
+import CustomerCart from "../modules/customer/CustomerCart";
+import CustomerOrders from "../modules/customer/CustomerOrders";
+import CustomerBill from "../modules/customer/CustomerBill";
 
 /* ================= FALLBACK ================= */
 const NotFound = () => (
@@ -71,6 +89,19 @@ const router = createBrowserRouter([
   { path: "/verify-otp", element: <VerifyOtp /> },
   { path: "/reset-password", element: <ResetPassword /> },
   { path: "/redirect", element: <Redirect /> },
+
+  /* ================= CUSTOMER (QR FLOW) ================= */
+  {
+    path: "/:brandSlug/:restaurantSlug/table/:tableId",
+    element: <CustomerLayout />,
+    children: [
+      { index: true, element: <CustomerJoin /> },
+      { path: "menu", element: <CustomerMenu /> },
+      { path: "cart", element: <CustomerCart /> },
+      { path: "orders", element: <CustomerOrders /> },
+      { path: "bill", element: <CustomerBill /> },
+    ],
+  },
 
   /* ================= STAFF LOGIN ================= */
   { path: "/staff/login", element: <StaffPinLogin /> },
@@ -95,6 +126,8 @@ const router = createBrowserRouter([
         element: <ManagersPage />,
       },
       { path: "master-menu", element: <MasterMenuPage /> },
+      { path: "reports", element: <AdminReports /> },
+      { path: "settings", element: <AdminSettings /> },
     ],
   },
 
@@ -127,6 +160,14 @@ const router = createBrowserRouter([
         path: "restaurants/:restaurantId/tables",
         element: <TablesPage />,
       },
+      {
+        path: "restaurants/:restaurantId/reports",
+        element: <ManagerReports />,
+      },
+      {
+        path: "restaurants/:restaurantId/settings",
+        element: <ManagerSettings />,
+      },
     ],
   },
 
@@ -154,11 +195,35 @@ const router = createBrowserRouter([
         path: "waiter/restaurants/:restaurantId",
         element: <WaiterDashboard />,
       },
+      {
+        path: "waiter/restaurants/:restaurantId/orders",
+        element: <WaiterOrders />,
+      },
+      {
+        path: "waiter/restaurants/:restaurantId/bills",
+        element: <WaiterBills />,
+      },
+      {
+        path: "waiter/restaurants/:restaurantId/alerts",
+        element: <WaiterAlerts />,
+      },
 
       /* ---------- CASHIER ---------- */
       {
         path: "cashier/restaurants/:restaurantId",
         element: <CashierDashboard />,
+      },
+      {
+        path: "cashier/restaurants/:restaurantId/invoices",
+        element: <CashierInvoices />,
+      },
+      {
+        path: "cashier/restaurants/:restaurantId/payments",
+        element: <CashierPayments />,
+      },
+      {
+        path: "cashier/restaurants/:restaurantId/summary",
+        element: <CashierSummary />,
       },
     ],
   },

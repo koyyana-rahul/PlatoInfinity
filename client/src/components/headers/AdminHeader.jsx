@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { FaChevronDown, FaSignOutAlt, FaBars } from "react-icons/fa";
 import toast from "react-hot-toast";
 
+import Axios from "../../api/axios";
+import SummaryApi from "../../api/summaryApi";
 import { logout } from "../../store/auth/userSlice";
 
 export default function AdminHeader({ onMenuClick }) {
@@ -17,11 +19,16 @@ export default function AdminHeader({ onMenuClick }) {
   const [open, setOpen] = useState(false);
 
   /* ---------- LOGOUT ---------- */
-  const handleLogout = () => {
-    dispatch(logout());
-    localStorage.clear();
-    toast.success("Logged out");
-    navigate("/login", { replace: true });
+  const handleLogout = async () => {
+    try {
+      await Axios(SummaryApi.logout);
+    } catch (_) {
+    } finally {
+      dispatch(logout());
+      localStorage.clear();
+      toast.success("Logged out");
+      navigate("/login", { replace: true });
+    }
   };
 
   /* ---------- CLICK OUTSIDE ---------- */

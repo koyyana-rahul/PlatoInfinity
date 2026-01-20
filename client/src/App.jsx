@@ -13,8 +13,14 @@ const App = () => {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        const pathname =
+          typeof window !== "undefined" ? window.location.pathname : "";
+        if (pathname.includes("/table/")) {
+          return;
+        }
+
         const res = await Axios({
-          ...SummaryApi.auth.me,
+          ...SummaryApi.me,
         });
 
         if (res.data?.success) {

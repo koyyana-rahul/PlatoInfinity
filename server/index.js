@@ -6,6 +6,8 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import http from "http";
 import mongoose from "mongoose";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import connectDB from "./config/connectDB.js";
 
@@ -33,6 +35,7 @@ import billShareRouter from "./route/billShare.route.js";
 import dashboardRouter from "./route/dashboard.route.js";
 import waiterRouter from "./route/waiter.route.js";
 import addressRouter from "./route/address.route.js";
+import publicRouter from "./route/public.route.js";
 
 import { initSocketServer } from "./socket/index.js";
 import { registerEmitFunc } from "./socket/emitter.js";
@@ -50,7 +53,7 @@ app.use(express.urlencoded({ extended: true }));
 const allowedOrigins = [
   "https://platoinfinity.xyz",
   "https://www.platoinfinity.xyz",
-  // "http://localhost:5173",
+  "http://localhost:5173",
 ];
 
 app.use(
@@ -62,7 +65,12 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-session-token",
+      "X-Session-Token",
+    ],
   })
 );
 
@@ -105,6 +113,16 @@ app.use("/api/kitchen", kitchenRouter);
 app.use("/api", billShareRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/waiter", waiterRouter);
+app.use("/api/public", publicRouter);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDistPath = path.join(__dirname, "..", "client", "dist");
+
+app.use(express.static(clientDistPath));
+app.get(/^(?!\/api).*/, (req, res) => {
+  return res.sendFile(path.join(clientDistPath, "index.html"));
+});
 
 // ---------- ERROR HANDLER ----------
 app.use(handleJsonError);

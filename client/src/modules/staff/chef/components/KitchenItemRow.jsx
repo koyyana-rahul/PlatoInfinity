@@ -26,16 +26,16 @@ export default function KitchenItemRow({ item, orderId, onUpdated }) {
       </div>
 
       <div className="flex gap-2">
-        {item.itemStatus === "PENDING" && (
+        {item.itemStatus === "NEW" && (
           <button
-            onClick={() => updateStatus("PREPARING")}
+            onClick={() => updateStatus("IN_PROGRESS")}
             className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded"
           >
             Start
           </button>
         )}
 
-        {item.itemStatus === "PREPARING" && (
+        {item.itemStatus === "IN_PROGRESS" && (
           <button
             onClick={() => updateStatus("READY")}
             className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded"

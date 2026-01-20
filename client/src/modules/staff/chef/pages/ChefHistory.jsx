@@ -17,9 +17,9 @@ export default function ChefHistory() {
         params: { station },
       });
 
-      // 🧠 History = completed orders
-      const completed = (res.data.data || []).filter(
-        (o) => o.orderStatus === "COMPLETED"
+      // 🧠 History = orders where all items are served
+      const completed = (res.data.data || []).filter((o) =>
+        (o.items || []).every((i) => i.itemStatus === "SERVED")
       );
 
       setOrders(completed);

@@ -44,7 +44,7 @@ export async function dashboardSummaryController(req, res) {
         Order.countDocuments({
           restaurantId,
           orderStatus: "OPEN",
-          "items.status": { $in: ["PENDING", "PREPARING"] },
+          "items.itemStatus": { $in: ["NEW", "IN_PROGRESS"] },
         }),
       ]);
 

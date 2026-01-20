@@ -100,6 +100,21 @@ export async function payBillController(req, res) {
 
     await bill.save();
 
+    await Order.updateMany(
+      {
+        sessionId: bill.sessionId,
+        orderStatus: { $ne: "CANCELLED" },
+      },
+      {
+        $set: {
+          orderStatus: "PAID",
+          paymentMethod: bill.paymentMethod,
+          closedAt: bill.closedAt,
+          closedByUserId: req.user._id,
+        },
+      }
+    );
+
     return res.json({
       success: true,
       error: false,

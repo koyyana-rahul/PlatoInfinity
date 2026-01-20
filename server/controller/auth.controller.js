@@ -39,8 +39,8 @@ const isProd = process.env.NODE_ENV === "production";
 function cookieOptions() {
   return {
     httpOnly: true,
-    secure: true,
-    sameSite: "None",
+    secure: isProd,
+    sameSite: isProd ? "None" : "lax",
     path: "/",
     // maxAge omitted for accessToken cookie (token expiry enforced by JWT); you can set if desired
   };

@@ -2,36 +2,28 @@ import BranchMenuItem from "../models/branchMenuItem.model.js";
 import MasterMenuItem from "../models/masterMenuItem.model.js";
 import MenuCategory from "../models/menuCategory.model.js";
 import MenuSubcategory from "../models/menuSubcategory.model.js";
+import Table from "../models/table.model.js";
 
-/**
- * PUBLIC CUSTOMER MENU
- * GET /api/customer/menu/:restaurantId?veg=true|false
- */
+/* ======================================================
+   INTERNAL: BUILD CUSTOMER MENU BY RESTAURANT
+====================================================== */
 export async function getCustomerMenuController(req, res) {
   try {
     const { restaurantId } = req.params;
     const { veg } = req.query;
 
-    /* ----------------------------------
-       1️⃣ Load ACTIVE branch menu items
-    ----------------------------------- */
+    /* ================= 1. BRANCH ITEMS ================= */
     const branchItems = await BranchMenuItem.find({
       restaurantId,
       status: "ON",
       isArchived: false,
     }).lean();
 
-    if (branchItems.length === 0) {
-      return res.json({
-        success: true,
-        error: false,
-        data: [],
-      });
+    if (!branchItems.length) {
+      return res.json({ success: true, data: [] });
     }
 
-    /* ----------------------------------
-       2️⃣ Load master items (with veg filter)
-    ----------------------------------- */
+    /* ================= 2. MASTER ITEMS ================= */
     const masterItemIds = branchItems.map((b) => b.masterItemId);
 
     const masterFilter = {
@@ -50,22 +42,20 @@ export async function getCustomerMenuController(req, res) {
       masterMap[String(m._id)] = m;
     });
 
-    /* ----------------------------------
-       3️⃣ Load categories & subcategories
-    ----------------------------------- */
-    const categories = await MenuCategory.find({
-      isArchived: false,
-    }).sort({ order: 1 });
+    /* ================= 3. CATEGORIES ================= */
+    const categories = await MenuCategory.find({ isArchived: false })
+      .sort({ order: 1 })
+      .lean();
 
     const subcategories = await MenuSubcategory.find({
       isArchived: false,
-    });
+    }).lean();
 
     const categoryMap = {};
     const subcategoryMap = {};
 
     categories.forEach((c) => {
-      categoryMap[c._id] = {
+      categoryMap[String(c._id)] = {
         id: c._id,
         name: c.name,
         items: [],
@@ -74,19 +64,15 @@ export async function getCustomerMenuController(req, res) {
     });
 
     subcategories.forEach((s) => {
-      subcategoryMap[s._id] = {
+      subcategoryMap[String(s._id)] = {
         id: s._id,
         name: s.name,
+        categoryId: String(s.categoryId),
         items: [],
-        categoryId: s.categoryId,
       };
     });
 
-    /* ----------------------------------
-       4️⃣ Attach items correctly
-       ✅ WITH subcategory
-       ✅ WITHOUT subcategory
-    ----------------------------------- */
+    /* ================= 4. ATTACH ITEMS ================= */
     for (const branch of branchItems) {
       const master = masterMap[String(branch.masterItemId)];
       if (!master) continue;
@@ -98,47 +84,64 @@ export async function getCustomerMenuController(req, res) {
         price: branch.price,
         image: master.image || "",
         isVeg: master.isVeg,
-        dietaryInfo: master.dietaryInfo || [],
         available: !branch.trackStock || (branch.stock ?? 1) > 0,
       };
 
-      // 🟢 With subcategory
-      if (master.subcategoryId && subcategoryMap[master.subcategoryId]) {
-        subcategoryMap[master.subcategoryId].items.push(item);
+      const categoryId = String(master.categoryId);
+      const subcategoryId = master.subcategoryId
+        ? String(master.subcategoryId)
+        : null;
+
+      // ✅ Attach to category
+      if (categoryMap[categoryId]) {
+        categoryMap[categoryId].items.push(item);
       }
-      // 🟢 Without subcategory → directly under category
-      else if (categoryMap[master.categoryId]) {
-        categoryMap[master.categoryId].items.push(item);
+
+      // ✅ Attach to subcategory
+      if (subcategoryId && subcategoryMap[subcategoryId]) {
+        subcategoryMap[subcategoryId].items.push(item);
       }
     }
 
-    /* ----------------------------------
-       5️⃣ Attach subcategories to categories
-    ----------------------------------- */
+    /* ================= 5. NEST SUBCATEGORIES ================= */
     Object.values(subcategoryMap).forEach((sub) => {
-      if (categoryMap[sub.categoryId] && sub.items.length > 0) {
+      if (categoryMap[sub.categoryId] && sub.items.length) {
         categoryMap[sub.categoryId].subcategories.push(sub);
       }
     });
 
-    /* ----------------------------------
-       6️⃣ Final response (cleaned)
-    ----------------------------------- */
+    /* ================= 6. CLEAN RESPONSE ================= */
     const finalMenu = Object.values(categoryMap).filter(
-      (cat) => cat.items.length > 0 || cat.subcategories.length > 0
+      (c) => c.items.length || c.subcategories.length,
     );
 
-    return res.json({
-      success: true,
-      error: false,
-      data: finalMenu,
-    });
+    return res.json({ success: true, data: finalMenu });
   } catch (err) {
     console.error("getCustomerMenuController:", err);
-    return res.status(500).json({
-      message: "Server error",
-      error: true,
-      success: false,
-    });
+    res.status(500).json({ success: false });
+  }
+}
+
+/* ======================================================
+   PUBLIC: MENU BY TABLE (QR FLOW)
+====================================================== */
+export async function getCustomerMenuByTableController(req, res) {
+  try {
+    const table = await Table.findById(req.params.tableId)
+      .select("restaurantId isActive isArchived")
+      .lean();
+
+    if (!table || table.isArchived || !table.isActive) {
+      return res.status(404).json({
+        success: false,
+        message: "Table not found",
+      });
+    }
+
+    req.params.restaurantId = String(table.restaurantId);
+    return getCustomerMenuController(req, res);
+  } catch (err) {
+    console.error("getCustomerMenuByTableController:", err);
+    res.status(500).json({ success: false });
   }
 }

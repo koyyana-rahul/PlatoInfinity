@@ -119,20 +119,87 @@ export async function openTableSessionController(req, res) {
   }
 }
 
+export async function listRestaurantSessionsController(req, res) {
+  try {
+    const user = req.user;
+    const { restaurantId } = req.params;
+    const { status = "OPEN" } = req.query;
+
+    if (String(user.restaurantId) !== String(restaurantId)) {
+      return res.status(403).json({
+        message: "Forbidden",
+        error: true,
+        success: false,
+      });
+    }
+
+    const filter = {
+      restaurantId,
+    };
+
+    if (status === "OPEN" || status === "CLOSED") {
+      filter.status = status;
+    }
+
+    const sessions = await SessionModel.find(filter)
+      .select("_id restaurantId tableId openedByUserId tablePin status startedAt lastActivityAt closedAt")
+      .populate("tableId", "_id tableNumber name seatingCapacity status qrUrl qrImageUrl")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      error: false,
+      data: sessions,
+    });
+  } catch (err) {
+    console.error("listRestaurantSessionsController:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
+}
+
 /* =========================================================
    2️⃣ CUSTOMER JOINS SESSION (PUBLIC)
    ========================================================= */
 
 export async function joinSessionController(req, res) {
   try {
-    const { restaurantId, tableId, tablePin } = req.body;
+    let { restaurantId, tableId, tablePin } = req.body;
 
-    if (!restaurantId || !tableId || !tablePin) {
+    if (!tableId || !tablePin) {
       return res.status(400).json({
-        message: "restaurantId, tableId, tablePin required",
+        message: "tableId, tablePin required",
         error: true,
         success: false,
       });
+    }
+
+    if (!restaurantId) {
+      if (!mongoose.Types.ObjectId.isValid(tableId)) {
+        return res.status(400).json({
+          message: "Invalid tableId",
+          error: true,
+          success: false,
+        });
+      }
+
+      const table = await TableModel.findById(tableId)
+        .select("restaurantId isActive isArchived")
+        .lean();
+
+      if (!table || table.isArchived || !table.isActive) {
+        return res.status(400).json({
+          message: "Invalid table",
+          error: true,
+          success: false,
+        });
+      }
+
+      restaurantId = table.restaurantId;
     }
 
     // 1️⃣ Find open session

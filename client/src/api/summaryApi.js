@@ -6,7 +6,7 @@ const SummaryApi = {
   },
   verifyEmail: {
     url: "/api/auth/verify-email",
-    method: "post",
+    method: "get",
   },
   login: {
     url: "/api/auth/login",

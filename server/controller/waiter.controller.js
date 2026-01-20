@@ -45,14 +45,17 @@ export async function serveOrderItemController(req, res) {
     );
 
     if (!remaining) {
-      order.orderStatus = "COMPLETED";
+      order.meta = {
+        ...(order.meta || {}),
+        allItemsServedAt: new Date(),
+      };
     }
 
     await order.save();
 
     // 🔥 SOCKET EVENTS
     emitKitchenEvent(
-      req.app.get("io"),
+      req.app.locals.io,
       order.restaurantId,
       item.station,
       "order:served",

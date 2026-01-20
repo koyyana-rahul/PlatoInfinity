@@ -36,6 +36,17 @@ orderRouter.get(
 );
 
 /**
+ * STAFF VIEW: LIST ORDERS FOR A SESSION
+ * (Waiter / Manager)
+ */
+orderRouter.get(
+  "/order/session/:sessionId/staff",
+  requireAuth,
+  requireRole("WAITER", "MANAGER"),
+  listSessionOrdersController
+);
+
+/**
  * ============================
  * KITCHEN FLOW (CHEF)
  * ============================
@@ -75,7 +86,7 @@ orderRouter.post(
 orderRouter.post(
   "/order/:orderId/complete",
   requireAuth,
-  requireRole("WAITER", "MANAGER"),
+  requireRole("WAITER", "MANAGER", "CASHIER"),
   completeOrderController
 );
 
