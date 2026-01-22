@@ -17,7 +17,7 @@ const STATUS_STYLE = {
     "bg-amber-50 text-amber-600 border-amber-100/50 shadow-amber-500/[0.03]",
 };
 
-export default function TableCard({ table, onDelete, isSelected, onSelect }) {
+export default function TableCard({ table, onDeleted, isSelected, onSelect }) {
   const [imgError, setImgError] = useState(false);
 
   const qrImage = table?.qrImageUrl?.trim();
@@ -25,7 +25,7 @@ export default function TableCard({ table, onDelete, isSelected, onSelect }) {
 
   /* ================= HELPERS ================= */
   const copyLink = async (e) => {
-    e.stopPropagation(); // Prevents card selection toggle when clicking sub-action
+    e.stopPropagation();
     if (!qrLink) return toast.error("Syncing terminal link...");
     try {
       await navigator.clipboard.writeText(qrLink);
@@ -63,7 +63,7 @@ export default function TableCard({ table, onDelete, isSelected, onSelect }) {
         "group relative bg-white border rounded-[32px] p-4 sm:p-5 flex flex-col gap-4 transition-all duration-500 cursor-pointer overflow-hidden h-full",
         isSelected
           ? "border-emerald-500 ring-4 ring-emerald-500/10 shadow-xl shadow-emerald-500/5"
-          : "border-slate-100 hover:shadow-[0_20px_50px_rgba(15,23,42,0.06)] hover:border-slate-200 hover:scale-[1.01]",
+          : "border-slate-100 hover:shadow-[0_20px_50px_rgba(15,23,42,0.06)] hover:border-slate-200 hover:scale-[1.01] active:scale-[0.98]",
       )}
     >
       {/* ================= SELECTION INDICATOR ================= */}
@@ -86,9 +86,8 @@ export default function TableCard({ table, onDelete, isSelected, onSelect }) {
 
         {!isSelected && (
           <span
-            role="status"
             className={clsx(
-              "text-[8px] sm:text-[9px] px-2.5 py-1 rounded-full font-black uppercase tracking-widest border backdrop-blur-md transition-all duration-500 shadow-sm",
+              "text-[8px] sm:text-[9px] px-2.5 py-1 rounded-full font-black uppercase tracking-widest border transition-all duration-500 shadow-sm",
               STATUS_STYLE[table.status] ||
                 "bg-slate-50 text-slate-500 border-slate-100",
             )}
@@ -100,7 +99,6 @@ export default function TableCard({ table, onDelete, isSelected, onSelect }) {
 
       {/* ================= QR CANVAS ================= */}
       <div className="relative aspect-square flex items-center justify-center bg-[#FAFAFA] rounded-[24px] sm:rounded-[30px] overflow-hidden border border-slate-50 group-hover:bg-white group-hover:border-slate-100 transition-all duration-700 shadow-inner">
-        {/* Subtle decorative grid overlay */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] group-hover:opacity-[0.05] transition-opacity" />
 
         {qrImage && !imgError ? (
@@ -139,7 +137,7 @@ export default function TableCard({ table, onDelete, isSelected, onSelect }) {
         <button
           onClick={copyLink}
           className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-500 hover:bg-white rounded-lg transition-all active:scale-90"
-          aria-label="Copy Direct Access Link"
+          title="Copy Access Link"
         >
           <FiCopy size={15} />
         </button>
