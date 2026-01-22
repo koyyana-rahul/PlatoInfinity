@@ -22,6 +22,14 @@ const sessionSchema = new mongoose.Schema(
     tablePin: { type: String, required: true },
     sessionTokenHash: { type: String, select: false },
     tokenExpiresAt: { type: Date, default: null },
+    // ✅ CUSTOMER TOKENS (for QR/PIN join)
+    customerTokens: [
+      {
+        tokenHash: { type: String, required: true },
+        expiresAt: { type: Date, required: true },
+        lastActivityAt: { type: Date, default: Date.now },
+      },
+    ],
     status: {
       type: String,
       enum: ["OPEN", "CLOSED"],
@@ -36,17 +44,17 @@ const sessionSchema = new mongoose.Schema(
     whatsappVerified: { type: Boolean, default: false },
     meta: { type: Schema.Types.Mixed, default: {} },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 sessionSchema.index(
   { restaurantId: 1, tableId: 1, status: 1 },
-  { unique: true, partialFilterExpression: { status: "OPEN" } }
+  { unique: true, partialFilterExpression: { status: "OPEN" } },
 );
 
 sessionSchema.statics.createForTable = async function (
   { restaurantId, tableId, openedByUserId },
-  session = null
+  session = null,
 ) {
   const tablePin = Math.floor(1000 + Math.random() * 9000).toString();
   const token = crypto.randomBytes(24).toString("hex");

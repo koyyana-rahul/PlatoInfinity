@@ -17,7 +17,7 @@ export async function createCategory(req, res) {
   const category = await MenuCategory.findOneAndUpdate(
     { name, brandId },
     { $setOnInsert: { name, brandId, order } },
-    { upsert: true, new: true }
+    { upsert: true, new: true },
   );
 
   res.status(201).json({ success: true, data: category });
@@ -34,7 +34,7 @@ export async function createSubcategory(req, res) {
   const subcategory = await MenuSubcategory.findOneAndUpdate(
     { categoryId, name, brandId },
     { $setOnInsert: { categoryId, name, brandId, order } },
-    { upsert: true, new: true }
+    { upsert: true, new: true },
   );
 
   res.status(201).json({ success: true, data: subcategory });
@@ -197,7 +197,7 @@ export async function getMasterMenu(req, res) {
 
     /** 7️⃣ Clean empty categories */
     const result = Object.values(categoryMap).filter(
-      (cat) => cat.items.length > 0 || cat.subcategories.length > 0
+      (cat) => cat.items.length > 0 || cat.subcategories.length > 0,
     );
 
     return res.json({
@@ -234,7 +234,7 @@ export async function updateCategory(req, res) {
         ...(name && { name }),
         ...(order !== undefined && { order }),
       },
-      { new: true }
+      { new: true },
     );
 
     if (!updated) {
@@ -359,7 +359,7 @@ export async function updateSubcategory(req, res) {
         ...(name && { name }),
         ...(order !== undefined && { order }),
       },
-      { new: true }
+      { new: true },
     );
 
     if (!updated) {
@@ -679,6 +679,9 @@ export async function deleteMasterItem(req, res) {
     if (!mongoose.Types.ObjectId.isValid(itemId)) {
       return res.status(400).json({ message: "Invalid itemId" });
     }
+
+    const item = await masterMenuItemModel.findById(itemId);
+    const brandId = item?.brandId;
 
     const deleted = await masterMenuItemModel.deleteOne({ _id: itemId });
 

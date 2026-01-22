@@ -43,46 +43,8 @@ const Axios = axios.create({
 });
 
 /* =====================================================
-   REQUEST INTERCEPTOR (PLATO FINAL)
+   NOTE: Interceptors are added in axios.interceptor.js
+   via initAxiosInterceptors() function
 ===================================================== */
-Axios.interceptors.request.use(
-  (config) => {
-    const url = config.url || "";
-
-    // ❌ NEVER attach session to public APIs (CORS SAFE)
-    if (url.startsWith("/api/public")) {
-      return config;
-    }
-
-    // ❌ NEVER attach session to auth APIs
-    if (url.startsWith("/api/auth")) {
-      return config;
-    }
-
-    // ✅ ONLY customer-protected routes need session
-    if (
-      url.startsWith("/api/cart") ||
-      url.startsWith("/api/order") ||
-      url.startsWith("/api/customer")
-    ) {
-      // Find customer session
-      const sessionKey = Object.keys(localStorage).find((k) =>
-        k.startsWith("plato:customerSession:"),
-      );
-
-      if (sessionKey) {
-        const sessionId = localStorage.getItem(sessionKey);
-
-        if (sessionId) {
-          // 🔥 IMPORTANT: Header name MUST match backend exactly
-          config.headers["x-customer-session"] = sessionId;
-        }
-      }
-    }
-
-    return config;
-  },
-  (error) => Promise.reject(error),
-);
 
 export default Axios;

@@ -27,22 +27,39 @@ export function initSocketServer(httpServer, options = {}) {
         socket.handshake.auth?.token ||
         socket.handshake.headers?.authorization?.split(" ")[1];
 
-      if (!token) return next(new Error("Token missing"));
+      // 🔄 TRY JWT FIRST (for staff/admin/manager/chef)
+      if (token) {
+        try {
+          const payload = jwt.verify(
+            token,
+            process.env.JWT_SECRET_ACCESS || process.env.JWT_SECRET,
+          );
 
-      const payload = jwt.verify(
-        token,
-        process.env.JWT_SECRET_ACCESS || process.env.JWT_SECRET,
-      );
+          const userId = payload.sub || payload._id;
+          const user = await UserModel.findById(userId).lean();
+          if (!user) return next(new Error("User not found"));
 
-      const userId = payload.sub || payload._id;
-      const user = await UserModel.findById(userId).lean();
-      if (!user) return next(new Error("User not found"));
+          socket.user = {
+            id: String(user._id),
+            role: user.role,
+            restaurantId: String(user.restaurantId),
+            station: user.kitchenStation || null,
+          };
 
+          return next();
+        } catch (jwtErr) {
+          // JWT verification failed, treat as customer session token
+          console.log("JWT failed, treating as customer session token");
+        }
+      }
+
+      // 👥 CUSTOMER SESSION TOKEN (no token required initially)
+      // Allow customer connections - they'll pass sessionId in join:customer event
       socket.user = {
-        id: String(user._id),
-        role: user.role,
-        restaurantId: String(user.restaurantId),
-        station: user.kitchenStation || null,
+        id: "customer",
+        role: "CUSTOMER",
+        restaurantId: null, // Will be set in join:customer
+        station: null,
       };
 
       next();
@@ -60,17 +77,20 @@ export function initSocketServer(httpServer, options = {}) {
       `🔌 ${socket.id} connected | ${user.role} | restaurant=${user.restaurantId}`,
     );
 
-    /* ---------- BASE ROOM ---------- */
-    socket.join(`restaurant:${user.restaurantId}`);
+    // Skip base room for customers (they'll join explicitly)
+    if (user.role !== "CUSTOMER" && user.restaurantId) {
+      /* ---------- BASE ROOM ---------- */
+      socket.join(`restaurant:${user.restaurantId}`);
 
-    /* ---------- WAITER ROOM ---------- */
-    if (user.role === "WAITER" || user.role === "MANAGER") {
-      socket.join(`restaurant:${user.restaurantId}:waiters`);
-    }
+      /* ---------- WAITER ROOM ---------- */
+      if (user.role === "WAITER" || user.role === "MANAGER") {
+        socket.join(`restaurant:${user.restaurantId}:waiters`);
+      }
 
-    /* ---------- CHEF ROOM ---------- */
-    if (user.role === "CHEF" && user.station) {
-      socket.join(`restaurant:${user.restaurantId}:station:${user.station}`);
+      /* ---------- CHEF ROOM ---------- */
+      if (user.role === "CHEF" && user.station) {
+        socket.join(`restaurant:${user.restaurantId}:station:${user.station}`);
+      }
     }
 
     /* ---------- OPTIONAL EXPLICIT JOIN (frontend) ---------- */
@@ -123,6 +143,18 @@ export function initSocketServer(httpServer, options = {}) {
         ack({ ok: true });
       } catch {
         ack({ ok: false });
+      }
+    });
+
+    /* ================= CUSTOMER MENU UPDATES ================= */
+    socket.on("join:customer", ({ sessionId, tableId, restaurantId }) => {
+      // Customer joins room for real-time menu updates
+      // restaurantId comes from their session or table info
+      if (restaurantId) {
+        socket.join(`restaurant:${restaurantId}:customers`);
+        console.log(
+          `👥 Customer joined: restaurant:${restaurantId}:customers (Session: ${sessionId})`,
+        );
       }
     });
 

@@ -26,20 +26,42 @@ export function initAxiosInterceptors() {
         url.startsWith("/api/order") ||
         url.startsWith("/api/customer")
       ) {
-        // 🔥 SINGLE SOURCE OF TRUTH
-        const sessionToken = localStorage.getItem(
-          "plato:customerSession:token"
+        // ✅ Find customer session token from localStorage
+        // Key format: plato:customerSession:{tableId}
+        const sessionKey = Object.keys(localStorage).find((k) =>
+          k.startsWith("plato:customerSession:"),
         );
 
-        if (sessionToken) {
-          // MUST match backend exactly
-          config.headers["x-customer-session"] = sessionToken;
+        if (sessionKey) {
+          const sessionToken = localStorage.getItem(sessionKey);
+
+          if (sessionToken) {
+            // ✅ MUST match backend exactly: x-customer-session
+            config.headers["x-customer-session"] = sessionToken;
+            console.log(
+              "✅ Attached session token to",
+              url,
+              "| Token:",
+              sessionToken.substring(0, 10) + "...",
+            );
+          } else {
+            console.warn(
+              "⚠️ Session key found but token is empty:",
+              sessionKey,
+            );
+          }
+        } else {
+          console.warn("⚠️ No session token found in localStorage for", url);
+          console.log(
+            "📦 localStorage keys:",
+            Object.keys(localStorage).filter((k) => k.includes("plato")),
+          );
         }
       }
 
       return config;
     },
-    (error) => Promise.reject(error)
+    (error) => Promise.reject(error),
   );
 
   /* =====================================================
@@ -47,7 +69,15 @@ export function initAxiosInterceptors() {
      ❌ NO RETRY FOR CUSTOMER FLOWS
   ===================================================== */
   Axios.interceptors.response.use(
-    (res) => res,
+    (res) => {
+      // Log join response for debugging
+      if (res.config.url?.includes("/sessions/join")) {
+        console.log("📥 Join response received");
+        console.log("📥 Response data:", res.data);
+        console.log("📥 sessionToken:", res.data?.data?.sessionToken);
+      }
+      return res;
+    },
     async (err) => {
       const original = err.config;
 
@@ -81,6 +111,6 @@ export function initAxiosInterceptors() {
       } catch {
         return Promise.reject(err);
       }
-    }
+    },
   );
 }

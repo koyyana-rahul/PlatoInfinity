@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 
 import Axios from "../../../api/axios";
 import customerApi from "../../../api/customer.api";
+import { useCustomerSocket } from "../hooks/useCustomerSocket";
 
 import CategoryBar from "../components/CategoryBar";
 import SubcategoryFilter from "../components/SubcategoryFilter";
@@ -37,10 +38,33 @@ export default function CustomerMenu() {
   const [loading, setLoading] = useState(true);
   const [activeCat, setActiveCat] = useState(null);
   const [activeSub, setActiveSub] = useState(null);
+  const [restaurantId, setRestaurantId] = useState(null);
 
   /* ================= CART (REDUX) ================= */
   const cartItems = useSelector(selectCartItems);
   const quantities = useSelector(selectQuantities);
+
+  /* ================= REAL-TIME MENU UPDATES ================= */
+  const handleMenuUpdate = async () => {
+    // Reload menu when update is received
+    console.log("🔄 Reloading menu after update...");
+    try {
+      const res = await Axios(customerApi.publicMenuByTable(tableId));
+      const data = res.data?.data || [];
+      setMenu(data);
+      toast.success("Menu updated!", { duration: 2000 });
+    } catch (err) {
+      console.error("Failed to reload menu:", err);
+    }
+  };
+
+  useCustomerSocket({
+    sessionId,
+    restaurantId,
+    tableId,
+    onCartUpdate: () => dispatch(fetchCart()),
+    onMenuUpdate: handleMenuUpdate,
+  });
 
   /* ================= GUARD ================= */
   useEffect(() => {
@@ -68,9 +92,16 @@ export default function CustomerMenu() {
         if (!active) return;
 
         setMenu(data);
+
+        // Extract restaurantId from first category or from API response
         if (data.length) {
           setActiveCat(data[0].id);
           setActiveSub(null);
+        }
+
+        // Try to get restaurantId from response
+        if (res.data?.restaurantId) {
+          setRestaurantId(res.data.restaurantId);
         }
       } catch {
         toast.error("Failed to load menu");

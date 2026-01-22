@@ -3,6 +3,7 @@ import BranchMenuItem from "../models/branchMenuItem.model.js";
 import MasterMenuItem from "../models/masterMenuItem.model.js";
 import AuditLog from "../models/auditLog.model.js";
 import Stock from "../models/stock.model.js";
+import { emitMenuUpdate } from "../socket/emitter.js";
 
 /* =========================================================
    1️⃣ IMPORT MASTER MENU → BRANCH
@@ -43,40 +44,6 @@ export async function importMasterMenu(req, res) {
     if (!masterItems.length) {
       return res.json({ success: true, importedCount: 0 });
     }
-
-    // const ops = masterItems.map((m) => ({
-    //   updateOne: {
-    //     filter: { restaurantId, masterItemId: m._id },
-    //     update: {
-    //       $setOnInsert: {
-    //         restaurantId,
-    //         masterItemId: m._id,
-
-    //         /* BRANCH COPY */
-    //         name: m.name,
-    //         description: m.description || "",
-    //         price: m.basePrice,
-    //         station: m.defaultStation || null,
-    //         taxPercent: m.taxPercent || 0,
-    //         status: "ON",
-
-    //         /* STOCK */
-    //         trackStock: true,
-    //         autoHideWhenZero: true,
-    //         stock: null,
-
-    //         /* MASTER SYNC */
-    //         lastMasterVersion: m.version ?? 1,
-    //         masterSnapshot: {
-    //           name: m.name,
-    //           basePrice: m.basePrice,
-    //           defaultStation: m.defaultStation,
-    //         },
-    //       },
-    //     },
-    //     upsert: true,
-    //   },
-    // }));
 
     const ops = masterItems.map((m) => ({
       updateOne: {
@@ -246,6 +213,13 @@ export async function updateBranchMenuItem(req, res) {
       return res.status(404).json({ message: "Item not found" });
     }
 
+    // 📢 Emit menu update to customers viewing this restaurant's menu
+    emitMenuUpdate(restaurantId, {
+      type: "item_updated",
+      itemId: item._id,
+      name: item.name,
+    });
+
     res.json({ success: true, data: item });
   } catch (err) {
     console.error("updateBranchMenuItem:", err);
@@ -273,6 +247,13 @@ export async function bulkToggleBranchMenu(req, res) {
       { restaurantId, _id: { $in: itemIds } },
       { $set: { status: action } },
     );
+
+    // 📢 Emit menu update to customers
+    emitMenuUpdate(restaurantId, {
+      type: "items_toggled",
+      action: action,
+      itemCount: itemIds.length,
+    });
 
     res.json({ success: true });
   } catch (err) {

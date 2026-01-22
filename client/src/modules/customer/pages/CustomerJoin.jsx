@@ -51,9 +51,45 @@ export default function CustomerJoin() {
         },
       });
 
+      console.log("🎯 Join response:", res.data);
+      console.log("📦 Response data:", res.data?.data);
+      console.log("🔑 sessionToken:", res.data?.data?.sessionToken);
+      console.log("🔑 sessionId:", res.data?.data?.sessionId);
+      console.log("⏰ Server timestamp:", res.data?.data?._timestamp);
+
+      // ✅ STORE RAW TOKEN (not sessionId)
+      const sessionToken = res.data?.data?.sessionToken;
       const sessionId = res.data?.data?.sessionId;
-      if (sessionId) {
+
+      if (sessionToken && sessionToken.length > 40) {
+        // Token is 64 chars - this is the new code
+        console.log(
+          "✅ CORRECT: Storing session token (length: " +
+            sessionToken.length +
+            "):",
+          sessionToken.substring(0, 20) + "...",
+        );
+        localStorage.setItem(sessionKey, sessionToken);
+      } else if (!sessionToken && sessionId) {
+        // Old code: server returned only sessionId
+        // Use it as the token for now (works with old middleware)
+        console.warn(
+          "⚠️ WARNING: Server sent only sessionId, using it as token",
+        );
+        console.warn(
+          "⚠️ This works with OLD sessions but NOT with new join flow",
+        );
+        console.warn(
+          "⚠️ You should restart the server to get new functionality",
+        );
         localStorage.setItem(sessionKey, sessionId);
+      } else {
+        // Neither token nor ID - something is wrong
+        console.error("❌ Response missing both sessionToken and sessionId!");
+        console.error("Response keys:", Object.keys(res.data?.data || {}));
+        toast.error("Invalid server response - missing session data");
+        setSubmitting(false);
+        return;
       }
 
       toast.success("Joined table successfully");

@@ -196,7 +196,7 @@ export async function joinSessionController(req, res) {
       tableId,
       tablePin,
       status: "OPEN",
-    }).select("+sessionTokenHash");
+    });
 
     if (!session) {
       return res.status(400).json({
@@ -205,24 +205,43 @@ export async function joinSessionController(req, res) {
       });
     }
 
-    // 🔄 refresh token expiry (IMPORTANT)
-    session.tokenExpiresAt = new Date(Date.now() + TOKEN_TTL_MS);
+    // ✅ GENERATE NEW CUSTOMER TOKEN FOR THIS CUSTOMER
+    const rawCustomerToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = hashToken(rawCustomerToken);
+    const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
+
+    console.log("🎯 Generated customer token");
+    console.log("📦 Token:", rawCustomerToken.substring(0, 20) + "...");
+    console.log("📦 Token length:", rawCustomerToken.length);
+    console.log("📦 Token hash:", tokenHash.substring(0, 20) + "...");
+
+    // Store the token hash in customerTokens array
+    session.customerTokens = session.customerTokens || [];
+    session.customerTokens.push({
+      tokenHash,
+      expiresAt,
+      lastActivityAt: new Date(),
+    });
+
     session.lastActivityAt = new Date();
     await session.save();
 
-    // 🍪 reuse SAME token (NOT generate new)
-    res.cookie("sessionToken", session.sessionTokenHash, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: TOKEN_TTL_MS,
+    // ✅ RETURN RAW TOKEN TO CLIENT
+    const responseData = {
+      sessionId: session._id,
+      sessionToken: rawCustomerToken, // ✅ RAW TOKEN for client storage
+      _timestamp: new Date().toISOString(), // DEBUG: Track which version is running
+    };
+
+    console.log("📤 Sending response:", {
+      sessionId: responseData.sessionId,
+      tokenLength: responseData.sessionToken.length,
+      tokenStart: responseData.sessionToken.substring(0, 20) + "...",
     });
 
     return res.json({
       success: true,
-      data: {
-        sessionId: session._id,
-      },
+      data: responseData,
     });
   } catch (err) {
     console.error("joinSessionController:", err);
