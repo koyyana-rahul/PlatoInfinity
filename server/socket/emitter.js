@@ -1,25 +1,22 @@
-// src/socket/emitter.js
-let _emitFunc = null;
-export function registerEmitFunc(fn) {
-  _emitFunc = fn;
+let ioRef = null;
+
+export function registerSocket(io) {
+  ioRef = io;
 }
-export function getEmitFunc() {
-  return _emitFunc;
+
+/* ================= WAITER UPDATES ================= */
+
+export function emitTableUpdate(restaurantId) {
+  if (!ioRef) return;
+  ioRef.to(`restaurant:${restaurantId}:waiters`).emit("table:update");
 }
-export async function emitToStationWrapper(payload) {
-  if (!_emitFunc) {
-    console.warn(
-      "emitToStation called but emitter not registered yet",
-      payload && payload.restaurantId
-    );
-    return;
-  }
-  try {
-    return await _emitFunc(payload);
-  } catch (err) {
-    console.error("emitToStationWrapper error:", err);
-  }
+
+export function emitSessionUpdate(restaurantId) {
+  if (!ioRef) return;
+  ioRef.to(`restaurant:${restaurantId}:waiters`).emit("session:update");
 }
+
+/* ================= KITCHEN ================= */
 
 export function emitKitchenEvent(io, restaurantId, station, event, payload) {
   io.to(`restaurant:${restaurantId}:station:${station}`).emit(event, payload);

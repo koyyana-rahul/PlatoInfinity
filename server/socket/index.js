@@ -5,11 +5,9 @@ import StationQueueEvent from "../models/stationQueueEvent.model.js";
 
 let io;
 
-/**
- * ================================
- * INIT SOCKET SERVER
- * ================================
- */
+/* =====================================================
+   INIT SOCKET SERVER
+===================================================== */
 export function initSocketServer(httpServer, options = {}) {
   io = new SocketIOServer(httpServer, {
     path: options.path || "/socket.io",
@@ -22,29 +20,21 @@ export function initSocketServer(httpServer, options = {}) {
     pingTimeout: 60000,
   });
 
-  /**
-   * ================================
-   * SOCKET AUTH (JWT)
-   * ================================
-   */
+  /* ================= SOCKET AUTH ================= */
   io.use(async (socket, next) => {
     try {
       const token =
         socket.handshake.auth?.token ||
         socket.handshake.headers?.authorization?.split(" ")[1];
 
-      if (!token) {
-        return next(new Error("Authentication token missing"));
-      }
+      if (!token) return next(new Error("Token missing"));
 
       const payload = jwt.verify(
         token,
-        process.env.JWT_SECRET_ACCESS || process.env.JWT_SECRET
+        process.env.JWT_SECRET_ACCESS || process.env.JWT_SECRET,
       );
 
-      const userId = payload.sub || payload._id || payload.id;
-      if (!userId) return next(new Error("Invalid token payload"));
-
+      const userId = payload.sub || payload._id;
       const user = await UserModel.findById(userId).lean();
       if (!user) return next(new Error("User not found"));
 
@@ -52,57 +42,50 @@ export function initSocketServer(httpServer, options = {}) {
         id: String(user._id),
         role: user.role,
         restaurantId: String(user.restaurantId),
-        station: user.kitchenStation || null, // ex: "TANDOOR"
+        station: user.kitchenStation || null,
       };
 
-      return next();
+      next();
     } catch (err) {
       console.error("Socket auth error:", err.message);
-      return next(new Error("Unauthorized"));
+      next(new Error("Unauthorized"));
     }
   });
 
-  /**
-   * ================================
-   * CONNECTION
-   * ================================
-   */
+  /* ================= CONNECTION ================= */
   io.on("connection", (socket) => {
     const user = socket.user;
 
     console.log(
-      `🔌 Socket connected ${socket.id} | role=${user.role} | restaurant=${user.restaurantId}`
+      `🔌 ${socket.id} connected | ${user.role} | restaurant=${user.restaurantId}`,
     );
 
-    /**
-     * JOIN ROOMS
-     * ----------------
-     * restaurant:<id>
-     * restaurant:<id>:station:<station>
-     * restaurant:<id>:waiters
-     */
+    /* ---------- BASE ROOM ---------- */
     socket.join(`restaurant:${user.restaurantId}`);
 
-    if (user.role === "WAITER") {
+    /* ---------- WAITER ROOM ---------- */
+    if (user.role === "WAITER" || user.role === "MANAGER") {
       socket.join(`restaurant:${user.restaurantId}:waiters`);
     }
 
+    /* ---------- CHEF ROOM ---------- */
     if (user.role === "CHEF" && user.station) {
       socket.join(`restaurant:${user.restaurantId}:station:${user.station}`);
     }
 
-    /**
-     * ================================
-     * CHEF: CLAIM EVENT
-     * ================================
-     */
+    /* ---------- OPTIONAL EXPLICIT JOIN (frontend) ---------- */
+    socket.on("join:waiter", ({ restaurantId }) => {
+      if (restaurantId === user.restaurantId) {
+        socket.join(`restaurant:${restaurantId}:waiters`);
+      }
+    });
+
+    /* ================= CHEF EVENTS ================= */
+
     socket.on("station:event:claim", async ({ eventId }, ack) => {
       try {
         const event = await StationQueueEvent.findById(eventId);
-        if (!event) return ack({ ok: false, error: "Event not found" });
-
-        if (String(event.restaurantId) !== user.restaurantId)
-          return ack({ ok: false, error: "Forbidden" });
+        if (!event) return ack({ ok: false });
 
         event.status = "PREPARING";
         event.claimedBy = user.id;
@@ -112,32 +95,18 @@ export function initSocketServer(httpServer, options = {}) {
         io.to(`restaurant:${user.restaurantId}`).emit("station:event:updated", {
           eventId,
           status: "PREPARING",
-          claimedBy: user.id,
         });
 
         ack({ ok: true });
-      } catch (err) {
-        console.error("claim error:", err);
-        ack({ ok: false, error: "Server error" });
+      } catch {
+        ack({ ok: false });
       }
     });
 
-    /**
-     * ================================
-     * CHEF: UPDATE STATUS
-     * ================================
-     */
     socket.on("station:event:update", async ({ eventId, status }, ack) => {
       try {
-        const allowed = ["READY", "SERVED", "CANCELLED"];
-        if (!allowed.includes(status))
-          return ack({ ok: false, error: "Invalid status" });
-
         const event = await StationQueueEvent.findById(eventId);
-        if (!event) return ack({ ok: false, error: "Event not found" });
-
-        if (String(event.restaurantId) !== user.restaurantId)
-          return ack({ ok: false, error: "Forbidden" });
+        if (!event) return ack({ ok: false });
 
         event.status = status;
         if (status === "READY") event.readyAt = new Date();
@@ -147,41 +116,20 @@ export function initSocketServer(httpServer, options = {}) {
         io.to(`restaurant:${user.restaurantId}`).emit("station:event:updated", {
           eventId,
           status,
-          orderId: event.orderId,
           tableId: event.tableId,
+          orderId: event.orderId,
         });
 
         ack({ ok: true });
-      } catch (err) {
-        console.error("update error:", err);
-        ack({ ok: false, error: "Server error" });
+      } catch {
+        ack({ ok: false });
       }
     });
 
     socket.on("disconnect", () => {
-      console.log(`❌ Socket disconnected ${socket.id}`);
+      console.log(`❌ ${socket.id} disconnected`);
     });
   });
 
   return io;
-}
-
-/**
- * ================================
- * SERVER → KITCHEN EMITTER
- * ================================
- */
-export function emitToStation({ restaurantId, station, payload }) {
-  if (!io) return;
-
-  io.to(`restaurant:${restaurantId}:station:${station}`).emit(
-    "station:event:new",
-    payload
-  );
-
-  // also notify waiters
-  io.to(`restaurant:${restaurantId}:waiters`).emit(
-    "station:event:new",
-    payload
-  );
 }

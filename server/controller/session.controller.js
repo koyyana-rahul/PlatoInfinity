@@ -88,7 +88,7 @@ export async function openTableSessionController(req, res) {
           },
         },
       ],
-      { session: mongoSession }
+      { session: mongoSession },
     );
 
     // ✅ OCCUPY TABLE
@@ -142,8 +142,13 @@ export async function listRestaurantSessionsController(req, res) {
     }
 
     const sessions = await SessionModel.find(filter)
-      .select("_id restaurantId tableId openedByUserId tablePin status startedAt lastActivityAt closedAt")
-      .populate("tableId", "_id tableNumber name seatingCapacity status qrUrl qrImageUrl")
+      .select(
+        "_id restaurantId tableId openedByUserId tablePin status startedAt lastActivityAt closedAt",
+      )
+      .populate(
+        "tableId",
+        "_id tableNumber name seatingCapacity status qrUrl qrImageUrl",
+      )
       .sort({ createdAt: -1 })
       .lean();
 
@@ -168,77 +173,53 @@ export async function listRestaurantSessionsController(req, res) {
 
 export async function joinSessionController(req, res) {
   try {
-    let { restaurantId, tableId, tablePin } = req.body;
+    let { tableId, tablePin } = req.body;
 
     if (!tableId || !tablePin) {
       return res.status(400).json({
-        message: "tableId, tablePin required",
-        error: true,
+        message: "tableId and tablePin required",
         success: false,
       });
     }
 
-    if (!restaurantId) {
-      if (!mongoose.Types.ObjectId.isValid(tableId)) {
-        return res.status(400).json({
-          message: "Invalid tableId",
-          error: true,
-          success: false,
-        });
-      }
+    tablePin = String(tablePin);
 
-      const table = await TableModel.findById(tableId)
-        .select("restaurantId isActive isArchived")
-        .lean();
-
-      if (!table || table.isArchived || !table.isActive) {
-        return res.status(400).json({
-          message: "Invalid table",
-          error: true,
-          success: false,
-        });
-      }
-
-      restaurantId = table.restaurantId;
+    if (!mongoose.Types.ObjectId.isValid(tableId)) {
+      return res.status(400).json({
+        message: "Invalid tableId",
+        success: false,
+      });
     }
 
-    // 1️⃣ Find open session
+    // 🔍 find OPEN session
     const session = await SessionModel.findOne({
-      restaurantId,
       tableId,
       tablePin,
       status: "OPEN",
-    });
+    }).select("+sessionTokenHash");
 
     if (!session) {
       return res.status(400).json({
         message: "Invalid table or PIN",
-        error: true,
         success: false,
       });
     }
 
-    // 2️⃣ Generate secure token
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    const tokenHash = hashToken(rawToken);
-
-    session.sessionTokenHash = tokenHash;
+    // 🔄 refresh token expiry (IMPORTANT)
     session.tokenExpiresAt = new Date(Date.now() + TOKEN_TTL_MS);
     session.lastActivityAt = new Date();
     await session.save();
 
-    // 3️⃣ STORE TOKEN IN COOKIE (KEY CHANGE 🔥)
-    res.cookie("sessionToken", rawToken, {
-      httpOnly: true, // ❌ JS can’t access
+    // 🍪 reuse SAME token (NOT generate new)
+    res.cookie("sessionToken", session.sessionTokenHash, {
+      httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       maxAge: TOKEN_TTL_MS,
     });
 
-    // 4️⃣ Return SAFE response
     return res.json({
       success: true,
-      error: false,
       data: {
         sessionId: session._id,
       },
@@ -247,7 +228,6 @@ export async function joinSessionController(req, res) {
     console.error("joinSessionController:", err);
     return res.status(500).json({
       message: "Server error",
-      error: true,
       success: false,
     });
   }
@@ -295,7 +275,7 @@ export async function shiftTableController(req, res) {
     await TableModel.findByIdAndUpdate(
       sessionDoc.tableId,
       { status: "FREE" },
-      { session: mongoSession }
+      { session: mongoSession },
     );
 
     // OCCUPY NEW TABLE
@@ -372,7 +352,7 @@ export async function closeSessionController(req, res) {
     await TableModel.findByIdAndUpdate(
       sessionDoc.tableId,
       { status: "FREE" },
-      { session: mongoSession }
+      { session: mongoSession },
     );
 
     await mongoSession.commitTransaction();

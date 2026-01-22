@@ -1,63 +1,80 @@
 import crypto from "crypto";
 import SessionModel from "../models/session.model.js";
 
+/* ================= HELPERS ================= */
+
 function hashToken(raw) {
   return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
+/* ================= MIDDLEWARE ================= */
+
 export async function requireSessionAuth(req, res, next) {
   try {
-    // 1️⃣ Get token from COOKIE first (browser flow)
+    /* ================= GET TOKEN ================= */
+
+    // Node.js lowercases all headers
+    const headerSessionToken = req.headers["x-session-token"];
+    const headerCustomerToken = req.headers["x-customer-session"];
     const cookieToken = req.cookies?.sessionToken;
 
-    // 2️⃣ Fallback to header (Postman / mobile apps)
-    const headerToken =
-      req.headers["x-session-token"] || req.headers["X-Session-Token"] || null;
-
-    const rawToken = cookieToken || headerToken;
+    const rawToken = headerSessionToken || headerCustomerToken || cookieToken;
 
     if (!rawToken) {
       return res.status(401).json({
-        message: "Session token missing",
-        error: true,
         success: false,
+        message: "Session token missing",
       });
     }
 
     const tokenHash = hashToken(rawToken);
 
-    // 3️⃣ Validate session
+    /* ================= FIND SESSION ================= */
+
     const session = await SessionModel.findOne({
-      sessionTokenHash: tokenHash,
       status: "OPEN",
-      tokenExpiresAt: { $gt: new Date() },
+      customerTokens: {
+        $elemMatch: {
+          tokenHash,
+          expiresAt: { $gt: new Date() },
+        },
+      },
     });
 
     if (!session) {
       return res.status(401).json({
-        message: "Invalid or expired session",
-        error: true,
         success: false,
+        message: "Invalid or expired session",
       });
     }
 
-    // 4️⃣ Attach session to request
-    req.sessionDoc = session;
-    req.sessionRawToken = rawToken;
+    /* ================= UPDATE TOKEN ACTIVITY ================= */
 
-    // 5️⃣ Update activity (non-blocking)
     SessionModel.updateOne(
-      { _id: session._id },
-      { lastActivityAt: new Date() }
+      {
+        _id: session._id,
+        "customerTokens.tokenHash": tokenHash,
+      },
+      {
+        $set: {
+          "customerTokens.$.lastActivityAt": new Date(),
+          lastActivityAt: new Date(),
+        },
+      },
     ).catch(() => {});
+
+    /* ================= ATTACH TO REQUEST ================= */
+
+    req.sessionDoc = session;
+    req.sessionId = session._id;
+    req.sessionToken = rawToken;
 
     return next();
   } catch (err) {
-    console.error("requireSessionAuth error:", err);
+    console.error("❌ requireSessionAuth error:", err);
     return res.status(500).json({
-      message: "Server error",
-      error: true,
       success: false,
+      message: "Server error",
     });
   }
 }

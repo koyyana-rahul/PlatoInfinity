@@ -25,7 +25,7 @@ export async function importMasterMenu(req, res) {
         isArchived: false,
       })
         .select(
-          "_id name description basePrice defaultStation taxPercent version categoryId subcategoryId isVeg image"
+          "_id name description basePrice defaultStation taxPercent version categoryId subcategoryId isVeg image",
         )
         .lean();
     } else {
@@ -44,15 +44,54 @@ export async function importMasterMenu(req, res) {
       return res.json({ success: true, importedCount: 0 });
     }
 
+    // const ops = masterItems.map((m) => ({
+    //   updateOne: {
+    //     filter: { restaurantId, masterItemId: m._id },
+    //     update: {
+    //       $setOnInsert: {
+    //         restaurantId,
+    //         masterItemId: m._id,
+
+    //         /* BRANCH COPY */
+    //         name: m.name,
+    //         description: m.description || "",
+    //         price: m.basePrice,
+    //         station: m.defaultStation || null,
+    //         taxPercent: m.taxPercent || 0,
+    //         status: "ON",
+
+    //         /* STOCK */
+    //         trackStock: true,
+    //         autoHideWhenZero: true,
+    //         stock: null,
+
+    //         /* MASTER SYNC */
+    //         lastMasterVersion: m.version ?? 1,
+    //         masterSnapshot: {
+    //           name: m.name,
+    //           basePrice: m.basePrice,
+    //           defaultStation: m.defaultStation,
+    //         },
+    //       },
+    //     },
+    //     upsert: true,
+    //   },
+    // }));
+
     const ops = masterItems.map((m) => ({
       updateOne: {
-        filter: { restaurantId, masterItemId: m._id },
+        filter: {
+          restaurantId: new mongoose.Types.ObjectId(restaurantId),
+          masterItemId: new mongoose.Types.ObjectId(m._id),
+        },
         update: {
           $setOnInsert: {
-            restaurantId,
-            masterItemId: m._id,
+            restaurantId: new mongoose.Types.ObjectId(restaurantId),
+            masterItemId: new mongoose.Types.ObjectId(m._id),
 
-            /* BRANCH COPY */
+            categoryId: m.categoryId,
+            subcategoryId: m.subcategoryId,
+
             name: m.name,
             description: m.description || "",
             price: m.basePrice,
@@ -60,12 +99,10 @@ export async function importMasterMenu(req, res) {
             taxPercent: m.taxPercent || 0,
             status: "ON",
 
-            /* STOCK */
             trackStock: true,
             autoHideWhenZero: true,
             stock: null,
 
-            /* MASTER SYNC */
             lastMasterVersion: m.version ?? 1,
             masterSnapshot: {
               name: m.name,
@@ -77,7 +114,6 @@ export async function importMasterMenu(req, res) {
         upsert: true,
       },
     }));
-
     await BranchMenuItem.bulkWrite(ops, { ordered: false });
 
     res.json({
@@ -203,7 +239,7 @@ export async function updateBranchMenuItem(req, res) {
     const item = await BranchMenuItem.findOneAndUpdate(
       { _id: itemId, restaurantId },
       { $set: safeUpdate },
-      { new: true }
+      { new: true },
     );
 
     if (!item) {
@@ -235,7 +271,7 @@ export async function bulkToggleBranchMenu(req, res) {
 
     await BranchMenuItem.updateMany(
       { restaurantId, _id: { $in: itemIds } },
-      { $set: { status: action } }
+      { $set: { status: action } },
     );
 
     res.json({ success: true });
@@ -285,7 +321,7 @@ export async function updateBranchStock(req, res) {
           lastAdjustedBy: req.user._id,
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     // ✅ sync menu behavior

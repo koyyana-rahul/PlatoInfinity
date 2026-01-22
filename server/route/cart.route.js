@@ -11,7 +11,7 @@ const cartRouter = express.Router();
 
 /**
  * CUSTOMER / SESSION CART ROUTES
- * Session is identified via session token (QR flow)
+ * Session identified via QR session token
  */
 
 // ➕ Add item to cart
@@ -24,7 +24,7 @@ cartRouter.put("/cart/update", requireSessionAuth, updateCartItemController);
 cartRouter.delete(
   "/cart/item/:cartItemId",
   requireSessionAuth,
-  removeCartItemController
+  removeCartItemController,
 );
 
 // 🛒 Get cart

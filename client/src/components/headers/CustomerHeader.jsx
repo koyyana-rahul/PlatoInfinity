@@ -1,46 +1,69 @@
 // src/components/headers/CustomerHeader.jsx
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { ClipboardList } from "lucide-react";
+
+import { selectHasOrders } from "../../store/customer/orderSelectors";
 
 export default function CustomerHeader() {
-  const { tableId } = useParams();
-  const brand = useSelector((s) => s.brand);
+  const { brandSlug, restaurantSlug, tableId } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  /* ---------- SKELETON ---------- */
-  if (!brand._id) {
+  const brand = useSelector((s) => s.brand);
+  const hasOrders = useSelector(selectHasOrders);
+
+  const ordersBasePath = `/${brandSlug}/${restaurantSlug}/table/${tableId}/orders`;
+  const isOrdersPage = location.pathname.startsWith(ordersBasePath);
+
+  if (!brand?._id) {
     return (
-      <header className="h-16 bg-white border-b flex items-center px-4 animate-pulse">
-        <div className="h-9 w-44 bg-gray-200 rounded-full" />
+      <header className="sticky top-0 z-40 bg-white border-b">
+        <div className="h-16 px-4 flex items-center gap-3 animate-pulse">
+          <div className="h-10 w-10 rounded-full bg-gray-200" />
+          <div className="h-4 w-40 bg-gray-200 rounded-full" />
+        </div>
       </header>
     );
   }
 
   return (
-    <header className="h-16 bg-white border-b flex items-center gap-3 px-4">
-      {/* LOGO */}
-      {brand.logoUrl ? (
-        <div className="h-10 w-10 rounded-full ring-1 ring-gray-200 bg-white overflow-hidden flex-shrink-0">
-          <img
-            src={brand.logoUrl}
-            alt={brand.name}
-            className="h-full w-full object-contain"
-          />
-        </div>
-      ) : (
-        <div className="h-10 w-10 rounded-full bg-[#FC8019] text-white flex items-center justify-center font-extrabold text-sm shadow-sm">
-          {brand.name.charAt(0).toUpperCase()}
-        </div>
-      )}
+    <header className="sticky top-0 z-40 bg-white border-b">
+      <div className="h-16 px-4 max-w-7xl mx-auto flex items-center gap-3">
+        {/* LOGO */}
+        {brand.logoUrl ? (
+          <div className="h-10 w-10 rounded-full ring-1 ring-gray-200 overflow-hidden">
+            <img
+              src={brand.logoUrl}
+              alt={brand.name}
+              className="h-full w-full object-contain"
+            />
+          </div>
+        ) : (
+          <div className="h-10 w-10 rounded-full bg-[#FC8019] text-white flex items-center justify-center font-extrabold text-sm">
+            {brand.name.charAt(0).toUpperCase()}
+          </div>
+        )}
 
-      {/* NAME + TABLE */}
-      <div className="flex flex-col min-w-0 leading-tight">
-        <span className="text-sm sm:text-base font-extrabold text-[#1A1C1E] truncate">
-          {brand.name}
-        </span>
+        {/* BRAND NAME */}
+        <div className="flex flex-col min-w-0">
+          <span className="text-sm sm:text-base font-extrabold truncate">
+            {brand.name}
+          </span>
+        </div>
 
-        {/* <span className="text-[10px] text-gray-400 uppercase tracking-widest">
-          Table {tableId?.slice(-4)}
-        </span> */}
+        {/* ORDERS BUTTON */}
+        <div className="ml-auto">
+          {hasOrders && !isOrdersPage && (
+            <button
+              onClick={() => navigate(ordersBasePath)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-semibold shadow hover:bg-emerald-700 active:scale-95 transition"
+            >
+              <ClipboardList size={14} />
+              Orders
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );

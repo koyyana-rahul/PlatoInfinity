@@ -10,6 +10,12 @@ const customerApi = {
     params,
   }),
 
+  /* ✅ ITEM INNER PAGE */
+  publicMenuItem: (itemId) => ({
+    url: `/api/public/menu-item/${itemId}`,
+    method: "GET",
+  }),
+
   joinSession: {
     url: "/api/sessions/join",
     method: "POST",

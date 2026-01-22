@@ -10,6 +10,7 @@ import Axios from "../api/axios";
 import SummaryApi from "../api/summaryApi";
 import { setUserDetails, markHydrated } from "../store/auth/userSlice";
 import { setBrandDetails, clearBrand } from "../store/brand/brandSlice";
+import { SocketProvider } from "../socket/SocketProvider";
 
 function Bootstrap() {
   const dispatch = useDispatch();
@@ -50,8 +51,10 @@ function Bootstrap() {
 export default function Providers() {
   return (
     <Provider store={store}>
-      <Bootstrap />
-      <Toaster position="top-right" />
+      <SocketProvider>
+        <Bootstrap />
+        <Toaster position="top-right" />
+      </SocketProvider>
     </Provider>
   );
 }

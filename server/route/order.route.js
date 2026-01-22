@@ -19,75 +19,64 @@ const orderRouter = express.Router();
  * ============================
  */
 
-/**
- * PLACE ORDER (FROM CART)
- * Uses session cookie / x-session-token
- */
+// PLACE ORDER (FROM CART)
 orderRouter.post("/order/place", requireSessionAuth, placeOrderController);
 
-/**
- * LIST ORDERS FOR A SESSION
- * (Customer / Waiter view)
- */
+// LIST ORDERS FOR A SESSION (Customer / Waiter view)
 orderRouter.get(
   "/order/session/:sessionId",
   requireSessionAuth,
-  listSessionOrdersController
+  listSessionOrdersController,
 );
 
 /**
- * STAFF VIEW: LIST ORDERS FOR A SESSION
- * (Waiter / Manager)
+ * ============================
+ * STAFF VIEW
+ * ============================
  */
+
+// STAFF VIEW: LIST ORDERS FOR A SESSION
 orderRouter.get(
   "/order/session/:sessionId/staff",
   requireAuth,
   requireRole("WAITER", "MANAGER"),
-  listSessionOrdersController
+  listSessionOrdersController,
 );
 
 /**
  * ============================
- * KITCHEN FLOW (CHEF)
+ * KITCHEN FLOW
  * ============================
  */
 
-/**
- * LIST KITCHEN ORDERS BY STATION
- * Query: ?station=TANDOOR
- */
+// LIST KITCHEN ORDERS BY STATION
 orderRouter.get(
   "/kitchen/orders",
   requireAuth,
   requireRole("CHEF"),
-  listKitchenOrdersController
+  listKitchenOrdersController,
 );
 
-/**
- * UPDATE ORDER ITEM STATUS
- * PREPARING → READY → SERVED
- */
+// UPDATE ORDER ITEM STATUS
 orderRouter.post(
   "/kitchen/order/:orderId/item/:itemId/status",
   requireAuth,
   requireRole("CHEF"),
-  updateOrderItemStatusController
+  updateOrderItemStatusController,
 );
 
 /**
  * ============================
- * BILLING FLOW (WAITER / MANAGER)
+ * BILLING FLOW
  * ============================
  */
 
-/**
- * COMPLETE ORDER (AFTER PAYMENT)
- */
+// COMPLETE ORDER
 orderRouter.post(
   "/order/:orderId/complete",
   requireAuth,
   requireRole("WAITER", "MANAGER", "CASHIER"),
-  completeOrderController
+  completeOrderController,
 );
 
 export default orderRouter;

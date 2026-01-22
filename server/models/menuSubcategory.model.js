@@ -18,12 +18,12 @@ const menuSubCategorySchema = new mongoose.Schema(
     isArchived: { type: Boolean, default: false },
     meta: { type: Schema.Types.Mixed, default: {} },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 menuSubCategorySchema.index(
   { categoryId: 1, name: 1 },
-  { unique: true, partialFilterExpression: { isArchived: false } }
+  { unique: true, partialFilterExpression: { isArchived: false } },
 );
 menuSubCategorySchema.plugin(mongoosePaginate);
 

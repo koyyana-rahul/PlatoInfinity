@@ -5,7 +5,6 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import http from "http";
-import mongoose from "mongoose";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -36,24 +35,33 @@ import dashboardRouter from "./route/dashboard.route.js";
 import waiterRouter from "./route/waiter.route.js";
 import addressRouter from "./route/address.route.js";
 import publicRouter from "./route/public.route.js";
-
-import { initSocketServer } from "./socket/index.js";
-import { registerEmitFunc } from "./socket/emitter.js";
-import { initCronJobs } from "./cron.js";
-import { handleJsonError } from "./middleware/handleJsonError.js";
 import shiftRouter from "./route/shift.route.js";
 
-// ---------- APP ----------
+// SOCKET
+import { initSocketServer } from "./socket/index.js";
+
+// CRON + ERROR
+import { initCronJobs } from "./cron.js";
+import { handleJsonError } from "./middleware/handleJsonError.js";
+
+/* ======================================================
+   APP SETUP
+====================================================== */
+
 const app = express();
+
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ---------- CORS ----------
+/* ======================================================
+   CORS
+====================================================== */
+
 const allowedOrigins = [
-  "https://platoinfinity.xyz",
-  "https://www.platoinfinity.xyz",
   "http://localhost:5173",
+  // "https://platoinfinity.xyz",
+  // "https://www.platoinfinity.xyz",
 ];
 
 app.use(
@@ -70,11 +78,12 @@ app.use(
       "Authorization",
       "x-session-token",
       "X-Session-Token",
+      "x-customer-session",
     ],
-  })
+  }),
 );
 
-// ✅ SAFE preflight handler (NO "*")
+// SAFE PREFLIGHT
 app.use((req, res, next) => {
   if (req.method === "OPTIONS") {
     return res.sendStatus(204);
@@ -82,12 +91,19 @@ app.use((req, res, next) => {
   next();
 });
 
-// ---------- HEALTH ----------
+/* ======================================================
+   HEALTH
+====================================================== */
+
 app.get("/", (req, res) => res.json({ ok: true, service: "Plato API" }));
 
 app.get("/health", (req, res) => res.json({ ok: true, time: new Date() }));
 
-// ---------- ROUTES ----------
+/* ======================================================
+   ROUTES
+====================================================== */
+
+app.use("/api/public", publicRouter);
 app.use("/api/address", addressRouter);
 app.use("/api/master-menu", masterMenuRouter);
 app.use("/api/auth/invite", authInviteRouter);
@@ -113,21 +129,31 @@ app.use("/api/kitchen", kitchenRouter);
 app.use("/api", billShareRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/waiter", waiterRouter);
-app.use("/api/public", publicRouter);
+
+/* ======================================================
+   FRONTEND (VITE BUILD)
+====================================================== */
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const clientDistPath = path.join(__dirname, "..", "client", "dist");
 
 app.use(express.static(clientDistPath));
+
 app.get(/^(?!\/api).*/, (req, res) => {
-  return res.sendFile(path.join(clientDistPath, "index.html"));
+  res.sendFile(path.join(clientDistPath, "index.html"));
 });
 
-// ---------- ERROR HANDLER ----------
+/* ======================================================
+   ERROR HANDLER
+====================================================== */
+
 app.use(handleJsonError);
 
-// ---------- SERVER ----------
+/* ======================================================
+   SERVER START
+====================================================== */
+
 const PORT = process.env.PORT || 8080;
 
 async function startServer() {
@@ -139,7 +165,8 @@ async function startServer() {
 
     const server = http.createServer(app);
 
-    const { io, emitToStation } = initSocketServer(server, {
+    // 🔥 SOCKET INIT (SINGLE SOURCE OF TRUTH)
+    const io = initSocketServer(server, {
       cors: {
         origin: allowedOrigins,
         credentials: true,
@@ -147,8 +174,6 @@ async function startServer() {
     });
 
     app.locals.io = io;
-    app.locals.emitToStation = emitToStation;
-    registerEmitFunc(emitToStation);
 
     server.listen(PORT, () => {
       console.log(`🚀 Plato API running on port ${PORT}`);

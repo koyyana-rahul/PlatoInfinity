@@ -64,11 +64,12 @@ import CashierSummary from "../modules/staff/cashier/CashierSummary";
 
 /* ================= CUSTOMER ================= */
 import CustomerLayout from "../layouts/CustomerLayout";
-import CustomerJoin from "../modules/customer/CustomerJoin";
-import CustomerMenu from "../modules/customer/CustomerMenu";
-import CustomerCart from "../modules/customer/CustomerCart";
-import CustomerOrders from "../modules/customer/CustomerOrders";
-import CustomerBill from "../modules/customer/CustomerBill";
+import CustomerJoin from "../modules/customer/pages/CustomerJoin";
+import CustomerMenu from "../modules/customer/pages/CustomerMenu";
+import CustomerCart from "../modules/customer/pages/CustomerCart";
+import CustomerOrders from "../modules/customer/pages/CustomerOrders";
+import CustomerBill from "../modules/customer/pages/CustomerBill";
+import CustomerItem from "../modules/customer/pages/CustomerItem";
 
 /* ================= FALLBACK ================= */
 const NotFound = () => (
@@ -100,6 +101,7 @@ const router = createBrowserRouter([
       { path: "cart", element: <CustomerCart /> },
       { path: "orders", element: <CustomerOrders /> },
       { path: "bill", element: <CustomerBill /> },
+      { path: "item/:itemId", element: <CustomerItem /> },
     ],
   },
 
