@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import Axios from "../../../api/axios";
 import staffApi from "../../../api/staff.api";
 import kitchenStationApi from "../../../api/kitchenStation.api";
+import clsx from "clsx";
 
 import {
   FiChevronDown,
@@ -12,32 +13,16 @@ import {
   FiDollarSign,
   FiInfo,
   FiCheckCircle,
+  FiX,
 } from "react-icons/fi";
 
-/* ================= ROLE CONFIG ================= */
 const ROLES = [
-  {
-    value: "WAITER",
-    label: "Waiter",
-    icon: FiUser,
-    desc: "Takes orders & serves customers",
-  },
-  {
-    value: "CHEF",
-    label: "Chef",
-    icon: FiCoffee,
-    desc: "Prepares food at kitchen station",
-  },
-  {
-    value: "CASHIER",
-    label: "Cashier",
-    icon: FiDollarSign,
-    desc: "Handles billing & payments",
-  },
+  { value: "WAITER", label: "Waiter", icon: FiUser, desc: "Orders & Service" },
+  { value: "CHEF", label: "Chef", icon: FiCoffee, desc: "Kitchen Prep" },
+  { value: "CASHIER", label: "Cashier", icon: FiDollarSign, desc: "Billing" },
 ];
 
 export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
-  /* ================= FORM ================= */
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -45,26 +30,18 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
     mobile: "",
     kitchenStationId: "",
   });
-
   const [loading, setLoading] = useState(false);
-
-  /* ================= CREATED STAFF (PIN VIEW) ================= */
   const [createdStaff, setCreatedStaff] = useState(null);
-
-  /* ================= ROLE DROPDOWN ================= */
   const [roleOpen, setRoleOpen] = useState(false);
-  const roleRef = useRef(null);
-
-  /* ================= STATION DROPDOWN ================= */
+  const [stationOpen, setStationOpen] = useState(false);
   const [stations, setStations] = useState([]);
   const [stationsLoading, setStationsLoading] = useState(false);
-  const [stationOpen, setStationOpen] = useState(false);
-  const stationRef = useRef(null);
 
+  const roleRef = useRef(null);
+  const stationRef = useRef(null);
   const activeRole = ROLES.find((r) => r.value === form.role);
   const activeStation = stations.find((s) => s._id === form.kitchenStationId);
 
-  /* ================= CLICK OUTSIDE ================= */
   useEffect(() => {
     const handler = (e) => {
       if (roleRef.current && !roleRef.current.contains(e.target))
@@ -76,54 +53,27 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  /* ================= LOAD STATIONS ================= */
   useEffect(() => {
     if (form.role !== "CHEF") return;
-
     const loadStations = async () => {
       try {
         setStationsLoading(true);
         const res = await Axios(kitchenStationApi.list(restaurantId));
         setStations(res.data?.data || []);
       } catch {
-        toast.error("Unable to load kitchen stations");
+        toast.error("Unable to load stations");
       } finally {
         setStationsLoading(false);
       }
     };
-
     loadStations();
   }, [form.role, restaurantId]);
 
-  /* ================= VALIDATION ================= */
-  const validate = () => {
-    if (!form.firstName.trim()) {
-      toast.error("First name is required");
-      return false;
-    }
-
-    if (form.mobile && !/^\d{10}$/.test(form.mobile)) {
-      toast.error("Mobile number must be 10 digits");
-      return false;
-    }
-
-    if (form.role === "CHEF" && !form.kitchenStationId) {
-      toast.error("Please select a kitchen station");
-      return false;
-    }
-
-    return true;
-  };
-
-  /* ================= SUBMIT ================= */
   const submit = async () => {
-    if (!validate()) return;
-
+    if (!form.firstName.trim()) return toast.error("First name required");
     const fullName = `${form.firstName.trim()} ${form.lastName.trim()}`.trim();
-
     try {
       setLoading(true);
-
       const res = await Axios({
         ...staffApi.create(restaurantId),
         data: {
@@ -133,53 +83,45 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
           kitchenStationId: form.role === "CHEF" ? form.kitchenStationId : null,
         },
       });
-
-      const staff = res.data.data;
-
-      setCreatedStaff(staff); // 🔑 SHOW PIN SCREEN
-      onSuccess?.(staff);
+      setCreatedStaff(res.data.data);
+      onSuccess?.(res.data.data);
     } catch (err) {
-      toast.error(
-        err?.response?.data?.message ||
-          "Unable to create staff. Please try again."
-      );
+      toast.error(err?.response?.data?.message || "Unable to create staff.");
     } finally {
       setLoading(false);
     }
   };
 
-  /* =====================================================
-     ✅ PIN DISPLAY (ONE TIME ONLY)
-  ===================================================== */
   if (createdStaff) {
     return (
-      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4">
-        <div className="bg-white w-full max-w-sm rounded-2xl shadow-xl p-6 text-center">
-          <FiCheckCircle className="mx-auto text-emerald-600" size={36} />
-
-          <h3 className="text-xl font-semibold text-gray-900 mt-3">
+      <div className="fixed inset-0 z-[150] flex items-center justify-center px-4">
+        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+        <div className="relative bg-white w-full max-w-sm rounded-[32px] p-6 text-center shadow-2xl animate-in zoom-in-95">
+          <FiCheckCircle size={48} className="text-emerald-500 mx-auto mb-4" />
+          <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">
             Staff Created
           </h3>
-
-          <p className="text-sm text-gray-500 mt-1">
-            Save this PIN. You won’t be able to see it again.
-          </p>
-
-          <div className="mt-6 bg-gray-100 rounded-xl py-4">
-            <p className="text-xs text-gray-500">Staff Code</p>
-            <p className="font-mono text-lg font-semibold">
-              {createdStaff.staffCode}
-            </p>
-
-            <p className="text-xs text-gray-500 mt-4">Staff PIN</p>
-            <p className="font-mono text-3xl tracking-widest font-bold text-emerald-600">
-              {createdStaff.staffPin}
-            </p>
+          <div className="mt-6 space-y-3">
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Login Code
+              </p>
+              <p className="text-lg font-black text-slate-900 uppercase tracking-tighter">
+                {createdStaff.staffCode}
+              </p>
+            </div>
+            <div className="bg-emerald-50 p-5 rounded-xl border border-emerald-100">
+              <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+                Access PIN
+              </p>
+              <p className="text-3xl font-black text-emerald-600 tracking-[0.2em]">
+                {createdStaff.staffPin}
+              </p>
+            </div>
           </div>
-
           <button
             onClick={onClose}
-            className="mt-6 w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-semibold"
+            className="mt-6 w-full h-12 bg-slate-900 text-white rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all shadow-lg"
           >
             Done
           </button>
@@ -188,52 +130,69 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
     );
   }
 
-  /* =====================================================
-     CREATE FORM UI
-  ===================================================== */
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-3 sm:p-4">
+      <div
+        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div className="relative bg-white w-full max-w-md rounded-[28px] sm:rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* HEADER */}
-        <div className="px-6 py-5 border-b">
-          <h2 className="text-xl font-semibold text-gray-900">
-            Add Staff Member
-          </h2>
-          <p className="text-sm text-gray-700 mt-1">
-            Staff are identified using Staff Code & secure PIN
-          </p>
+        <div className="px-6 py-5 flex justify-between items-start border-b border-slate-50">
+          <div>
+            <h2 className="text-xl font-black text-slate-900 tracking-tight leading-none">
+              Add Staff
+            </h2>
+            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-2">
+              Registration Portal
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 bg-slate-50 text-slate-400 rounded-full hover:text-red-500 transition-colors"
+          >
+            <FiX size={18} />
+          </button>
         </div>
 
         {/* BODY */}
-        <div className="px-6 py-6 space-y-6">
-          {/* NAME */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
+          {/* FIRST NAME & LAST NAME - STACKED */}
+          <div className="flex flex-col gap-4">
             <Field
               label="First Name"
               required
               value={form.firstName}
               onChange={(v) => setForm({ ...form, firstName: v })}
+              placeholder="e.g. Rahul"
             />
             <Field
               label="Last Name"
               optional
               value={form.lastName}
               onChange={(v) => setForm({ ...form, lastName: v })}
+              placeholder="e.g. Sharma"
             />
           </div>
 
-          {/* ROLE */}
           <Dropdown
-            label="Role"
+            label="Designation"
+            required
             open={roleOpen}
             setOpen={setRoleOpen}
             refEl={roleRef}
             trigger={
               <>
-                <activeRole.icon />
-                <div>
-                  <p className="font-semibold">{activeRole.label}</p>
-                  <p className="text-xs text-gray-600">{activeRole.desc}</p>
+                <div className="p-1 bg-emerald-50 text-emerald-600 rounded-lg">
+                  <activeRole.icon size={16} />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold text-slate-900 leading-none">
+                    {activeRole.label}
+                  </p>
+                  <p className="text-[10px] text-slate-400 font-medium mt-1 leading-none">
+                    {activeRole.desc}
+                  </p>
                 </div>
               </>
             }
@@ -252,19 +211,19 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
             ))}
           </Dropdown>
 
-          {/* MOBILE */}
           <Field
             label="Mobile Number"
             optional
             value={form.mobile}
             onChange={(v) => setForm({ ...form, mobile: v })}
             inputMode="numeric"
+            placeholder="10-digit mobile"
           />
 
-          {/* CHEF STATION */}
           {form.role === "CHEF" && (
             <Dropdown
               label="Kitchen Station"
+              required
               open={stationOpen}
               setOpen={setStationOpen}
               refEl={stationRef}
@@ -272,9 +231,16 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
               empty={!stationsLoading && stations.length === 0}
               trigger={
                 <>
-                  <FiCoffee />
-                  <p className="font-semibold">
-                    {activeStation?.name || "Select kitchen station"}
+                  <div className="p-1.5 bg-slate-50 text-slate-400 rounded-lg">
+                    <FiCoffee size={16} />
+                  </div>
+                  <p
+                    className={clsx(
+                      "text-xs sm:text-sm font-bold",
+                      activeStation ? "text-slate-900" : "text-slate-400",
+                    )}
+                  >
+                    {activeStation?.name || "Select Station"}
                   </p>
                 </>
               }
@@ -292,32 +258,45 @@ export default function CreateStaffModal({ restaurantId, onClose, onSuccess }) {
             </Dropdown>
           )}
 
-          {/* INFO */}
-          <div className="flex gap-3 bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-sm">
-            <FiInfo />
-            <p>A unique Staff Code & 4-digit PIN will be generated.</p>
+          <div className="flex gap-3 bg-slate-50 border border-slate-100 p-3 rounded-xl text-[10px] font-medium text-slate-500 leading-relaxed italic">
+            <FiInfo
+              className="mt-0.5 flex-shrink-0 text-emerald-600"
+              size={14}
+            />
+            <p>
+              System auto-generates a secure PIN. Ensure names are correct as
+              per official ID.
+            </p>
           </div>
         </div>
 
         {/* FOOTER */}
-        <div className="px-6 py-4 border-t flex justify-end gap-3 bg-gray-50">
-          <button onClick={onClose} className="text-sm text-gray-700">
+        <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-50 flex justify-end gap-3 items-center">
+          <button
+            onClick={onClose}
+            className="px-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-all"
+          >
             Cancel
           </button>
           <button
             onClick={submit}
             disabled={loading}
-            className="bg-emerald-600 text-white px-6 py-2 rounded-xl"
+            className="bg-slate-900 text-white px-6 sm:px-8 h-11 sm:h-12 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-slate-200"
           >
-            {loading ? "Creating…" : "Create Staff"}
+            {loading ? "..." : "Create Staff Member"}
           </button>
         </div>
       </div>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
+      `}</style>
     </div>
   );
 }
 
-/* ================= UI HELPERS ================= */
+/* ================= COMPONENT HELPERS ================= */
 
 function Dropdown({
   label,
@@ -328,29 +307,50 @@ function Dropdown({
   children,
   loading,
   empty,
+  required,
 }) {
   return (
-    <div ref={refEl}>
-      <label className="text-xs font-semibold text-gray-700">{label}</label>
+    <div ref={refEl} className="relative">
+      <div className="mb-1.5 px-1">
+        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+          {label}{" "}
+          {required && <span className="text-red-500 ml-0.5 font-bold">*</span>}
+        </label>
+      </div>
+
       <button
         onClick={() => setOpen(!open)}
-        className="w-full h-12 px-4 border rounded-xl flex items-center justify-between"
+        className={clsx(
+          "w-full h-11 sm:h-12 px-3 bg-white border rounded-xl flex items-center justify-between transition-all",
+          open
+            ? "border-emerald-500 ring-4 ring-emerald-500/5 shadow-sm"
+            : "border-slate-200 hover:border-slate-300",
+        )}
       >
-        <div className="flex items-center gap-3">{trigger}</div>
-        <FiChevronDown className={open ? "rotate-180" : ""} />
+        <div className="flex items-center gap-2">{trigger}</div>
+        <FiChevronDown
+          className={clsx(
+            "text-slate-400 transition-transform",
+            open && "rotate-180",
+          )}
+        />
       </button>
 
       {open && (
-        <div className="mt-2 border rounded-xl shadow-lg overflow-hidden bg-white">
+        <div className="absolute z-[160] w-full mt-1.5 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden animate-in slide-in-from-top-2">
           {loading && (
-            <p className="px-4 py-3 text-sm text-gray-500">Loading…</p>
-          )}
-          {empty && (
-            <p className="px-4 py-3 text-sm text-red-600">
-              No kitchen stations found
+            <p className="px-4 py-3 text-[10px] font-bold text-slate-400">
+              Loading...
             </p>
           )}
-          {!loading && !empty && children}
+          {empty && (
+            <p className="px-4 py-3 text-[10px] font-bold text-red-400 text-center">
+              No results
+            </p>
+          )}
+          {!loading && !empty && (
+            <div className="max-h-40 overflow-y-auto">{children}</div>
+          )}
         </div>
       )}
     </div>
@@ -361,28 +361,52 @@ function DropdownItem({ icon: Icon, title, desc, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="w-full px-4 py-3 flex gap-3 hover:bg-gray-50 text-left"
+      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left border-b border-slate-50 last:border-0"
     >
-      {Icon && <Icon className="mt-1" />}
+      {Icon && <Icon className="text-slate-400 flex-shrink-0" size={14} />}
       <div>
-        <p className="font-semibold">{title}</p>
-        {desc && <p className="text-xs text-gray-600">{desc}</p>}
+        <p className="text-[11px] font-bold text-slate-800 leading-none">
+          {title}
+        </p>
+        {desc && (
+          <p className="text-[9px] text-slate-400 font-medium mt-1 leading-none">
+            {desc}
+          </p>
+        )}
       </div>
     </button>
   );
 }
 
-function Field({ label, value, onChange, optional, required, inputMode }) {
+function Field({
+  label,
+  value,
+  onChange,
+  optional,
+  required,
+  inputMode,
+  placeholder,
+}) {
   return (
-    <div>
-      <label className="text-xs font-semibold text-gray-700">
-        {label} {optional && "(optional)"} {required && "*"}
-      </label>
+    <div className="w-full">
+      <div className="mb-1.5 px-1">
+        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+          {label}{" "}
+          {required && <span className="text-red-500 ml-0.5 font-bold">*</span>}
+          {optional && (
+            <span className="text-[9px] font-bold text-slate-300 ml-1 lowercase italic opacity-80">
+              (opt.)
+            </span>
+          )}
+        </label>
+      </div>
+
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         inputMode={inputMode}
-        className="w-full h-12 rounded-xl border px-3 mt-1"
+        placeholder={placeholder}
+        className="w-full h-11 sm:h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-bold text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition-all placeholder:text-slate-200 placeholder:font-medium shadow-sm"
       />
     </div>
   );

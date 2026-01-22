@@ -1,24 +1,24 @@
 import { NavLink, useParams } from "react-router-dom";
-import {
-  FaTachometerAlt,
-  FaUtensils,
-  FaStore,
-  FaUsers,
-  FaChartBar,
-  FaCog,
-} from "react-icons/fa";
+import { 
+  FiGrid, 
+  FiBookOpen, 
+  FiMapPin, 
+  FiPieChart, 
+  FiSettings, 
+  FiChevronRight,
+  FiShield
+} from "react-icons/fi";
 import clsx from "clsx";
 
 export default function AdminSidebar({ open, onClose }) {
   const { brandSlug } = useParams();
 
   const menu = [
-    { name: "Dashboard", icon: FaTachometerAlt, path: "dashboard" },
-    { name: "Master Menu", icon: FaUtensils, path: "master-menu" },
-    { name: "Restaurants", icon: FaStore, path: "restaurants" },
-    // { name: "Managers", icon: FaUsers, path: "managers" },
-    { name: "Reports", icon: FaChartBar, path: "reports" },
-    { name: "Settings", icon: FaCog, path: "settings" },
+    { name: "Executive Overview", icon: FiGrid, path: "dashboard" },
+    { name: "Master Menu", icon: FiBookOpen, path: "master-menu" },
+    { name: "Unit Locations", icon: FiMapPin, path: "restaurants" },
+    { name: "Analytics", icon: FiPieChart, path: "reports" },
+    { name: "Configuration", icon: FiSettings, path: "settings" },
   ];
 
   return (
@@ -27,20 +27,38 @@ export default function AdminSidebar({ open, onClose }) {
       <div
         onClick={onClose}
         className={clsx(
-          "fixed inset-0 bg-black/40 z-40 sm:hidden",
-          open ? "block" : "hidden"
+          "fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 sm:hidden transition-opacity duration-500",
+          open ? "opacity-100 block" : "opacity-0 hidden"
         )}
       />
 
       {/* SIDEBAR */}
       <aside
         className={clsx(
-          "fixed sm:static z-50 sm:z-0 h-full w-64 bg-white border-r",
-          "transition-transform duration-300",
-          open ? "translate-x-0" : "-translate-x-full sm:translate-x-0"
+          "fixed sm:static z-50 sm:z-0 h-screen w-72 bg-white border-r border-slate-100 flex flex-col transition-all duration-500 ease-in-out",
+          open ? "translate-x-0 shadow-2xl sm:shadow-none" : "-translate-x-full sm:translate-x-0"
         )}
       >
-        <nav className="p-4 space-y-1">
+        {/* BRANDING HEADER */}
+        <div className="h-20 flex items-center px-6 gap-3 border-b border-slate-50">
+          <div className="w-10 h-10 bg-emerald-600 rounded-[12px] flex items-center justify-center shadow-lg shadow-emerald-200/50">
+            <FiShield className="text-white text-lg" strokeWidth={2.5} />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-black text-slate-900 tracking-tight uppercase leading-none">
+              Plato Admin
+            </span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+              Enterprise Hub
+            </span>
+          </div>
+        </div>
+
+        {/* NAVIGATION */}
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          <p className="px-3 mb-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+            Management
+          </p>
           {menu.map(({ name, icon: Icon, path }) => (
             <NavLink
               key={name}
@@ -48,18 +66,40 @@ export default function AdminSidebar({ open, onClose }) {
               onClick={onClose}
               className={({ isActive }) =>
                 clsx(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium",
+                  "group flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300",
                   isActive
-                    ? "bg-[#E6F4F1] text-[#00684A]"
-                    : "text-gray-600 hover:bg-gray-100"
+                    ? "bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100/50"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                 )
               }
             >
-              <Icon />
-              <span>{name}</span>
+              <div className="flex items-center gap-3.5">
+                <Icon size={18} strokeWidth={isActive ? 2.5 : 2} className={clsx(
+                  "transition-colors",
+                  isActive ? "text-emerald-600" : "text-slate-400 group-hover:text-slate-600"
+                )} />
+                <span className="tracking-tight">{name}</span>
+              </div>
+              <FiChevronRight size={14} className={clsx(
+                "transition-transform duration-300 opacity-0 group-hover:opacity-100",
+                isActive ? "opacity-100 translate-x-0 text-emerald-400" : "-translate-x-2"
+              )} />
             </NavLink>
           ))}
         </nav>
+
+        {/* PROFILE SECTION / FOOTER */}
+        <div className="p-4 border-t border-slate-50">
+          <div className="bg-slate-50/50 rounded-2xl p-3 flex items-center gap-3 border border-slate-100/50 hover:bg-slate-50 transition-colors cursor-pointer group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center font-black text-white text-xs shadow-inner">
+              JD
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black text-slate-900 truncate tracking-tight">John Doe</p>
+              <p className="text-[10px] font-bold text-slate-400 truncate uppercase tracking-wide">Brand Manager</p>
+            </div>
+          </div>
+        </div>
       </aside>
     </>
   );

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { FiUsers, FiDownload, FiCopy, FiImage, FiTrash2 } from "react-icons/fi";
 import toast from "react-hot-toast";
+import clsx from "clsx";
 
 const STATUS_STYLE = {
-  FREE: "bg-emerald-100 text-emerald-700",
-  OCCUPIED: "bg-red-100 text-red-700",
-  RESERVED: "bg-yellow-100 text-yellow-700",
+  FREE: "bg-emerald-50 text-emerald-600 border-emerald-100/50 shadow-emerald-500/5",
+  OCCUPIED: "bg-red-50 text-red-600 border-red-100/50 shadow-red-500/5",
+  RESERVED: "bg-amber-50 text-amber-600 border-amber-100/50 shadow-amber-500/5",
 };
 
 export default function TableCard({ table, onDelete }) {
@@ -14,120 +15,135 @@ export default function TableCard({ table, onDelete }) {
   const qrImage = table?.qrImageUrl?.trim();
   const qrLink = table?.qrUrl?.trim();
 
-  /* ================= COPY LINK ================= */
+  /* ================= SECURE COPY ================= */
   const copyLink = async () => {
-    if (!qrLink) {
-      toast.error("QR link not ready yet");
-      return;
+    if (!qrLink) return toast.error("Syncing terminal link...");
+    try {
+      await navigator.clipboard.writeText(qrLink);
+      toast.success("Access link secured");
+    } catch {
+      toast.error("Clipboard access denied");
     }
-    await navigator.clipboard.writeText(qrLink);
-    toast.success("QR link copied");
   };
 
-  /* ================= DOWNLOAD QR ================= */
+  /* ================= HIGH-RES EXPORT ================= */
   const downloadQr = async () => {
-    if (!qrImage) {
-      toast.error("QR image not ready yet");
-      return;
-    }
-
+    if (!qrImage) return toast.error("QR generating...");
+    const exportToast = toast.loading("Preparing high-res export...");
     try {
       const res = await fetch(qrImage, { cache: "no-store" });
       const blob = await res.blob();
-
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `table-${table.tableNumber}-qr.png`;
+      a.download = `TABLE-${table.tableNumber}-QR.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      toast.success("QR Exported", { id: exportToast });
     } catch {
-      toast.error("Unable to download QR");
+      toast.error("Export failed", { id: exportToast });
     }
   };
 
   return (
-    <div className="bg-white border rounded-2xl p-4 flex flex-col gap-4 shadow-sm hover:shadow-md transition">
+    <article className="group bg-white border border-slate-100 rounded-[28px] sm:rounded-[36px] p-4 sm:p-5 flex flex-col gap-4 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(15,23,42,0.06)] hover:border-slate-200 hover:scale-[1.01] relative overflow-hidden h-full">
       {/* ================= HEADER ================= */}
-      <div className="flex justify-between items-center">
-        <h3 className="font-semibold text-gray-900">{table.tableNumber}</h3>
+      <div className="flex justify-between items-start z-10">
+        <div className="min-w-0">
+          <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none truncate">
+            {table.tableNumber}
+          </h3>
+          <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mt-2 tabular-nums">
+            ID: {table._id.slice(-5).toUpperCase()}
+          </p>
+        </div>
 
         <span
-          className={`text-xs px-2 py-1 rounded-full ${
-            STATUS_STYLE[table.status] || "bg-gray-100 text-gray-600"
-          }`}
+          role="status"
+          className={clsx(
+            "text-[8px] sm:text-[9px] px-2.5 py-1 rounded-full font-black uppercase tracking-widest border backdrop-blur-md transition-all duration-500 shadow-sm",
+            STATUS_STYLE[table.status] ||
+              "bg-slate-50 text-slate-500 border-slate-100",
+          )}
         >
           {table.status}
         </span>
       </div>
 
-      {/* ================= QR ================= */}
-      <div className="flex justify-center">
+      {/* ================= QR CANVAS ================= */}
+      <div className="relative aspect-square flex items-center justify-center bg-[#FAFAFA] rounded-[24px] sm:rounded-[30px] overflow-hidden border border-slate-50 group-hover:bg-white group-hover:border-slate-100 transition-all duration-700 shadow-inner">
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] group-hover:opacity-[0.05] transition-opacity" />
+
         {qrImage && !imgError ? (
           <img
             src={qrImage}
-            alt="Table QR"
-            loading="lazy"
-            className="h-36 w-36 object-contain border rounded-lg"
+            alt={`QR Code for ${table.tableNumber}`}
+            className="w-[72%] h-[72%] object-contain transition-all duration-700 group-hover:scale-110 group-hover:rotate-2 filter drop-shadow-md"
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="h-36 w-36 flex flex-col items-center justify-center border rounded-lg bg-gray-50 text-gray-400">
-            <FiImage className="text-3xl mb-1" />
-            <span className="text-xs">QR generating…</span>
+          <div className="flex flex-col items-center justify-center text-slate-200 animate-pulse">
+            <FiImage size={32} strokeWidth={1} className="mb-2" />
+            <span className="text-[8px] font-black uppercase tracking-[0.2em]">
+              Syncing
+            </span>
           </div>
         )}
       </div>
 
-      {/* ================= META ================= */}
-      <div className="flex justify-between text-xs text-gray-700">
-        <span className="flex items-center gap-1">
-          <FiUsers /> {table.seatingCapacity} seats
-        </span>
-        <span className="text-gray-400">ID: {table._id.slice(-6)}</span>
-      </div>
-
-      {/* ================= ACTIONS ================= */}
-      <div className="grid grid-cols-3 gap-2">
-        <button
-          onClick={downloadQr}
-          disabled={!qrImage}
-          className="
-            border rounded-lg py-2 text-xs
-            text-emerald-700 hover:bg-emerald-50
-            disabled:opacity-50
-          "
-        >
-          <FiDownload className="inline mr-1" />
-          Download
-        </button>
+      {/* ================= META & QUICK COPY ================= */}
+      <div className="flex justify-between items-center bg-slate-50/50 rounded-2xl p-2.5 sm:p-3 border border-slate-100/50 group-hover:bg-slate-50 group-hover:border-slate-200 transition-all">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 flex items-center justify-center bg-white rounded-xl shadow-sm border border-slate-100/50 transition-transform group-hover:rotate-[-6deg]">
+            <FiUsers
+              size={14}
+              className="text-emerald-500"
+              aria-hidden="true"
+            />
+          </div>
+          <div className="flex flex-col leading-none">
+            <span className="text-xs sm:text-sm font-black text-slate-800 tabular-nums">
+              {table.seatingCapacity}
+            </span>
+            <span className="text-[8px] text-slate-400 uppercase tracking-widest font-bold mt-1">
+              Capacity
+            </span>
+          </div>
+        </div>
 
         <button
           onClick={copyLink}
-          disabled={!qrLink}
-          className="
-            border rounded-lg py-2 text-xs
-            hover:bg-gray-50
-            disabled:opacity-50
-          "
+          className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-500 hover:bg-white rounded-lg transition-all active:scale-90 hover:shadow-sm"
+          title="Copy Direct Link"
+          aria-label="Copy Direct Link"
         >
-          <FiCopy className="inline mr-1" />
-          Copy
+          <FiCopy size={15} />
+        </button>
+      </div>
+
+      {/* ================= ACTIONS ================= */}
+      <div className="grid grid-cols-2 gap-2.5 mt-auto">
+        <button
+          onClick={downloadQr}
+          disabled={!qrImage}
+          aria-label="Export high-resolution QR"
+          className="flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-100 bg-white text-slate-600 font-black text-[9px] uppercase tracking-widest hover:bg-slate-50 hover:border-slate-200 transition-all active:scale-95 disabled:opacity-30 disabled:grayscale"
+        >
+          <FiDownload size={12} strokeWidth={3} aria-hidden="true" />
+          Export
         </button>
 
         <button
           onClick={() => onDelete?.(table)}
-          className="
-            border rounded-lg py-2 text-xs
-            text-red-600 hover:bg-red-50
-          "
+          aria-label={`Remove ${table.tableNumber}`}
+          className="flex items-center justify-center gap-2 py-3 rounded-xl bg-red-50 text-red-600 font-black text-[9px] uppercase tracking-widest hover:bg-red-100 transition-all active:scale-95 border border-red-100/20"
         >
-          <FiTrash2 className="inline mr-1" />
-          Delete
+          <FiTrash2 size={12} strokeWidth={3} aria-hidden="true" />
+          Remove
         </button>
       </div>
-    </div>
+    </article>
   );
 }

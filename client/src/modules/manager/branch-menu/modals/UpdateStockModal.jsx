@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import { X } from "lucide-react";
+import { X, Package, Infinity, Plus, Minus, Save } from "lucide-react";
+import clsx from "clsx";
 
 import Axios from "../../../../api/axios";
 import branchMenuApi from "../../../../api/branchMenu.api";
@@ -10,17 +11,23 @@ import branchMenuApi from "../../../../api/branchMenu.api";
 export default function UpdateStockModal({ item, onClose, onSuccess }) {
   const restaurantId = useSelector((s) => s.user.restaurantId);
 
-  // null = unlimited
+  // Use local state for the numeric value
   const [stockQty, setStockQty] = useState(
-    item.stockQty === null || item.stockQty === undefined ? "" : item.stockQty
+    item.stockQty === null || item.stockQty === undefined ? "" : item.stockQty,
   );
-
   const [loading, setLoading] = useState(false);
+
+  const isUnlimited = stockQty === "";
+
+  const adjustStock = (amt) => {
+    const current = Number(stockQty) || 0;
+    const next = Math.max(0, current + amt);
+    setStockQty(next);
+  };
 
   const submit = async () => {
     try {
       setLoading(true);
-
       await Axios({
         ...branchMenuApi.updateStock(restaurantId, item._id),
         data: {
@@ -28,11 +35,10 @@ export default function UpdateStockModal({ item, onClose, onSuccess }) {
         },
       });
 
-      toast.success("Stock updated");
+      toast.success("Inventory updated");
       onSuccess?.();
       onClose();
     } catch (err) {
-      console.error("UpdateStockModal:", err);
       toast.error(err?.response?.data?.message || "Stock update failed");
     } finally {
       setLoading(false);
@@ -40,49 +46,117 @@ export default function UpdateStockModal({ item, onClose, onSuccess }) {
   };
 
   return (
-    <ModalShell title="Update Stock" onClose={onClose}>
-      <div className="space-y-4">
-        <p className="text-xs text-gray-500">Leave empty for unlimited stock</p>
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6">
+      {/* 1. GLASS BACKDROP */}
+      <div
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-500"
+        onClick={onClose}
+      />
 
-        <input
-          type="number"
-          min={0}
-          value={stockQty}
-          onChange={(e) => setStockQty(e.target.value)}
-          placeholder="Stock quantity"
-          className="w-full h-11 px-3 border rounded-lg text-sm"
-        />
-
+      {/* 2. CENTERED MODAL CARD */}
+      <div className="relative w-full max-w-[380px] bg-white rounded-[42px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] overflow-hidden animate-in zoom-in-95 fade-in duration-300">
+        {/* CLOSE BUTTON */}
         <button
-          onClick={submit}
-          disabled={loading}
-          className="
-            w-full h-11
-            bg-black text-white
-            rounded-lg text-sm font-semibold
-            disabled:opacity-60
-          "
+          onClick={onClose}
+          className="absolute top-6 right-6 z-10 p-2.5 rounded-full bg-slate-50 text-slate-400 hover:text-slate-900 active:scale-90 transition-all"
         >
-          {loading ? "Saving..." : "Save Stock"}
+          <X size={20} />
         </button>
-      </div>
-    </ModalShell>
-  );
-}
 
-/* ================= MODAL SHELL ================= */
+        <div className="p-10 flex flex-col items-center text-center">
+          {/* ICON AREA */}
+          <div className="relative mb-6 pt-2">
+            <div className="absolute inset-0 bg-emerald-500/15 blur-3xl rounded-full" />
+            <div className="relative w-20 h-20 bg-emerald-50 text-emerald-600 rounded-[28px] flex items-center justify-center">
+              <Package size={36} strokeWidth={1.5} />
+            </div>
+          </div>
 
-function ModalShell({ title, children, onClose }) {
-  return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl">
-        <header className="px-5 py-4 border-b flex justify-between items-center">
-          <h3 className="text-sm font-semibold">{title}</h3>
-          <button onClick={onClose}>
-            <X size={16} />
+          <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none">
+            Update Stock
+          </h3>
+          <p className="mt-2 text-[12px] font-bold text-slate-400 uppercase tracking-widest truncate max-w-full">
+            {item.name}
+          </p>
+
+          {/* MAIN COUNTER INTERFACE */}
+          <div className="mt-8 w-full space-y-4">
+            <div className="flex items-center justify-between bg-slate-50 p-2 rounded-[24px] border border-slate-100">
+              <button
+                onClick={() => adjustStock(-1)}
+                disabled={isUnlimited}
+                className="w-14 h-14 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-red-500 shadow-sm active:scale-90 disabled:opacity-30 transition-all"
+              >
+                <Minus size={20} />
+              </button>
+
+              <div className="flex-1 flex flex-col items-center">
+                {isUnlimited ? (
+                  <Infinity
+                    size={32}
+                    className="text-emerald-500 animate-pulse"
+                  />
+                ) : (
+                  <input
+                    type="number"
+                    value={stockQty}
+                    onChange={(e) => setStockQty(e.target.value)}
+                    className="w-full bg-transparent text-center text-3xl font-black text-slate-900 focus:outline-none"
+                    placeholder="0"
+                  />
+                )}
+                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-1">
+                  Quantity
+                </span>
+              </div>
+
+              <button
+                onClick={() => adjustStock(1)}
+                disabled={isUnlimited}
+                className="w-14 h-14 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-emerald-500 shadow-sm active:scale-90 disabled:opacity-30 transition-all"
+              >
+                <Plus size={20} />
+              </button>
+            </div>
+
+            {/* UNLIMITED TOGGLE PILL */}
+            <button
+              onClick={() => setStockQty(isUnlimited ? "0" : "")}
+              className={clsx(
+                "w-full py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.15em] transition-all border",
+                isUnlimited
+                  ? "bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20"
+                  : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50",
+              )}
+            >
+              {isUnlimited
+                ? "Switch to Manual Count"
+                : "Set to Unlimited Stock"}
+            </button>
+          </div>
+
+          {/* SAVE BUTTON */}
+          <button
+            onClick={submit}
+            disabled={loading}
+            className="
+              mt-8 w-full h-14 bg-slate-900 text-white 
+              rounded-3xl text-[11px] font-black uppercase tracking-[0.25em] 
+              shadow-xl active:scale-95 transition-all 
+              flex items-center justify-center gap-3
+              disabled:opacity-50 hover:bg-emerald-600 group
+            "
+          >
+            {loading ? (
+              <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <Save size={16} />
+                Confirm Stock
+              </>
+            )}
           </button>
-        </header>
-        <div className="p-5">{children}</div>
+        </div>
       </div>
     </div>
   );

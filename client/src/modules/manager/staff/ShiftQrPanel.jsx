@@ -4,16 +4,22 @@ import shiftApi from "../../../api/shift.api";
 import QRCode from "react-qr-code";
 import toast from "react-hot-toast";
 import clsx from "clsx";
-import { FiCopy } from "react-icons/fi";
+import {
+  FiCopy,
+  FiRefreshCw,
+  FiPower,
+  FiClock,
+  FiActivity,
+  FiShield,
+  FiPrinter,
+} from "react-icons/fi";
 
 export default function ShiftQrPanel() {
   const [shift, setShift] = useState(null);
   const [loading, setLoading] = useState(false);
   const [now, setNow] = useState(Date.now());
 
-  /* ===============================
-     LOAD ACTIVE SHIFT
-  =============================== */
+  /* ================= LOAD ACTIVE SHIFT ================= */
   const loadActiveShift = async () => {
     try {
       const res = await Axios(shiftApi.active);
@@ -27,72 +33,46 @@ export default function ShiftQrPanel() {
     loadActiveShift();
   }, []);
 
-  /* ===============================
-     LIVE TIMER (QR EXPIRY)
-  =============================== */
+  /* ================= LIVE TIMER ================= */
   useEffect(() => {
     if (!shift?.qrExpiresAt) return;
-
-    const interval = setInterval(() => {
-      setNow(Date.now());
-    }, 30 * 1000);
-
+    const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, [shift?.qrExpiresAt]);
 
-  /* ===============================
-     OPEN SHIFT
-  =============================== */
   const openShift = async () => {
     try {
       setLoading(true);
-      const res = await Axios({
-        ...shiftApi.open,
-        data: { openedCash: 0 },
-      });
+      const res = await Axios({ ...shiftApi.open, data: { openedCash: 0 } });
       setShift(res.data.data);
-      toast.success("Shift opened & QR generated");
+      toast.success("Shift Terminal Activated");
     } catch (err) {
-      if (err?.response?.status === 409) {
-        toast.error("Shift already open");
-        loadActiveShift();
-      } else {
-        toast.error("Failed to open shift");
-      }
+      toast.error("Shift activation failed");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ===============================
-     REFRESH QR
-  =============================== */
   const refreshQr = async () => {
     try {
       const res = await Axios(shiftApi.refreshQr);
       setShift(res.data.data);
-      toast.success("QR refreshed");
+      toast.success("Security token refreshed");
     } catch {
-      toast.error("Unable to refresh QR");
+      toast.error("Refresh failed");
     }
   };
 
-  /* ===============================
-     CLOSE SHIFT
-  =============================== */
   const closeShift = async () => {
     try {
       await Axios(shiftApi.close);
       setShift(null);
-      toast.success("Shift closed");
+      toast.success("Shift terminated");
     } catch {
-      toast.error("Failed to close shift");
+      toast.error("Termination failed");
     }
   };
 
-  /* ===============================
-     QR LOGIN LINK
-  =============================== */
   const qrValue = useMemo(() => {
     if (!shift?.qrToken) return "";
     return `${window.location.origin}/staff/login?token=${shift.qrToken}`;
@@ -101,129 +81,142 @@ export default function ShiftQrPanel() {
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(qrValue);
-      toast.success("Login link copied");
+      toast.success("Link secured");
     } catch {
-      toast.error("Unable to copy link");
+      toast.error("Copy failed");
     }
   };
 
-  /* ===============================
-     NO ACTIVE SHIFT UI
-  =============================== */
+  /* ================= CALCS ================= */
+  const expiresMs = shift ? new Date(shift.qrExpiresAt).getTime() - now : 0;
+  const expiresInMin = Math.max(0, Math.floor(expiresMs / 60000));
+  const expiresInSec = Math.max(0, Math.floor((expiresMs % 60000) / 1000));
+  const isExpiringSoon = expiresInMin < 2;
+
+  /* ================= UI STATES ================= */
   if (!shift) {
     return (
-      <div className="bg-white rounded-2xl shadow-md border p-6 max-w-sm">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-          Shift Status
+      <div className="bg-white rounded-[32px] sm:rounded-[40px] shadow-2xl shadow-slate-200/60 border border-slate-100 p-6 sm:p-10 max-w-[400px] text-center animate-in fade-in zoom-in-95 duration-500 mx-auto">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-50 rounded-[24px] flex items-center justify-center mx-auto mb-6 text-slate-300">
+          <FiPower size={32} className="sm:w-[40px] sm:h-[40px]" />
+        </div>
+        <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
+          Terminal Inactive
         </h3>
-        <p className="text-sm text-gray-500 mb-4">
-          No active shift. Open a shift to allow staff login.
+        <p className="text-xs sm:text-sm font-medium text-slate-400 mt-2 leading-relaxed">
+          The registration portal is currently locked. Open a shift to begin
+          staff authentication.
         </p>
 
         <button
           onClick={openShift}
           disabled={loading}
-          className={clsx(
-            "w-full py-3 rounded-xl text-white font-medium transition",
-            loading
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-emerald-600 hover:bg-emerald-700"
-          )}
+          className="mt-8 w-full py-3.5 sm:py-4 bg-slate-900 text-white rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50 shadow-xl shadow-slate-200"
         >
-          {loading ? "Opening shift..." : "Open Shift & Generate QR"}
+          {loading ? "INITIALIZING..." : "START SYSTEM SHIFT"}
         </button>
       </div>
     );
   }
 
-  /* ===============================
-     EXPIRY CALCULATION
-  =============================== */
-  const expiresMs = new Date(shift.qrExpiresAt).getTime() - now;
-
-  const expiresInMin = Math.max(0, Math.floor(expiresMs / 60000));
-  const expiresInSec = Math.max(0, Math.floor(expiresMs / 1000));
-
-  const isExpiringSoon = expiresInMin <= 3;
-
   return (
-    <div className="bg-white rounded-2xl shadow-md border p-6 w-full max-w-md">
+    <div className="bg-white rounded-[32px] sm:rounded-[40px] shadow-2xl shadow-slate-200/50 border border-slate-50 p-5 sm:p-10 w-full max-w-[440px] relative overflow-hidden animate-in slide-in-from-bottom-6 duration-700 mx-auto">
+      {/* Background Warning Glow */}
+      <div
+        className={clsx(
+          "absolute -top-24 -right-24 w-64 h-64 blur-[80px] rounded-full pointer-events-none transition-colors duration-1000",
+          isExpiringSoon ? "bg-red-500/10" : "bg-emerald-500/5",
+        )}
+      />
+
       {/* ---------- HEADER ---------- */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800">
-            Staff Login QR
+      <div className="flex items-start justify-between mb-5 sm:mb-8 relative z-10">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-2 text-emerald-600">
+            <FiShield size={14} />
+            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest leading-none">
+              Active Terminal
+            </span>
+          </div>
+          <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            Staff Access
           </h3>
-          <p className="text-xs text-gray-500">Active shift is running</p>
         </div>
 
-        <span
+        <div
           className={clsx(
-            "px-3 py-1 rounded-full text-xs font-medium",
+            "flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-500",
             isExpiringSoon
-              ? "bg-red-100 text-red-600"
-              : "bg-emerald-100 text-emerald-700"
+              ? "bg-red-50 border-red-100 text-red-600"
+              : "bg-emerald-50 border-emerald-100 text-emerald-700",
           )}
         >
-          {isExpiringSoon
-            ? `Expiring in ${expiresInSec}s`
-            : `Expires in ${expiresInMin} min`}
-        </span>
-      </div>
-
-      {/* ---------- QR ---------- */}
-      <div className="flex justify-center bg-gray-50 rounded-xl p-4 border">
-        <QRCode value={qrValue} size={220} />
-      </div>
-
-      {/* ---------- LOGIN LINK ---------- */}
-      <div className="mt-4">
-        <label className="text-xs font-semibold text-gray-600">
-          Staff Login Link
-        </label>
-
-        <div className="mt-1 flex gap-2">
-          <input
-            readOnly
-            value={qrValue}
-            className="flex-1 text-xs px-3 py-2 border rounded-lg bg-gray-50 text-gray-700"
+          <FiClock
+            size={12}
+            className={clsx(isExpiringSoon && "animate-pulse")}
           />
-
-          <button
-            onClick={copyLink}
-            className="px-3 rounded-lg border text-gray-700 hover:bg-gray-100"
-            title="Copy link"
-          >
-            <FiCopy />
-          </button>
+          <span className="text-[10px] sm:text-[11px] font-black tabular-nums">
+            {expiresInMin}:{expiresInSec.toString().padStart(2, "0")}
+          </span>
         </div>
       </div>
 
-      {/* ---------- INFO ---------- */}
-      <p className="text-xs text-gray-500 text-center mt-3">
-        Staff must scan the QR or use this link inside the restaurant
-      </p>
+      {/* ---------- QR CANVAS ---------- */}
+      <div className="relative group z-10">
+        <div className="relative flex justify-center bg-white border border-slate-100 rounded-[24px] sm:rounded-[32px] p-5 sm:p-8 shadow-inner overflow-hidden">
+          <div className="absolute inset-0 border-2 border-emerald-500/10 rounded-[24px] sm:rounded-[32px] animate-pulse pointer-events-none" />
 
-      {/* ---------- ACTIONS ---------- */}
-      <div className="grid grid-cols-2 gap-3 mt-5">
+          <QRCode
+            value={qrValue}
+            size={160}
+            level="H"
+            className="rounded-lg w-full max-w-[200px] h-auto"
+            fgColor="#0f172a"
+          />
+        </div>
+      </div>
+
+      {/* ---------- LINK ACTION ---------- */}
+      <div className="mt-5 sm:mt-8 space-y-1.5 relative z-10">
+        <div className="flex justify-between items-center px-1">
+          <label className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            Link{" "}
+            <FiActivity size={10} className="animate-pulse text-emerald-400" />
+          </label>
+          <button
+            onClick={copyLink}
+            className="text-[9px] font-bold text-emerald-600 uppercase flex items-center gap-1 hover:underline"
+          >
+            <FiCopy size={10} /> Copy Link
+          </button>
+        </div>
+        <div className="h-10 sm:h-12 bg-slate-50 border border-slate-100 rounded-xl sm:rounded-2xl px-4 flex items-center overflow-hidden">
+          <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 truncate tracking-tight">
+            {qrValue}
+          </span>
+        </div>
+      </div>
+
+      {/* ---------- FOOTER ACTIONS ---------- */}
+      <div className="grid grid-cols-2 gap-3 mt-6 sm:mt-8 pt-2 relative z-10">
         <button
           onClick={refreshQr}
-          className="py-2 rounded-lg border border-gray-300
-                     text-gray-700 text-sm font-medium
-                     hover:bg-gray-100 transition"
+          className="h-11 sm:h-14 flex items-center justify-center gap-2 rounded-xl sm:rounded-2xl border border-slate-200 text-slate-600 text-[10px] sm:text-[11px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
         >
-          Refresh QR
+          <FiRefreshCw size={14} /> REFRESH
         </button>
 
         <button
           onClick={closeShift}
-          className="py-2 rounded-lg bg-red-600
-                     text-white text-sm font-medium
-                     hover:bg-red-700 transition"
+          className="h-11 sm:h-14 flex items-center justify-center gap-2 rounded-xl sm:rounded-2xl bg-red-50 text-red-600 text-[10px] sm:text-[11px] font-black uppercase tracking-widest hover:bg-red-100 transition-all shadow-sm"
         >
-          Close Shift
+          <FiPower size={14} /> CLOSE SHIFT
         </button>
       </div>
+
+      <p className="text-[9px] sm:text-[10px] font-bold text-slate-300 text-center mt-5 sm:mt-8 tracking-widest opacity-80 uppercase">
+        Enclosure Security Level 4
+      </p>
     </div>
   );
 }

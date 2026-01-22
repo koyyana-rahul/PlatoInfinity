@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+import { Loader2 } from "lucide-react";
 
 import Axios from "../../../api/axios";
 import customerApi from "../../../api/customer.api";
@@ -18,7 +20,6 @@ import {
   updateCartItem,
   removeCartItem,
 } from "../../../store/customer/cartThunks";
-
 import {
   selectCartItems,
   selectQuantities,
@@ -29,32 +30,29 @@ export default function CustomerMenu() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  /* ================= SESSION ================= */
   const sessionKey = `plato:customerSession:${tableId}`;
   const sessionId = localStorage.getItem(sessionKey);
 
-  /* ================= MENU STATE ================= */
   const [menu, setMenu] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCat, setActiveCat] = useState(null);
   const [activeSub, setActiveSub] = useState(null);
   const [restaurantId, setRestaurantId] = useState(null);
 
-  /* ================= CART (REDUX) ================= */
   const cartItems = useSelector(selectCartItems);
   const quantities = useSelector(selectQuantities);
 
-  /* ================= REAL-TIME MENU UPDATES ================= */
+  // Real-time Update Handler
   const handleMenuUpdate = async () => {
-    // Reload menu when update is received
-    console.log("🔄 Reloading menu after update...");
     try {
       const res = await Axios(customerApi.publicMenuByTable(tableId));
-      const data = res.data?.data || [];
-      setMenu(data);
-      toast.success("Menu updated!", { duration: 2000 });
+      setMenu(res.data?.data || []);
+      toast.success("Menu synchronized", {
+        icon: "🔄",
+        style: { borderRadius: "15px", fontWeight: "bold" },
+      });
     } catch (err) {
-      console.error("Failed to reload menu:", err);
+      console.error(err);
     }
   };
 
@@ -66,62 +64,36 @@ export default function CustomerMenu() {
     onMenuUpdate: handleMenuUpdate,
   });
 
-  /* ================= GUARD ================= */
   useEffect(() => {
-    if (!sessionId) {
-      toast.error("Please join the table first");
-      navigate(`../`, { replace: true });
-    }
+    if (!sessionId) navigate(`../`, { replace: true });
   }, [sessionId, navigate]);
 
-  /* ================= LOAD MENU ================= */
   useEffect(() => {
-    if (!tableId || tableId.length !== 24) {
-      toast.error("Invalid table QR");
-      return;
-    }
-
     let active = true;
-
     (async () => {
       try {
         setLoading(true);
         const res = await Axios(customerApi.publicMenuByTable(tableId));
         const data = res.data?.data || [];
-
         if (!active) return;
-
         setMenu(data);
-
-        // Extract restaurantId from first category or from API response
-        if (data.length) {
-          setActiveCat(data[0].id);
-          setActiveSub(null);
-        }
-
-        // Try to get restaurantId from response
-        if (res.data?.restaurantId) {
-          setRestaurantId(res.data.restaurantId);
-        }
+        if (data.length) setActiveCat(data[0].id);
+        if (res.data?.restaurantId) setRestaurantId(res.data.restaurantId);
       } catch {
-        toast.error("Failed to load menu");
+        toast.error("Offline: Reconnecting...");
       } finally {
         if (active) setLoading(false);
       }
     })();
-
     return () => {
       active = false;
     };
   }, [tableId]);
 
-  /* ================= LOAD CART (ONLY WITH SESSION) ================= */
   useEffect(() => {
-    if (!sessionId) return;
-    dispatch(fetchCart());
+    if (sessionId) dispatch(fetchCart());
   }, [dispatch, sessionId]);
 
-  /* ================= DERIVED DATA ================= */
   const category = useMemo(
     () => menu.find((c) => c.id === activeCat),
     [menu, activeCat],
@@ -129,72 +101,79 @@ export default function CustomerMenu() {
 
   const items = useMemo(() => {
     if (!category) return [];
-    if (!activeSub) {
-      return category.subcategories.flatMap((s) => s.items);
-    }
+    if (!activeSub) return category.subcategories.flatMap((s) => s.items);
     return category.subcategories.find((s) => s.id === activeSub)?.items || [];
   }, [category, activeSub]);
 
-  /* ================= CART ACTIONS ================= */
-  const onAdd = (branchMenuItemId) => {
-    dispatch(addToCart({ branchMenuItemId, quantity: 1 }));
-  };
-
-  const onMinus = (branchMenuItemId) => {
-    const cartItem = cartItems.find(
-      (i) => i.branchMenuItemId === branchMenuItemId,
-    );
-    if (!cartItem) return;
-
-    if (cartItem.quantity <= 1) {
-      dispatch(removeCartItem(cartItem._id));
-    } else {
-      dispatch(
-        updateCartItem({
-          cartItemId: cartItem._id,
-          quantity: cartItem.quantity - 1,
-        }),
-      );
-    }
-  };
-
-  /* ================= UI ================= */
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="h-32 bg-gray-200 animate-pulse rounded-xl" />
+      <div className="h-[60vh] flex flex-col items-center justify-center">
+        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+        <p className="mt-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+          Loading Menu
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="pb-28">
-      {/* CATEGORY */}
-      <CategoryBar
-        categories={menu}
-        activeId={activeCat}
-        onSelect={(id) => {
-          setActiveCat(id);
-          setActiveSub(null);
-        }}
-      />
+    <div className="relative">
+      {/* 1. STICKY CATEGORY BAR - Locked to top during scroll */}
+      <div className="sticky top-0 z-[50] bg-white/95 backdrop-blur-md border-b border-slate-50 pt-2">
+        <CategoryBar
+          categories={menu}
+          activeId={activeCat}
+          onSelect={(id) => {
+            setActiveCat(id);
+            setActiveSub(null);
+            window.scrollTo({ top: 0, behavior: "smooth" }); // Smooth reset on change
+          }}
+        />
+      </div>
 
-      {/* SUBCATEGORY */}
-      <SubcategoryFilter
-        subcategories={category?.subcategories || []}
-        activeId={activeSub}
-        onSelect={setActiveSub}
-      />
+      <div className="px-5">
+        {/* 2. SUBCATEGORY FILTER - Standard scroll (Non-sticky) */}
+        <div className="mt-6 mb-8 overflow-hidden">
+          <SubcategoryFilter
+            subcategories={category?.subcategories || []}
+            activeId={activeSub}
+            onSelect={setActiveSub}
+          />
+        </div>
 
-      {/* ITEMS */}
-      <ItemGrid
-        items={items}
-        quantities={quantities}
-        onAdd={onAdd}
-        onMinus={onMinus}
-      />
+        {/* 3. ITEM GRID - With staggered entrance animation */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeSub || activeCat}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ItemGrid
+              items={items}
+              quantities={quantities}
+              onAdd={(id) =>
+                dispatch(addToCart({ branchMenuItemId: id, quantity: 1 }))
+              }
+              onMinus={(id) => {
+                const item = cartItems.find((i) => i.branchMenuItemId === id);
+                if (!item) return;
+                item.quantity <= 1
+                  ? dispatch(removeCartItem(item._id))
+                  : dispatch(
+                      updateCartItem({
+                        cartItemId: item._id,
+                        quantity: item.quantity - 1,
+                      }),
+                    );
+              }}
+            />
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
-      {/* STICKY CART */}
+      {/* 4. GLOBAL CART BUTTON */}
       <StickyCartBar />
     </div>
   );

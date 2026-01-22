@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import QuantityStepper from "./QuantityStepper";
-import FavoriteButton from "./FavoriteButton";
+// import FavoriteButton from "./FavoriteButton";
 import VegNonVegIcon from "../../../components/ui/VegNonVegIcon";
 
 export default function ItemCard({ item, qty = 0, onAdd, onMinus }) {
@@ -37,10 +37,10 @@ export default function ItemCard({ item, qty = 0, onAdd, onMinus }) {
         <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/40 to-transparent" />
 
         {/* FAVORITE */}
-        <FavoriteButton
+        {/* <FavoriteButton
           onToggle={(e) => e.stopPropagation()}
           className="absolute top-2 left-2"
-        />
+        /> */}
 
         {/* VEG / NON-VEG */}
         <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-1.5 py-1 rounded-md shadow-sm">

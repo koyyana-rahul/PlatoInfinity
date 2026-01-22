@@ -3,7 +3,13 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import Axios from "../../api/axios";
 import shiftApi from "../../api/shift.api";
-import { FiClock, FiLogIn, FiLogOut } from "react-icons/fi";
+import {
+  FiClock,
+  FiLogIn,
+  FiLogOut,
+  FiActivity,
+  FiShield,
+} from "react-icons/fi";
 import clsx from "clsx";
 
 export default function StaffShiftPanel({ user, refreshProfile }) {
@@ -11,114 +17,117 @@ export default function StaffShiftPanel({ user, refreshProfile }) {
   const onDuty = user?.onDuty;
 
   /* ===============================
-     START SHIFT
+      SHIFT ACTIONS
   =============================== */
-  const startShift = async () => {
+  const handleShiftToggle = async (type) => {
     if (loading) return;
+    const isStart = type === "start";
 
     try {
       setLoading(true);
+      await Axios(isStart ? shiftApi.start : shiftApi.end);
 
-      await Axios(shiftApi.start);
-
-      toast.success("Shift started");
+      toast.success(isStart ? "Shift initialized" : "Shift completed");
       refreshProfile?.();
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
-        "Shift not available. Ask manager to open shift.";
+        (isStart
+          ? "Shift terminal unavailable. Contact manager."
+          : "Failed to sync shift end.");
       toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  /* ===============================
-     END SHIFT
-  =============================== */
-  const endShift = async () => {
-    if (loading) return;
-
-    try {
-      setLoading(true);
-
-      await Axios(shiftApi.end);
-
-      toast.success("Shift ended");
-      refreshProfile?.();
-    } catch (err) {
-      const msg = err?.response?.data?.message || "Unable to end shift";
-      toast.error(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* ===============================
-     RENDER
-  =============================== */
   return (
-    <div className="bg-white border rounded-2xl p-6 shadow-sm space-y-4">
-      {/* ---------- STATUS ---------- */}
-      <div className="flex items-center gap-3">
+    <div className="bg-white rounded-[32px] border border-slate-100 p-6 sm:p-8 shadow-2xl shadow-slate-200/50 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Background Decorative Accent */}
+      <div
+        className={clsx(
+          "absolute -top-12 -right-12 w-32 h-32 blur-[60px] rounded-full transition-colors duration-1000",
+          onDuty ? "bg-emerald-500/10" : "bg-slate-500/10",
+        )}
+      />
+
+      {/* ---------- HEADER STATUS ---------- */}
+      <div className="flex flex-col items-center text-center mb-8 relative z-10">
         <div
           className={clsx(
-            "w-3 h-3 rounded-full",
-            onDuty ? "bg-emerald-500" : "bg-gray-400"
+            "w-16 h-16 rounded-[24px] flex items-center justify-center mb-4 transition-all duration-500 shadow-sm border",
+            onDuty
+              ? "bg-emerald-50 border-emerald-100 text-emerald-600 ring-8 ring-emerald-500/5"
+              : "bg-slate-50 border-slate-100 text-slate-400",
           )}
-        />
-        <div className="flex items-center gap-2 text-gray-700">
-          <FiClock />
-          <span className="font-medium">
-            Shift Status:{" "}
-            <span
-              className={clsx(
-                "font-semibold",
-                onDuty ? "text-emerald-600" : "text-gray-500"
-              )}
-            >
-              {onDuty ? "ON DUTY" : "OFF DUTY"}
-            </span>
-          </span>
+        >
+          {onDuty ? (
+            <FiActivity size={32} className="animate-pulse" />
+          ) : (
+            <FiClock size={32} />
+          )}
+        </div>
+
+        <h3 className="text-xl font-black text-slate-900 tracking-tight">
+          {onDuty ? "Current Session Active" : "Authentication Required"}
+        </h3>
+
+        <div
+          className={clsx(
+            "mt-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all",
+            onDuty
+              ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20"
+              : "bg-slate-100 border-slate-200 text-slate-400",
+          )}
+        >
+          {onDuty ? "On Duty" : "Off Duty"}
         </div>
       </div>
 
-      {/* ---------- ACTION ---------- */}
-      {onDuty ? (
-        <button
-          onClick={endShift}
-          disabled={loading}
-          className={clsx(
-            "w-full py-3 rounded-xl flex items-center justify-center gap-2",
-            "text-white font-medium transition",
-            loading
-              ? "bg-red-400 cursor-not-allowed"
-              : "bg-red-600 hover:bg-red-700"
-          )}
-        >
-          <FiLogOut />
-          {loading ? "Ending Shift..." : "End Shift"}
-        </button>
-      ) : (
-        <button
-          onClick={startShift}
-          disabled={loading}
-          className={clsx(
-            "w-full py-3 rounded-xl flex items-center justify-center gap-2",
-            "text-white font-medium transition",
-            loading
-              ? "bg-emerald-400 cursor-not-allowed"
-              : "bg-emerald-600 hover:bg-emerald-700"
-          )}
-        >
-          <FiLogIn />
-          {loading ? "Starting Shift..." : "Start Shift"}
-        </button>
-      )}
+      {/* ---------- MAIN ACTION ---------- */}
+      <div className="relative z-10">
+        {onDuty ? (
+          <button
+            onClick={() => handleShiftToggle("end")}
+            disabled={loading}
+            className="group w-full h-14 bg-white border-2 border-red-50 text-red-500 rounded-2xl flex items-center justify-center gap-3 text-[11px] font-black uppercase tracking-[0.2em] transition-all hover:bg-red-50 active:scale-95 disabled:opacity-50"
+          >
+            {loading ? (
+              <div className="h-4 w-4 border-2 border-red-200 border-t-red-500 rounded-full animate-spin" />
+            ) : (
+              <>
+                <FiLogOut size={16} /> End Shift
+              </>
+            )}
+          </button>
+        ) : (
+          <button
+            onClick={() => handleShiftToggle("start")}
+            disabled={loading}
+            className="group w-full h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center gap-3 text-[11px] font-black uppercase tracking-[0.2em] transition-all hover:bg-emerald-600 active:scale-95 disabled:opacity-50 shadow-xl shadow-slate-200"
+          >
+            {loading ? (
+              <div className="h-4 w-4 border-2 border-slate-500 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <FiLogIn size={16} /> Initialize Shift
+              </>
+            )}
+          </button>
+        )}
+      </div>
 
       {/* ---------- FOOTER INFO ---------- */}
-      <p className="text-xs text-gray-400 text-center">
-        Shift access depends on manager opening the shift
+      <div className="mt-6 flex items-center justify-center gap-2 text-slate-300">
+        <FiShield size={12} />
+        <p className="text-[10px] font-bold uppercase tracking-widest leading-none">
+          Secure Terminal v2.4
+        </p>
+      </div>
+
+      <p className="mt-2 text-[9px] font-medium text-slate-400 text-center leading-relaxed">
+        Attendance logging is synced with manager terminal. <br />
+        Ensure your station is ready before initializing.
       </p>
     </div>
   );

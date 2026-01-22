@@ -6,20 +6,20 @@ import {
   ChevronRight,
   RefreshCcw,
   Package,
+  Layers,
 } from "lucide-react";
 
 import VegNonVegIcon from "../../../../components/ui/VegNonVegIcon";
 import EditBranchItemModal from "../modals/EditBranchItemModal";
 import UpdateStockModal from "../modals/UpdateStockModal";
+import clsx from "clsx";
 
 export default function BranchItemCard({ item, onDelete, refresh, onSync }) {
   const [editOpen, setEditOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
 
-  /* ---------------- IMAGES ---------------- */
   const images =
     item.images?.length > 0 ? item.images : item.image ? [item.image] : [];
-
   const [index, setIndex] = useState(0);
   const touchStartX = useRef(null);
 
@@ -35,162 +35,164 @@ export default function BranchItemCard({ item, onDelete, refresh, onSync }) {
     setIndex((i) => (i === images.length - 1 ? 0 : i + 1));
   };
 
-  const onTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const onTouchEnd = (e) => {
-    if (!touchStartX.current) return;
-    const diff = e.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(diff) > 40) diff > 0 ? prev() : next();
-    touchStartX.current = null;
-  };
-
   /* ---------------- STATUS LOGIC ---------------- */
-  const price = item.price ?? 0;
   const isOff = item.status === "OFF";
-
   const stockQty = item.stockQty;
   const isUnlimited = item.trackStock && stockQty === null;
-  const isOutOfStock =
-    item.trackStock && stockQty === 0 && item.autoHideWhenZero;
-
-  const stockLabel = !item.trackStock
-    ? "No stock tracking"
-    : isUnlimited
-    ? "Unlimited"
-    : `${stockQty} left`;
+  const isLowStock = item.trackStock && stockQty > 0 && stockQty <= 5;
+  const isOutOfStock = item.trackStock && stockQty === 0;
 
   return (
     <>
       <div
-        className={`
-          group bg-white rounded-xl p-3 shadow-sm
-          hover:shadow-md transition
-          ${isOff ? "opacity-60 grayscale-[0.2]" : ""}
-        `}
+        className={clsx(
+          "group relative bg-white border border-slate-200 rounded-[28px] p-3 transition-all duration-500 active:scale-[0.98] shadow-sm hover:shadow-xl hover:border-emerald-100",
+          isOff && "bg-slate-50/80 shadow-none border-slate-100",
+        )}
       >
-        {/* ================= IMAGE ================= */}
-        <div
-          className="relative aspect-square rounded-lg overflow-hidden bg-gray-100"
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-        >
+        {/* ================= IMAGE SECTION ================= */}
+        <div className="relative aspect-square rounded-[20px] overflow-hidden bg-slate-100 shadow-inner">
           {images.length ? (
             <img
               src={images[index]}
               alt={item.name}
-              className="w-full h-full object-cover transition lg:group-hover:scale-105"
+              className={clsx(
+                "w-full h-full object-cover transition-all duration-700 lg:group-hover:scale-110",
+                isOff && "grayscale brightness-75 opacity-60",
+              )}
               draggable={false}
+              onTouchStart={(e) => (touchStartX.current = e.touches[0].clientX)}
+              onTouchEnd={(e) => {
+                const diff =
+                  e.changedTouches[0].clientX - (touchStartX.current || 0);
+                if (Math.abs(diff) > 50) diff > 0 ? prev() : next();
+              }}
             />
           ) : (
-            <div className="flex items-center justify-center h-full text-xs text-gray-400">
-              No image
+            <div className="flex flex-col items-center justify-center h-full bg-slate-50 text-slate-300">
+              <Layers className="mb-2 opacity-20" size={32} />
+              <span className="text-[10px] font-black uppercase tracking-widest">
+                No Image
+              </span>
             </div>
           )}
 
-          {/* SLIDER */}
-          {images.length > 1 && (
-            <>
-              <IconBtn left onClick={prev}>
-                <ChevronLeft size={14} />
-              </IconBtn>
-              <IconBtn right onClick={next}>
-                <ChevronRight size={14} />
-              </IconBtn>
-            </>
-          )}
+          {/* BADGES LAYER */}
+          <div className="absolute top-2.5 left-2.5 right-2.5 flex justify-between items-start z-20 pointer-events-none">
+            <div className="bg-white/95 backdrop-blur-sm p-2 rounded-xl shadow-lg border border-slate-100/50 pointer-events-auto">
+              <VegNonVegIcon isVeg={item.masterItemId?.isVeg} size={14} />
+            </div>
+
+            <div
+              className={clsx(
+                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full shadow-lg border-2 backdrop-blur-md pointer-events-auto",
+                isOff
+                  ? "bg-slate-900/90 border-slate-700 text-slate-400"
+                  : "bg-white border-emerald-500 text-emerald-600",
+              )}
+            >
+              <span
+                className={clsx(
+                  "w-2 h-2 rounded-full",
+                  isOff
+                    ? "bg-slate-600"
+                    : "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]",
+                )}
+              />
+              <span className="text-[10px] font-black uppercase tracking-wider">
+                {isOff ? "Hidden" : "Live"}
+              </span>
+            </div>
+          </div>
 
           {/* DOTS */}
           {images.length > 1 && (
-            <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1">
+            <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5 z-10">
               {images.map((_, i) => (
-                <span
+                <div
                   key={i}
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    i === index ? "bg-white" : "bg-white/40"
-                  }`}
+                  className={clsx(
+                    "h-1.5 rounded-full transition-all duration-300",
+                    i === index ? "w-4 bg-white" : "w-1.5 bg-white/40",
+                  )}
                 />
               ))}
             </div>
           )}
 
-          {/* VEG / NON-VEG */}
-          <div className="absolute top-2 left-2 z-20">
-            <div className="bg-black/30 backdrop-blur rounded-sm p-0.5">
-              <VegNonVegIcon isVeg={item.masterItemId?.isVeg} size={10} />
-            </div>
-          </div>
-
-          {/* STATUS */}
-          <StatusBadge isOff={isOff} />
-
           {/* OUT OF STOCK */}
           {isOutOfStock && (
-            <div className="absolute inset-0 bg-white/80 flex items-center justify-center text-sm font-bold text-red-600">
-              OUT OF STOCK
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] flex items-center justify-center z-10">
+              <span className="bg-white text-slate-900 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl">
+                Sold Out
+              </span>
             </div>
           )}
 
-          {/* DESKTOP ACTIONS */}
-          <div
-            className="absolute inset-0 bg-black/30 hidden lg:flex
-                          opacity-0 group-hover:opacity-100
-                          items-center justify-center gap-4 transition"
-          >
-            <ActionBtn onClick={() => setEditOpen(true)}>
-              <Pencil size={16} />
-            </ActionBtn>
-
-            <ActionBtn danger onClick={onDelete}>
-              <Trash2 size={16} />
-            </ActionBtn>
-
-            <ActionBtn info onClick={onSync} title="Sync with master">
+          {/* DESKTOP HOVER */}
+          <div className="absolute inset-0 bg-black/20 hidden lg:flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <NavBtn onClick={onSync}>
               <RefreshCcw size={16} />
-            </ActionBtn>
+            </NavBtn>
+            <NavBtn onClick={onDelete} danger>
+              <Trash2 size={16} />
+            </NavBtn>
           </div>
         </div>
 
-        {/* ================= INFO ================= */}
-        <div className="mt-3 space-y-1">
-          <h4 className="text-sm font-semibold truncate">{item.name}</h4>
+        {/* ================= INFO SECTION ================= */}
+        <div className="mt-4 flex flex-col h-full">
+          <div className="flex justify-between items-start gap-2">
+            <div className="flex-1 min-w-0">
+              <h4 className="text-[15px] font-black text-slate-800 leading-tight truncate">
+                {item.name}
+              </h4>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">
+                {item.category?.name || "General"}
+              </p>
+            </div>
+            <div className="flex flex-col items-end">
+              <p className="text-lg font-black text-emerald-600 tracking-tighter">
+                ₹{Number(item.price || 0).toLocaleString("en-IN")}
+              </p>
+            </div>
+          </div>
 
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-gray-900">
-              ₹{Number(price).toFixed(2)}
-            </p>
-
-            {/* STOCK */}
+          {/* ACTION BAR: Now Responsive and Contained */}
+          <div className="mt-4 space-y-2">
+            {/* Stock Button (Full width if present to prevent layout break) */}
             {item.trackStock && (
               <button
                 onClick={() => setStockOpen(true)}
-                className="
-                  flex items-center gap-1
-                  text-xs font-medium
-                  px-2 py-0.5 rounded-full
-                  bg-gray-100 hover:bg-gray-200
-                "
+                className={clsx(
+                  "w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 border",
+                  isOutOfStock
+                    ? "bg-slate-100 text-slate-400 border-slate-200"
+                    : isLowStock
+                      ? "bg-amber-50 text-amber-600 border-amber-200 animate-pulse"
+                      : "bg-emerald-50 text-emerald-600 border-emerald-100",
+                )}
               >
                 <Package size={12} />
-                {stockLabel}
+                {isUnlimited ? "Unlimited Stock" : `${stockQty} Remaining`}
               </button>
             )}
-          </div>
-        </div>
 
-        {/* MOBILE ACTIONS */}
-        <div className="mt-3 flex gap-2 lg:hidden">
-          <button
-            onClick={() => setEditOpen(true)}
-            className="flex-1 py-2 rounded-lg border text-xs font-medium"
-          >
-            Edit
-          </button>
+            {/* Edit Button: Primary Action */}
+            <button
+              onClick={() => setEditOpen(true)}
+              className="w-full h-12 flex items-center justify-center gap-2 bg-emerald-500 text-white rounded-[18px] shadow-lg shadow-emerald-500/20 active:scale-[0.96] transition-all hover:bg-emerald-600"
+            >
+              <Pencil size={14} />
+              <span className="text-[11px] font-black uppercase tracking-[0.15em]">
+                Edit Details
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ================= MODALS ================= */}
+      {/* MODALS */}
       {editOpen && (
         <EditBranchItemModal
           item={item}
@@ -201,7 +203,6 @@ export default function BranchItemCard({ item, onDelete, refresh, onSync }) {
           }}
         />
       )}
-
       {stockOpen && (
         <UpdateStockModal
           item={item}
@@ -216,51 +217,18 @@ export default function BranchItemCard({ item, onDelete, refresh, onSync }) {
   );
 }
 
-/* ================= SMALL UI PARTS ================= */
-
-function IconBtn({ children, onClick, left, right }) {
+function NavBtn({ children, onClick, danger }) {
   return (
     <button
       onClick={onClick}
-      className={`
-        absolute top-1/2 -translate-y-1/2
-        ${left ? "left-2" : "right-2"}
-        h-7 w-7 rounded-full
-        bg-black/50 text-white
-        flex items-center justify-center
-      `}
+      className={clsx(
+        "h-10 w-10 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-75",
+        danger
+          ? "bg-red-500 text-white"
+          : "bg-white text-slate-900 hover:text-emerald-500",
+      )}
     >
       {children}
     </button>
-  );
-}
-
-function ActionBtn({ children, onClick, danger, info }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`
-        bg-white p-2 rounded-full
-        hover:scale-110 transition
-        ${danger ? "text-red-600" : ""}
-        ${info ? "text-blue-600" : ""}
-      `}
-    >
-      {children}
-    </button>
-  );
-}
-
-function StatusBadge({ isOff }) {
-  return (
-    <div
-      className={`
-        absolute top-2 right-2 text-[10px]
-        px-2 py-0.5 rounded-full font-semibold
-        ${isOff ? "bg-red-600 text-white" : "bg-emerald-600 text-white"}
-      `}
-    >
-      {isOff ? "OFF" : "ON"}
-    </div>
   );
 }

@@ -66,7 +66,7 @@ export default function BranchMenuPage() {
 
   const mappedMenu = useMemo(
     () => mapBranchMenuTree(masterMenu, branchGrouped),
-    [masterMenu, branchGrouped]
+    [masterMenu, branchGrouped],
   );
 
   const activeCategory = mappedMenu.find((c) => c.id === activeCategoryId);
