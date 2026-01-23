@@ -10,7 +10,7 @@ export default function SubcategoryBar({
   onDelete,
 }) {
   return (
-    /* OUTER TRACK */
+    /* OUTER TRACK - Apple Control Center Style */
     <div className="bg-[#787880]/[0.12] border border-black/[0.03] rounded-[22px] p-0.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
       <div
         className="flex gap-1 overflow-x-auto scrollbar-hide items-center touch-pan-x scroll-smooth px-1 py-0.5"
@@ -20,12 +20,13 @@ export default function SubcategoryBar({
         <button
           type="button"
           role="tab"
+          aria-selected={activeSubcategoryId === null}
           onClick={() => onSelect(null)}
           className={clsx(
             "flex-shrink-0 h-9 rounded-[18px] text-[10px] font-[800] uppercase tracking-widest transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]",
             activeSubcategoryId === null
               ? "bg-white text-black shadow-sm ring-1 ring-black/[0.04] px-6 min-w-[70px]"
-              : "text-slate-500 hover:text-black active:scale-95 px-3 min-w-[50px]",
+              : "text-slate-500 hover:text-black active:scale-95 px-4 min-w-[50px]",
           )}
         >
           All
@@ -36,38 +37,40 @@ export default function SubcategoryBar({
           const isActive = sub.id === activeSubcategoryId;
 
           return (
-            <div key={sub.id} className="relative group flex-shrink-0">
-              {/* THE PILL BUTTON */}
+            <div key={sub.id} className="relative flex-shrink-0">
+              {/* THE PILL BUTTON 
+                  We use PX-12 and MIN-W-140 only when active to reveal icons.
+                  The transition-all duration-500 creates the 'slide out' expansion effect.
+              */}
               <button
                 type="button"
                 role="tab"
+                aria-selected={isActive}
                 onClick={() => onSelect(sub.id)}
                 className={clsx(
                   "relative flex items-center justify-center rounded-[18px] text-[10px] font-[800] uppercase tracking-widest transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] h-9",
-                  /* EXPANSION LOGIC: 
-                     Inactive: Very tight (px-2). 
-                     Active: Wide (px-12) to make room for the Pencil/Trash icons on the edges.
-                  */
                   isActive
-                    ? "bg-white text-black shadow-md ring-1 ring-black/[0.04] px-12 min-w-[140px] z-10"
-                    : "text-slate-500 hover:text-black active:scale-95 px-2 min-w-[60px] max-w-[120px]",
+                    ? "bg-white text-black shadow-md ring-1 ring-black/[0.04] px-14 min-w-[150px] z-10"
+                    : "bg-transparent text-slate-500 hover:text-black active:scale-95 px-4 min-w-[70px] max-w-[130px]",
                 )}
               >
                 <span className="truncate w-full text-center">{sub.name}</span>
               </button>
 
-              {/* ================= ADMIN ICONS (The Pencil and Trash) ================= */}
+              {/* ================= ADMIN CONTROLS ================= 
+                  Triggered strictly by the 'isActive' state. 
+                  Removed 'lg:group-hover' to match mobile behavior on desktop.
+              */}
               {(onEdit || onDelete) && (
                 <div
                   className={clsx(
-                    "absolute inset-0 flex items-center justify-between px-1 transition-all duration-500 pointer-events-none z-20",
-                    /* Only show icons when active OR on desktop hover */
+                    "absolute inset-0 flex items-center justify-between px-1.5 transition-all duration-500 pointer-events-none z-20",
                     isActive
                       ? "opacity-100 scale-100 pointer-events-auto"
-                      : "opacity-0 scale-50 lg:group-hover:opacity-100 lg:group-hover:scale-100 lg:group-hover:pointer-events-auto",
+                      : "opacity-0 scale-75 blur-sm",
                   )}
                 >
-                  {/* EDIT ICON (Appears on the left side of the expanded pill) */}
+                  {/* EDIT ACTION */}
                   {onEdit && (
                     <button
                       type="button"
@@ -76,13 +79,12 @@ export default function SubcategoryBar({
                         onEdit(sub);
                       }}
                       className="w-7 h-7 bg-white shadow-lg rounded-full flex items-center justify-center text-slate-400 hover:text-emerald-500 active:scale-125 transition-all border border-black/[0.05]"
-                      title="Edit Section"
                     >
                       <Pencil size={11} strokeWidth={3} />
                     </button>
                   )}
 
-                  {/* DELETE ICON (Appears on the right side of the expanded pill) */}
+                  {/* DELETE ACTION */}
                   {onDelete && (
                     <button
                       type="button"
@@ -91,7 +93,6 @@ export default function SubcategoryBar({
                         onDelete(sub.id);
                       }}
                       className="w-7 h-7 bg-white shadow-lg rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 active:scale-125 transition-all border border-black/[0.05]"
-                      title="Delete Section"
                     >
                       <Trash2 size={11} strokeWidth={3} />
                     </button>
