@@ -62,6 +62,7 @@ export async function createTableController(req, res) {
     });
 
     /* ================= QR URL ================= */
+    console.log("FRONTEND_URL:", process.env.FRONTEND_URL);
     const qrUrl = `${process.env.FRONTEND_URL}/${brandSlug}/${restaurantSlug}/table/${table._id}`;
 
     const qrBase64 = await generateTableQR({
