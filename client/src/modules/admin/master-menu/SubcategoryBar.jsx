@@ -1,14 +1,6 @@
 import { Pencil, Trash2, Plus } from "lucide-react";
+import clsx from "clsx";
 
-/**
- * SubcategoryBar
- * --------------------------------------------------
- * Rules:
- * • activeSubcategoryId === null → ALL section
- * • Parent MUST set activeSubcategoryId = null on category change
- * • ALL shows all category items
- * • Add Item handled by ItemGrid (not here)
- */
 export default function SubcategoryBar({
   subcategories = [],
   activeSubcategoryId = null,
@@ -18,35 +10,23 @@ export default function SubcategoryBar({
   onDelete,
 }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl px-3 sm:px-4 py-3 shadow-sm">
+    /* OUTER TRACK */
+    <div className="bg-[#787880]/[0.12] border border-black/[0.03] rounded-[22px] p-0.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
       <div
-        className="
-          flex gap-2 sm:gap-3
-          overflow-x-auto scrollbar-hide
-          items-center
-          touch-pan-x
-        "
+        className="flex gap-1 overflow-x-auto scrollbar-hide items-center touch-pan-x scroll-smooth px-1 py-0.5"
         role="tablist"
-        aria-label="Menu sections"
       >
-        {/* ================= ALL ================= */}
+        {/* ================= ALL SECTION ================= */}
         <button
           type="button"
           role="tab"
-          aria-selected={activeSubcategoryId === null}
           onClick={() => onSelect(null)}
-          className={`
-            flex-shrink-0
-            px-4 py-2
-            rounded-full
-            text-xs font-black uppercase tracking-widest
-            transition
-            ${
-              activeSubcategoryId === null
-                ? "bg-black text-white ring-2 ring-black"
-                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-            }
-          `}
+          className={clsx(
+            "flex-shrink-0 h-9 rounded-[18px] text-[10px] font-[800] uppercase tracking-widest transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]",
+            activeSubcategoryId === null
+              ? "bg-white text-black shadow-sm ring-1 ring-black/[0.04] px-6 min-w-[70px]"
+              : "text-slate-500 hover:text-black active:scale-95 px-3 min-w-[50px]",
+          )}
         >
           All
         </button>
@@ -57,37 +37,37 @@ export default function SubcategoryBar({
 
           return (
             <div key={sub.id} className="relative group flex-shrink-0">
+              {/* THE PILL BUTTON */}
               <button
                 type="button"
                 role="tab"
-                aria-selected={isActive}
                 onClick={() => onSelect(sub.id)}
-                className={`
-                  max-w-[160px] truncate
-                  px-4 py-2
-                  rounded-full
-                  text-xs font-black uppercase tracking-widest
-                  transition
-                  ${
-                    isActive
-                      ? "bg-black text-white ring-2 ring-black"
-                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                  }
-                `}
+                className={clsx(
+                  "relative flex items-center justify-center rounded-[18px] text-[10px] font-[800] uppercase tracking-widest transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] h-9",
+                  /* EXPANSION LOGIC: 
+                     Inactive: Very tight (px-2). 
+                     Active: Wide (px-12) to make room for the Pencil/Trash icons on the edges.
+                  */
+                  isActive
+                    ? "bg-white text-black shadow-md ring-1 ring-black/[0.04] px-12 min-w-[140px] z-10"
+                    : "text-slate-500 hover:text-black active:scale-95 px-2 min-w-[60px] max-w-[120px]",
+                )}
               >
-                {sub.name}
+                <span className="truncate w-full text-center">{sub.name}</span>
               </button>
 
-              {/* ADMIN ACTIONS */}
+              {/* ================= ADMIN ICONS (The Pencil and Trash) ================= */}
               {(onEdit || onDelete) && (
                 <div
-                  className="
-                    absolute -top-2 -right-2
-                    hidden group-hover:flex
-                    md:flex md:opacity-0 md:group-hover:opacity-100
-                    gap-1 transition
-                  "
+                  className={clsx(
+                    "absolute inset-0 flex items-center justify-between px-1 transition-all duration-500 pointer-events-none z-20",
+                    /* Only show icons when active OR on desktop hover */
+                    isActive
+                      ? "opacity-100 scale-100 pointer-events-auto"
+                      : "opacity-0 scale-50 lg:group-hover:opacity-100 lg:group-hover:scale-100 lg:group-hover:pointer-events-auto",
+                  )}
                 >
+                  {/* EDIT ICON (Appears on the left side of the expanded pill) */}
                   {onEdit && (
                     <button
                       type="button"
@@ -95,16 +75,14 @@ export default function SubcategoryBar({
                         e.stopPropagation();
                         onEdit(sub);
                       }}
-                      className="
-                        p-1 bg-white rounded-full shadow border
-                        text-gray-400 hover:text-blue-600
-                      "
-                      aria-label="Edit section"
+                      className="w-7 h-7 bg-white shadow-lg rounded-full flex items-center justify-center text-slate-400 hover:text-emerald-500 active:scale-125 transition-all border border-black/[0.05]"
+                      title="Edit Section"
                     >
-                      <Pencil size={10} />
+                      <Pencil size={11} strokeWidth={3} />
                     </button>
                   )}
 
+                  {/* DELETE ICON (Appears on the right side of the expanded pill) */}
                   {onDelete && (
                     <button
                       type="button"
@@ -112,13 +90,10 @@ export default function SubcategoryBar({
                         e.stopPropagation();
                         onDelete(sub.id);
                       }}
-                      className="
-                        p-1 bg-white rounded-full shadow border
-                        text-gray-400 hover:text-red-600
-                      "
-                      aria-label="Delete section"
+                      className="w-7 h-7 bg-white shadow-lg rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 active:scale-125 transition-all border border-black/[0.05]"
+                      title="Delete Section"
                     >
-                      <Trash2 size={10} />
+                      <Trash2 size={11} strokeWidth={3} />
                     </button>
                   )}
                 </div>
@@ -127,24 +102,14 @@ export default function SubcategoryBar({
           );
         })}
 
-        {/* ================= ADD SECTION ================= */}
+        {/* ================= ADD BUTTON ================= */}
         {onAdd && (
           <button
-            type="button" // 🔥 REQUIRED FIX
+            type="button"
             onClick={onAdd}
-            className="
-              flex-shrink-0
-              flex items-center gap-2
-              px-4 py-2
-              border-2 border-dashed border-gray-300
-              rounded-full
-              text-xs font-black text-gray-400
-              hover:border-black hover:text-black
-              transition
-            "
+            className="flex-shrink-0 flex items-center justify-center w-9 h-9 ml-1 bg-white/40 rounded-full text-slate-500 hover:text-emerald-600 hover:bg-white transition-all active:scale-90 border border-black/[0.03]"
           >
-            <Plus size={14} />
-            Section
+            <Plus size={16} strokeWidth={3} />
           </button>
         )}
       </div>

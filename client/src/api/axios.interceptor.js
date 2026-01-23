@@ -26,36 +26,43 @@ export function initAxiosInterceptors() {
         url.startsWith("/api/order") ||
         url.startsWith("/api/customer")
       ) {
-        // ✅ Find customer session token from localStorage
-        // Key format: plato:customerSession:{tableId}
-        const sessionKey = Object.keys(localStorage).find((k) =>
-          k.startsWith("plato:customerSession:"),
-        );
+        let sessionToken = null;
+        let sessionKey = null;
 
-        if (sessionKey) {
-          const sessionToken = localStorage.getItem(sessionKey);
+        // NEW: Try to get tableId from URL for accuracy
+        const match = window.location.pathname.match(/table\/([^/]+)/);
+        if (match) {
+          const tableId = match[1];
+          sessionKey = `plato:customerSession:${tableId}`;
+          sessionToken = localStorage.getItem(sessionKey);
+          console.log(
+            `🎯 Found tableId '${tableId}' in URL, using session key: ${sessionKey}`,
+          );
+        }
 
-          if (sessionToken) {
-            // ✅ MUST match backend exactly: x-customer-session
-            config.headers["x-customer-session"] = sessionToken;
-            console.log(
-              "✅ Attached session token to",
-              url,
-              "| Token:",
-              sessionToken.substring(0, 10) + "...",
-            );
-          } else {
-            console.warn(
-              "⚠️ Session key found but token is empty:",
-              sessionKey,
-            );
+        // FALLBACK: If no tableId in URL, use the old (less reliable) method
+        if (!sessionToken) {
+          console.log(
+            "⚠️ Could not find session token using tableId from URL, trying fallback.",
+          );
+          sessionKey = Object.keys(localStorage).find((k) =>
+            k.startsWith("plato:customerSession:"),
+          );
+          if (sessionKey) {
+            sessionToken = localStorage.getItem(sessionKey);
           }
+        }
+
+        if (sessionToken) {
+          config.headers["x-customer-session"] = sessionToken;
+          console.log(
+            "✅ Attached session token to",
+            url,
+            "| Token:",
+            sessionToken.substring(0, 10) + "...",
+          );
         } else {
           console.warn("⚠️ No session token found in localStorage for", url);
-          console.log(
-            "📦 localStorage keys:",
-            Object.keys(localStorage).filter((k) => k.includes("plato")),
-          );
         }
       }
 

@@ -1,3 +1,4 @@
+// src/layouts/AdminLayout.jsx
 import { Outlet, Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useState } from "react";
@@ -19,8 +20,8 @@ export default function AdminLayout() {
   /* ---------------- LOADING ---------------- */
   if (!user.isHydrated) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#F9FBFA]">
-        <div className="animate-spin h-10 w-10 border-4 border-[#00684A] border-t-transparent rounded-full" />
+      <div className="h-screen flex items-center justify-center bg-[#FDFCFB]">
+        <div className="animate-spin h-10 w-10 border-4 border-emerald-500 border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -36,11 +37,17 @@ export default function AdminLayout() {
 
   /* ---------------- LAYOUT ---------------- */
   return (
-    <div className="h-screen flex flex-col bg-[#F9FBFA] overflow-hidden">
-      {/* HEADER (ALWAYS FULL WIDTH) */}
-      <AdminHeader onMenuClick={() => setSidebarOpen(true)} />
+    <div className="h-screen flex flex-col bg-[#FDFCFB] overflow-hidden">
+      {/* PASSING TOGGLE LOGIC: 
+          We pass the boolean state so the header can change icons, 
+          and a functional toggle to flip the state.
+      */}
+      <AdminHeader
+        isSidebarOpen={sidebarOpen}
+        onMenuClick={() => setSidebarOpen((prev) => !prev)}
+      />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* SIDEBAR */}
         <AdminSidebar
           open={!isMobile || sidebarOpen}
@@ -48,8 +55,10 @@ export default function AdminLayout() {
         />
 
         {/* CONTENT */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto p-4 sm:p-8 bg-[#FDFCFB]">
+          <div className="max-w-7xl mx-auto">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

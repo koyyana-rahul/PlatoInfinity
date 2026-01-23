@@ -1,7 +1,6 @@
-// src/modules/admin/restaurants/RestaurantsPage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FiPlus, FiHome } from "react-icons/fi";
+import { FiPlus, FiHome, FiSearch, FiLayers } from "react-icons/fi";
 
 import Axios from "../../../api/axios";
 import restaurantApi from "../../../api/restaurant.api";
@@ -16,8 +15,8 @@ export default function RestaurantsPage() {
   const [restaurants, setRestaurants] = useState([]);
   const [openCreate, setOpenCreate] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  /* ---------- FETCH ---------- */
   const fetchRestaurants = async () => {
     try {
       setLoading(true);
@@ -34,34 +33,59 @@ export default function RestaurantsPage() {
     fetchRestaurants();
   }, []);
 
+  const filteredRestaurants = restaurants.filter((r) =>
+    r.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
   return (
-    <div className="p-4 sm:p-6 space-y-8">
-      {/* ================= HEADER ================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Restaurants</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage branches under this brand
+    <div className="space-y-10 animate-in fade-in duration-700">
+      {/* ================= HEADER: Executive Style ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+            Units
+          </h1>
+          <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+            Brand Infrastructure Management
           </p>
         </div>
 
         <button
           onClick={() => setOpenCreate(true)}
-          className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+          className="inline-flex items-center justify-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-emerald-200/50 transition-all active:scale-95"
         >
-          <FiPlus size={16} />
+          <FiPlus size={18} strokeWidth={3} />
           Add Restaurant
         </button>
       </div>
 
-      {/* ================= CONTENT ================= */}
+      {/* ================= SEARCH & UTILITIES ================= */}
+      <div className="relative max-w-md group">
+        <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+        <input
+          type="text"
+          placeholder="Search locations..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full h-12 pl-12 pr-4 rounded-2xl border border-slate-100 bg-white text-sm font-bold text-slate-900 focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-300"
+        />
+      </div>
+
+      {/* ================= CONTENT AREA ================= */}
       {loading ? (
-        <SkeletonGrid />
-      ) : restaurants.length === 0 ? (
-        <EmptyState onCreate={() => setOpenCreate(true)} />
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <RestaurantCard key={i} data={null} />
+          ))}
+        </div>
+      ) : filteredRestaurants.length === 0 ? (
+        <EmptyState
+          onCreate={() => setOpenCreate(true)}
+          hasQuery={searchQuery.length > 0}
+        />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {restaurants.map((r) => (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredRestaurants.map((r) => (
             <RestaurantCard
               key={r._id}
               data={r}
@@ -86,39 +110,33 @@ export default function RestaurantsPage() {
 
 /* ================= UI PARTS ================= */
 
-function SkeletonGrid() {
+function EmptyState({ onCreate, hasQuery }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {[...Array(3)].map((_, i) => (
-        <div key={i} className="h-40 rounded-xl bg-gray-100 animate-pulse" />
-      ))}
-    </div>
-  );
-}
-
-function EmptyState({ onCreate }) {
-  return (
-    <div className="bg-white rounded-2xl border shadow-sm p-10 text-center max-w-lg mx-auto">
-      <div className="h-12 w-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-4">
-        <FiHome size={22} />
+    <div className="bg-white rounded-[40px] border border-slate-50 shadow-[0_20px_50px_rgba(0,0,0,0.02)] p-16 text-center max-w-xl mx-auto space-y-6">
+      <div className="h-20 w-20 rounded-[24px] bg-slate-50 text-slate-300 flex items-center justify-center mx-auto transition-transform hover:rotate-12">
+        {hasQuery ? <FiSearch size={32} /> : <FiLayers size={32} />}
       </div>
 
-      <h3 className="text-lg font-semibold text-gray-900">
-        No restaurants yet
-      </h3>
+      <div className="space-y-2">
+        <h3 className="text-xl font-black text-slate-900 tracking-tight">
+          {hasQuery ? "No matches found" : "Deployment Required"}
+        </h3>
+        <p className="text-sm font-bold text-slate-400 max-w-xs mx-auto leading-relaxed">
+          {hasQuery
+            ? "We couldn't find any units matching your current search criteria."
+            : "There are currently no active restaurant units associated with this brand."}
+        </p>
+      </div>
 
-      <p className="text-sm text-gray-500 mt-2">
-        Create your first restaurant branch to start managing staff, orders, and
-        daily operations.
-      </p>
-
-      <button
-        onClick={onCreate}
-        className="mt-5 inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-medium"
-      >
-        <FiPlus size={16} />
-        Add Restaurant
-      </button>
+      {!hasQuery && (
+        <button
+          onClick={onCreate}
+          className="inline-flex items-center gap-2.5 bg-slate-900 hover:bg-black text-white px-8 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
+        >
+          <FiPlus size={16} strokeWidth={3} />
+          Initialize First Unit
+        </button>
+      )}
     </div>
   );
 }

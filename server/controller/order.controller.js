@@ -213,14 +213,20 @@ export async function placeOrderController(req, res) {
 export async function listSessionOrdersController(req, res) {
   const { sessionId } = req.params;
 
-  if (req.sessionDoc && String(req.sessionDoc._id) !== String(sessionId)) {
-    return res.status(403).json({
-      message: "Forbidden",
-      error: true,
-      success: false,
+  // If we have a session from a token, and we are a customer,
+  // let's trust the token and ignore the sessionId from the URL.
+  if (req.sessionDoc && !req.user) {
+    const orders = await Order.find({ sessionId: req.sessionDoc._id })
+      .sort({ createdAt: -1 })
+      .lean();
+    return res.json({
+      success: true,
+      error: false,
+      data: orders,
     });
   }
 
+  // Fallback to old logic for staff or if no token was provided
   if (!mongoose.Types.ObjectId.isValid(sessionId)) {
     return res.status(400).json({
       message: "Invalid sessionId",

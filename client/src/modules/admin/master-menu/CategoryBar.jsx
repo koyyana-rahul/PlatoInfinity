@@ -1,4 +1,5 @@
 import { Pencil, Trash2 } from "lucide-react";
+import clsx from "clsx";
 
 export default function CategoryBar({
   categories = [],
@@ -9,91 +10,91 @@ export default function CategoryBar({
 }) {
   if (!categories.length) {
     return (
-      <div className="px-4 py-6 text-center text-sm text-gray-400 border-b">
-        No categories created yet
+      <div className="px-4 py-6 text-center text-[12px] font-medium text-slate-400 bg-white/40 backdrop-blur-md border-b border-black/[0.04]">
+        No categories found
       </div>
     );
   }
 
   return (
-    <div className="sticky top-0 z-40 bg-white border-b">
+    <div className="w-full bg-white/80 backdrop-blur-3xl border-b border-black/[0.05] transition-all duration-700 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5)]">
       <div
         className="
-          flex gap-6
+          flex gap-1.5
           overflow-x-auto
-          px-4 py-4
+          px-2 py-2
           scrollbar-hide
           touch-pan-x
+          items-center
+          scroll-smooth
         "
       >
         {categories.map((cat) => {
           const isActive = cat.id === activeCategoryId;
 
           return (
-            <div
-              key={cat.id}
-              className="
-                relative
-                flex-shrink-0
-                group
-              "
-            >
-              {/* ================= CATEGORY ================= */}
+            <div key={cat.id} className="relative flex-shrink-0 group">
+              {/* ================= CATEGORY TILE ================= */}
               <button
                 type="button"
                 onClick={() => onSelect(cat.id)}
-                className={`
-                  flex flex-col items-center gap-2
-                  transition-all duration-200
-                  focus:outline-none
-                  ${
-                    isActive
-                      ? "scale-110"
-                      : "opacity-80 hover:opacity-100 hover:scale-105"
-                  }
-                `}
+                className={clsx(
+                  "relative flex flex-col items-center gap-1.5 p-1.5 rounded-[20px] outline-none transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+                  "min-w-[68px] max-w-[100px]",
+                  isActive
+                    ? "bg-white shadow-[0_8px_16px_-4px_rgba(0,0,0,0.12)] scale-105 z-10 ring-1 ring-black/[0.03]"
+                    : "hover:bg-black/[0.03] active:scale-95",
+                )}
               >
                 {/* ICON */}
                 <div
-                  className={`
-                    w-14 h-14 rounded-full
-                    flex items-center justify-center
-                    shadow-sm
-                    transition-all
-                    ${
-                      isActive
-                        ? "bg-yellow-400 ring-4 ring-yellow-100"
-                        : "bg-gray-100"
-                    }
-                  `}
+                  className={clsx(
+                    "w-10 h-10 rounded-[14px] flex items-center justify-center text-lg transition-all duration-500",
+                    isActive
+                      ? "bg-emerald-300 text-emerald-600 shadow-[inset_0_1px_2px_rgba(16,185,129,0.1)]"
+                      : "bg-slate-100/50 group-hover:bg-white",
+                  )}
                 >
-                  {cat.icon || "🍽️"}
+                  <span className="transition-transform duration-500 group-hover:scale-110">
+                    {cat.icon || "🍽️"}
+                  </span>
                 </div>
 
-                {/* NAME */}
+                {/* LABEL */}
                 <span
-                  className={`
-                    max-w-[64px] truncate
-                    text-[10px] font-black uppercase tracking-widest
-                    ${isActive ? "text-yellow-600" : "text-gray-400"}
-                  `}
+                  className={clsx(
+                    "w-full px-1 truncate text-center text-[8.5px] font-[900] uppercase tracking-[0.08em] leading-tight transition-all duration-300",
+                    isActive
+                      ? "text-black"
+                      : "text-slate-500 group-hover:text-black",
+                  )}
                 >
                   {cat.name}
                 </span>
+
+                {/* ACTIVE INDICATOR */}
+                <div
+                  className={clsx(
+                    "absolute -bottom-0.5 h-[2px] rounded-full bg-emerald-500 transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] shadow-[0_0_8px_rgba(16,185,129,0.5)]",
+                    isActive ? "w-4 opacity-100" : "w-0 opacity-0",
+                  )}
+                />
               </button>
 
-              {/* ================= ACTIONS ================= */}
+              {/* ================= COMPACT ACTIONS (VISIBLE ON MOBILE) ================= */}
               {(onEdit || onDelete) && (
                 <div
                   className="
-                    absolute -top-2 -right-2
+                    absolute -top-1 -right-1
                     flex gap-1
-                    opacity-100 sm:opacity-0
-                    group-hover:opacity-100
-                    transition-opacity
+                    /* Desktop: Hide and show on hover */
+                    lg:opacity-0 lg:group-hover:opacity-100 lg:scale-50 lg:group-hover:scale-100
+                    /* Mobile: Always visible but subtle */
+                    opacity-100 scale-100
+                    transition-all duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                    z-20
                   "
                 >
-                  {/* EDIT */}
                   {onEdit && (
                     <button
                       type="button"
@@ -101,25 +102,11 @@ export default function CategoryBar({
                         e.stopPropagation();
                         onEdit(cat);
                       }}
-                      className="
-                        h-8 w-8
-                        rounded-full
-                        bg-white border
-                        shadow-sm
-                        flex items-center justify-center
-                        text-gray-500
-                        hover:text-blue-600
-                        hover:bg-blue-50
-                        active:scale-95
-                        transition
-                      "
-                      aria-label="Edit category"
+                      className="h-6 w-6 rounded-full bg-white/95 shadow-lg border border-black/[0.05] flex items-center justify-center text-slate-400 active:text-emerald-500 active:bg-emerald-50 transition-all active:scale-75"
                     >
-                      <Pencil size={14} />
+                      <Pencil size={10} strokeWidth={3} />
                     </button>
                   )}
-
-                  {/* DELETE */}
                   {onDelete && (
                     <button
                       type="button"
@@ -127,21 +114,9 @@ export default function CategoryBar({
                         e.stopPropagation();
                         onDelete(cat.id);
                       }}
-                      className="
-                        h-8 w-8
-                        rounded-full
-                        bg-white border
-                        shadow-sm
-                        flex items-center justify-center
-                        text-gray-500
-                        hover:text-red-600
-                        hover:bg-red-50
-                        active:scale-95
-                        transition
-                      "
-                      aria-label="Delete category"
+                      className="h-6 w-6 rounded-full bg-white/95 shadow-lg border border-black/[0.05] flex items-center justify-center text-slate-400 active:text-red-500 active:bg-red-50 transition-all active:scale-75"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={10} strokeWidth={3} />
                     </button>
                   )}
                 </div>
