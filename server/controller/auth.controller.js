@@ -37,12 +37,25 @@ function hashString(raw) {
 const isProd = process.env.NODE_ENV === "production";
 
 function cookieOptions() {
+  const isDev = process.env.NODE_ENV !== "production";
+
+  if (isDev) {
+    // Development: Allow localhost:5173 to send cookies to localhost:8080
+    return {
+      httpOnly: true,
+      secure: false, // ✅ HTTP in development
+      sameSite: "lax", // ✅ Allow same-site requests
+      path: "/",
+      // Don't set domain in development - let browser use default
+    };
+  }
+
+  // Production: Strict security
   return {
     httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? "None" : "lax",
+    secure: true, // ✅ HTTPS only
+    sameSite: "None", // ✅ Allow cross-origin with Secure flag
     path: "/",
-    // maxAge omitted for accessToken cookie (token expiry enforced by JWT); you can set if desired
   };
 }
 
@@ -186,7 +199,7 @@ export async function loginController(req, res) {
   const { email, password } = req.body;
 
   const user = await UserModel.findOne({ email }).select(
-    "+password +refreshToken"
+    "+password +refreshToken",
   );
   if (!user) {
     return res
@@ -229,9 +242,29 @@ export async function loginController(req, res) {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 
+  console.log("✅ Login successful - Cookies set:");
+  console.log("   - accessToken cookie:", accessToken.substring(0, 20) + "...");
+  console.log(
+    "   - refreshToken cookie:",
+    refreshToken.substring(0, 20) + "...",
+  );
+  console.log("   - Cookie options:", cookieOptions());
+  console.log("   - NODE_ENV:", process.env.NODE_ENV);
+  console.log("   - isDev:", process.env.NODE_ENV !== "production");
+
   return res.json({
     success: true,
     message: "Login successful",
+    data: {
+      accessToken, // ✅ INCLUDE TOKEN IN RESPONSE BODY
+      refreshToken, // ✅ INCLUDE REFRESH TOKEN
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    },
   });
 }
 // Logout
@@ -359,7 +392,7 @@ export async function verifyForgotPasswordOtpController(req, res) {
       });
 
     const user = await UserModel.findOne({ email }).select(
-      "+forgotPasswordOtpHash +forgotPasswordExpiry"
+      "+forgotPasswordOtpHash +forgotPasswordExpiry",
     );
     if (!user)
       return res
@@ -587,7 +620,7 @@ export async function userDetailsController(req, res) {
 
     const user = await UserModel.findById(userId)
       .select(
-        "-password -refresh_token -forgotPasswordOtpHash -forgotPasswordExpiry "
+        "-password -refresh_token -forgotPasswordOtpHash -forgotPasswordExpiry ",
       )
       .populate("brandId", "name slug logoUrl")
       .lean();

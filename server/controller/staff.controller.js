@@ -113,7 +113,7 @@ export async function listStaffController(req, res) {
       role: { $in: ["WAITER", "CHEF", "CASHIER"] },
     })
       .select(
-        "_id name role staffCode staffPin mobile isActive onDuty lastShiftIn lastShiftOut createdAt"
+        "_id name role staffCode staffPin mobile isActive onDuty lastShiftIn lastShiftOut createdAt",
       )
       .sort({ createdAt: -1 })
       .lean();
@@ -258,7 +258,9 @@ export async function staffLoginController(req, res) {
         name: staff.name,
         role: staff.role,
         restaurantId: staff.restaurantId,
-        brandSlug: restaurant.brandId.slug, // ✅ FIX
+        brandSlug: restaurant.brandId.slug,
+        accessToken, // ✅ INCLUDE TOKEN IN RESPONSE BODY
+        refreshToken, // ✅ INCLUDE REFRESH TOKEN
       },
     });
   } catch (err) {

@@ -9,6 +9,7 @@ import {
   listKitchenOrdersController,
   updateOrderItemStatusController,
   completeOrderController,
+  recentOrdersController,
 } from "../controller/order.controller.js";
 
 const orderRouter = express.Router();
@@ -42,6 +43,15 @@ orderRouter.get(
   requireRole("WAITER", "MANAGER"),
   listSessionOrdersController,
 );
+
+/**
+ * ============================
+ * ADMIN DASHBOARD
+ * ============================
+ */
+
+// GET RECENT ORDERS (ADMIN DASHBOARD)
+orderRouter.get("/order/recent", requireAuth, recentOrdersController);
 
 /**
  * ============================

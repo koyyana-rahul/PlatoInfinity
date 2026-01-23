@@ -5,7 +5,14 @@ import Table from "../models/table.model.js";
 import CartItem from "../models/cartItem.model.js";
 import SessionModel from "../models/session.model.js";
 import AuditLog from "../models/auditLog.model.js";
-import { emitKitchenEvent } from "../socket/emitter.js";
+import {
+  emitOrderPlaced,
+  emitOrderItemStatusUpdate,
+  emitOrderReady,
+  emitOrderServed,
+  emitOrderCancelled,
+  emitTableStatusChanged,
+} from "../socket/emitter.js";
 
 /**
  * ============================
@@ -120,7 +127,7 @@ export async function placeOrderController(req, res) {
           placedBy: req.user ? "WAITER" : "CUSTOMER",
         },
       ],
-      { session: mongoSession }
+      { session: mongoSession },
     );
 
     /**
@@ -128,7 +135,7 @@ export async function placeOrderController(req, res) {
      */
     await CartItem.deleteMany(
       { sessionId: session._id },
-      { session: mongoSession }
+      { session: mongoSession },
     );
 
     /**
@@ -137,7 +144,7 @@ export async function placeOrderController(req, res) {
     await Table.findByIdAndUpdate(
       session.tableId,
       { status: "OCCUPIED" },
-      { session: mongoSession }
+      { session: mongoSession },
     );
 
     /**
@@ -159,26 +166,25 @@ export async function placeOrderController(req, res) {
             },
           },
         ],
-        { session: mongoSession }
+        { session: mongoSession },
       );
     } catch (_) {}
 
     /**
-     * 9️⃣ 🔥 EMIT TO KITCHEN (YOUR REQUIRED FORMAT)
+     * 9️⃣ 🔥 EMIT REAL-TIME UPDATES TO ALL ROLES
      */
-    for (const item of order.items) {
-      emitKitchenEvent(
-        req.app.locals.io,
-        session.restaurantId,
-        item.station,
-        "order:placed",
-        {
-          orderId: order._id,
-          tableId: session.tableId,
-          item,
-        }
-      );
-    }
+    await emitOrderPlaced({
+      orderId: order._id,
+      restaurantId: session.restaurantId,
+      sessionId: session._id,
+      tableId: session.tableId,
+      tableName: table.name || table.tableNumber,
+      orderNumber: order.orderNumber,
+      items: order.items,
+      totalAmount: order.totalAmount,
+      placedBy: order.placedBy,
+      placedAt: order.createdAt,
+    });
 
     /**
      * 🔟 COMMIT
@@ -350,7 +356,7 @@ export async function updateOrderItemStatusController(req, res) {
         itemId,
         status: normalizedStatus,
         tableId: order.tableId,
-      }
+      },
     );
 
     return res.json({
@@ -389,4 +395,73 @@ export async function completeOrderController(req, res) {
     error: false,
     message: "Order completed",
   });
+}
+
+/**
+ * ============================
+ * GET RECENT ORDERS (ADMIN DASHBOARD)
+ * ============================
+ * GET /api/order/recent?limit=10&range=today
+ * Access: ADMIN / OWNER
+ */
+export async function recentOrdersController(req, res) {
+  try {
+    const { limit = 10, range = "today", restaurantId } = req.query;
+    const user = req.user;
+
+    // Build filter - use provided restaurantId or user's restaurantId if they're a manager
+    let filter = {
+      createdAt: { $gte: new Date(), $lte: new Date() },
+    };
+
+    // Parse date range
+    let startDate = new Date();
+    let endDate = new Date();
+
+    if (range === "today") {
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+    } else if (range === "week") {
+      const day = startDate.getDay();
+      startDate.setDate(startDate.getDate() - day);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+    } else if (range === "month") {
+      startDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+      endDate = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
+      endDate.setHours(23, 59, 59, 999);
+    }
+
+    filter.createdAt = { $gte: startDate, $lte: endDate };
+
+    // If restaurantId is provided, use it. Otherwise use user's restaurantId if they're a manager
+    if (restaurantId) {
+      filter.restaurantId = restaurantId;
+    } else if (user.restaurantId) {
+      filter.restaurantId = user.restaurantId;
+    }
+    // If neither is provided, fetch all orders for the brand (for brand admins)
+
+    const orders = await Order.find(filter)
+      .select(
+        "orderNumber tableName totalAmount orderStatus createdAt updatedAt items restaurantId",
+      )
+      .populate("restaurantId", "name")
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .lean();
+
+    return res.json({
+      success: true,
+      error: false,
+      data: orders,
+    });
+  } catch (err) {
+    console.error("recentOrdersController:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
 }

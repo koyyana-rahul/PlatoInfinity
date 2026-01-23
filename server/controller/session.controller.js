@@ -97,6 +97,14 @@ export async function openTableSessionController(req, res) {
 
     await mongoSession.commitTransaction();
 
+    const io = req.app.locals.io;
+    const populatedSession = await SessionModel.findById(sessionDoc[0]._id).populate(
+      "tableId",
+      "_id tableNumber name seatingCapacity status qrUrl qrImageUrl"
+    );
+
+    io.to(`restaurant:${restaurantId}`).emit("session:opened", populatedSession);
+
     return res.status(201).json({
       success: true,
       error: false,

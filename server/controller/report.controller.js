@@ -1,6 +1,7 @@
 import Order from "../models/order.model.js";
 import Bill from "../models/bill.model.js";
 import Session from "../models/session.model.js";
+import User from "../models/user.model.js";
 import mongoose from "mongoose";
 import BranchMenuItem from "../models/branchMenuItem.model.js";
 
@@ -506,6 +507,143 @@ export async function monthlyPLReportController(req, res) {
     console.error("monthlyPLReportController:", err);
     return res.status(500).json({
       message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
+}
+
+/**
+ * ============================
+ * EXPORT DASHBOARD REPORT
+ * ============================
+ * GET /api/dashboard/report/export
+ * Access: ADMIN / MANAGER / BRAND_ADMIN
+ */
+export async function exportDashboardReportController(req, res) {
+  try {
+    const user = req.user;
+    const { range = "today" } = req.query;
+
+    // Build filter based on user
+    const filter = {};
+    if (user.restaurantId) {
+      filter.restaurantId = user.restaurantId;
+    }
+
+    // Date range
+    let startDate = new Date();
+    let endDate = new Date();
+
+    if (range === "today") {
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+    } else if (range === "week") {
+      const day = startDate.getDay();
+      startDate.setDate(startDate.getDate() - day);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+    } else if (range === "month") {
+      startDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+      endDate = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
+      endDate.setHours(23, 59, 59, 999);
+    }
+
+    // Fetch data
+    const [bills, orders, staff] = await Promise.all([
+      Bill.find({
+        ...filter,
+        status: "PAID",
+        createdAt: { $gte: startDate, $lte: endDate },
+      })
+        .select("_id total createdAt")
+        .lean(),
+
+      Order.find({
+        ...filter,
+        createdAt: { $gte: startDate, $lte: endDate },
+      })
+        .select("_id totalAmount orderStatus items createdAt")
+        .lean(),
+
+      User.find({
+        role: { $in: ["CHEF", "WAITER", "CASHIER"] },
+        ...filter,
+      })
+        .select("_id name role isActive")
+        .lean(),
+    ]);
+
+    // Calculate metrics
+    const totalSales = bills.reduce((sum, b) => sum + (b.total || 0), 0);
+    const completedOrders = orders.filter((o) => o.orderStatus === "SERVED");
+    const totalOrders = orders.length;
+    const avgOrderValue =
+      totalOrders > 0 ? Math.round(totalSales / totalOrders) : 0;
+
+    // Create report data
+    const reportData = [
+      {
+        Metric: "Total Sales",
+        Value: totalSales.toFixed(2),
+        Unit: "Currency",
+        Date: new Date().toLocaleDateString(),
+      },
+      {
+        Metric: "Total Orders",
+        Value: totalOrders,
+        Unit: "Count",
+        Date: new Date().toLocaleDateString(),
+      },
+      {
+        Metric: "Completed Orders",
+        Value: completedOrders.length,
+        Unit: "Count",
+        Date: new Date().toLocaleDateString(),
+      },
+      {
+        Metric: "Average Order Value",
+        Value: avgOrderValue.toFixed(2),
+        Unit: "Currency",
+        Date: new Date().toLocaleDateString(),
+      },
+      {
+        Metric: "Total Bills",
+        Value: bills.length,
+        Unit: "Count",
+        Date: new Date().toLocaleDateString(),
+      },
+      {
+        Metric: "Active Staff",
+        Value: staff.filter((s) => s.isActive).length,
+        Unit: "Count",
+        Date: new Date().toLocaleDateString(),
+      },
+      {
+        Metric: "Completion Rate",
+        Value: `${totalOrders > 0 ? Math.round((completedOrders.length / totalOrders) * 100) : 0}%`,
+        Unit: "Percentage",
+        Date: new Date().toLocaleDateString(),
+      },
+    ];
+
+    return res.json({
+      success: true,
+      error: false,
+      data: reportData,
+      summary: {
+        totalSales: totalSales.toFixed(2),
+        totalOrders,
+        completedOrders: completedOrders.length,
+        avgOrderValue,
+        totalStaff: staff.length,
+        activeStaff: staff.filter((s) => s.isActive).length,
+      },
+    });
+  } catch (err) {
+    console.error("exportDashboardReportController:", err);
+    return res.status(500).json({
+      message: "Failed to export report",
       error: true,
       success: false,
     });

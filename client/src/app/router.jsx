@@ -11,6 +11,9 @@ import VerifyOtp from "../modules/auth/VerifyOtp";
 import ResetPassword from "../modules/auth/ResetPassword";
 import Redirect from "../modules/auth/Redirect";
 
+/* ================= LANDING ================= */
+import LandingHome from "../modules/landing/LandingHome";
+
 /* ================= STAFF AUTH ================= */
 import StaffPinLogin from "../modules/staff/login/StaffPinLogin";
 
@@ -30,6 +33,8 @@ import ManagersPage from "../modules/admin/managers/ManagersPage";
 import MasterMenuPage from "../modules/admin/master-menu/MasterMenuPage";
 import AdminReports from "../modules/admin/AdminReports";
 import AdminSettings from "../modules/admin/AdminSettings";
+import AdminStaffStatus from "../modules/admin/AdminStaffStatus";
+import AdminAnalytics from "../modules/admin/AdminAnalytics";
 
 /* ================= MANAGER ================= */
 import ManagerLayout from "../layouts/ManagerLayout";
@@ -80,7 +85,9 @@ const NotFound = () => (
 
 const router = createBrowserRouter([
   /* ================= ROOT ================= */
-  { path: "/", element: <App /> },
+  { path: "/", element: <LandingHome /> },
+  { path: "/home", element: <LandingHome /> },
+  { path: "/landing", element: <LandingHome /> },
 
   /* ================= PUBLIC AUTH ================= */
   { path: "/login", element: <Login /> },
@@ -130,6 +137,8 @@ const router = createBrowserRouter([
       { path: "master-menu", element: <MasterMenuPage /> },
       { path: "reports", element: <AdminReports /> },
       { path: "settings", element: <AdminSettings /> },
+      { path: "staff-status", element: <AdminStaffStatus /> },
+      { path: "analytics", element: <AdminAnalytics /> },
     ],
   },
 

@@ -15,51 +15,73 @@ import {
 
 const reportRouter = express.Router();
 
-reportRouter.use(requireAuth, requireRole("MANAGER"));
-
-reportRouter.get("/reports/sales", salesSummaryController);
-reportRouter.get("/reports/items", itemSalesReportController);
-reportRouter.get("/reports/waiters", waiterReportController);
-
+// ✅ Sales Summary Report
 reportRouter.get(
-  "reports/daily-sales",
+  "/sales",
   requireAuth,
   requireRole("MANAGER", "OWNER"),
-  dailySalesReport
+  salesSummaryController,
 );
 
+// ✅ Item Sales Report
+reportRouter.get(
+  "/items",
+  requireAuth,
+  requireRole("MANAGER", "OWNER"),
+  itemSalesReportController,
+);
+
+// ✅ Waiter Report
+reportRouter.get(
+  "/waiters",
+  requireAuth,
+  requireRole("MANAGER", "OWNER"),
+  waiterReportController,
+);
+
+// ✅ Daily Sales Report
+reportRouter.get(
+  "/daily-sales",
+  requireAuth,
+  requireRole("MANAGER", "OWNER"),
+  dailySalesReport,
+);
+
+// ✅ Hourly Sales Report
 reportRouter.get(
   "/hourly-sales",
   requireAuth,
   requireRole("MANAGER", "OWNER"),
-  hourlySalesReportController
+  hourlySalesReportController,
 );
 
+// ✅ GST Report
 reportRouter.get(
-  "/reports/gst",
+  "/gst",
   requireAuth,
   requireRole("MANAGER", "OWNER"),
-  gstReportController
+  gstReportController,
 );
 
+// ✅ Top Items Report
 reportRouter.get(
-  "/reports/top-items",
+  "/top-items",
   requireAuth,
   requireRole("MANAGER", "OWNER"),
-  topItemsReportController
+  topItemsReportController,
 );
 
 reportRouter.get(
   "/tax-breakup",
   requireAuth,
   requireRole("MANAGER", "OWNER"),
-  taxBreakupReportController
+  taxBreakupReportController,
 );
 
 reportRouter.get(
   "/monthly-pl",
   requireAuth,
   requireRole("OWNER"),
-  monthlyPLReportController
+  monthlyPLReportController,
 );
 export default reportRouter;

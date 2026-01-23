@@ -36,10 +36,16 @@ export default function Login() {
       setLoading(true);
 
       // 1️⃣ LOGIN
-      await Axios({
+      const loginRes = await Axios({
         ...SummaryApi.login,
         data: form,
       });
+
+      // ✅ Store JWT token in localStorage for subsequent requests
+      if (loginRes.data?.data?.accessToken) {
+        localStorage.setItem("authToken", loginRes.data.data.accessToken);
+        console.log("✅ JWT token stored in localStorage");
+      }
 
       await new Promise((r) => setTimeout(r, 200));
 

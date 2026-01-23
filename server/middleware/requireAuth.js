@@ -5,13 +5,17 @@ import UserModel from "../models/user.model.js";
 export async function requireAuth(req, res, next) {
   try {
     // --- DIAGNOSTIC LOGGING ---
-    // console.log("--- requireAuth Middleware ---");
-    // console.log("Timestamp:", new Date().toISOString());
-    // console.log("Request Path:", req.originalUrl);
-    // console.log("Request Origin:", req.headers.origin);
-    // console.log("Raw Cookie Header:", req.headers.cookie || "Not present");
-    // console.log("Parsed Cookies:", req.cookies);
-    // console.log("--- End of Logs ---");
+    console.log("\n========== 🔐 requireAuth DIAGNOSTICS ==========");
+    console.log("Timestamp:", new Date().toISOString());
+    console.log("Request Path:", req.originalUrl);
+    console.log("Request Origin:", req.headers.origin);
+    console.log("Raw Cookie Header:", req.headers.cookie || "❌ NOT PRESENT");
+    console.log("Parsed req.cookies:", req.cookies);
+    console.log(
+      "Authorization Header:",
+      req.headers.authorization || "❌ NOT PRESENT",
+    );
+    console.log("==============================================\n");
     // --------------------------
 
     // 1️⃣ Read token from cookie or Authorization header

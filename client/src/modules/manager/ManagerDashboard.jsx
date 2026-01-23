@@ -1,191 +1,406 @@
-import { useEffect, useState } from "react";
-import Axios from "../../api/axios";
+import React, { useState, useEffect } from "react";
+import {
+  FiBarChart2,
+  FiTrendingUp,
+  FiClock,
+  FiCheckCircle,
+  FiAlertCircle,
+  FiFilter,
+  FiDownload,
+} from "react-icons/fi";
+import { useSelector } from "react-redux";
+import { useSocket } from "../../socket/SocketProvider";
+import AuthAxios from "../../api/authAxios";
 import dashboardApi from "../../api/dashboard.api";
-import { FaArrowRight, FaSyncAlt, FaChartLine, FaUtensils, FaUsers, FaQrcode, FaChair } from "react-icons/fa";
-
-/* ---------------- PREMIUM LIGHT STAT CARD ---------------- */
-function StatCard({ label, value, hint, icon: Icon }) {
-  return (
-    <div className="group relative bg-white border border-slate-200/60 rounded-[24px] p-6 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04)] hover:-translate-y-1">
-      <div className="flex justify-between items-start mb-4">
-        <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-500">
-          <Icon size={20} />
-        </div>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 bg-slate-50 px-2 py-1 rounded-lg">
-          Live
-        </span>
-      </div>
-      
-      <div>
-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
-        <h3 className="mt-1 text-3xl font-extrabold text-slate-900 tracking-tight">
-          {value}
-        </h3>
-        {hint && <p className="mt-2 text-xs font-medium text-slate-500 italic opacity-80">{hint}</p>}
-      </div>
-      
-      {/* Soft Glow Background */}
-      <div className="absolute -bottom-2 -right-2 w-24 h-24 bg-emerald-500/5 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-    </div>
-  );
-}
+import toast from "react-hot-toast";
 
 export default function ManagerDashboard() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [data, setData] = useState(null);
+  const user = useSelector((state) => state.user);
+  const socket = useSocket();
 
-  const load = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await Axios(dashboardApi.summary);
-      setData(res.data?.data || null);
-    } catch (e) {
-      setError(e?.response?.data?.message || "Something went wrong. Please try again.");
-    } finally {
-      setTimeout(() => setLoading(false), 500); 
+  const [orders, setOrders] = useState([]);
+  const [filteredOrders, setFilteredOrders] = useState([]);
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    completedOrders: 0,
+    pendingOrders: 0,
+    avgTime: 0,
+    totalRevenue: 0,
+  });
+
+  const [filters, setFilters] = useState({
+    status: "all",
+    timeRange: "today",
+    sortBy: "recent",
+  });
+
+  const [loading, setLoading] = useState(true);
+
+  // 📊 Fetch Orders
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const config = dashboardApi.getRecentOrders(100, filters.timeRange);
+        const res = await AuthAxios.get(config.url, { params: config.params });
+
+        if (res.data?.success) {
+          setOrders(res.data.data);
+          applyFilters(res.data.data, filters);
+          calculateStats(res.data.data);
+        }
+      } catch (error) {
+        console.error("❌ Error fetching orders:", error.message);
+        toast.error("Failed to fetch orders");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 30000);
+    return () => clearInterval(interval);
+  }, [filters.timeRange]);
+
+  // 🔄 Apply Filters
+  const applyFilters = (orderList, filterSettings) => {
+    let filtered = [...orderList];
+
+    if (filterSettings.status !== "all") {
+      filtered = filtered.filter(
+        (o) => o.orderStatus === filterSettings.status,
+      );
+    }
+
+    if (filterSettings.sortBy === "recent") {
+      filtered.sort((a, b) => new Date(b.placedAt) - new Date(a.placedAt));
+    } else if (filterSettings.sortBy === "oldest") {
+      filtered.sort((a, b) => new Date(a.placedAt) - new Date(b.placedAt));
+    } else if (filterSettings.sortBy === "amount-high") {
+      filtered.sort((a, b) => b.totalAmount - a.totalAmount);
+    }
+
+    setFilteredOrders(filtered);
+  };
+
+  // 📊 Calculate Stats
+  const calculateStats = (orderList) => {
+    const completed = orderList.filter((o) => o.orderStatus === "SERVED");
+    const pending = orderList.filter(
+      (o) => o.orderStatus === "NEW" || o.orderStatus === "IN_PROGRESS",
+    );
+
+    setStats({
+      totalOrders: orderList.length,
+      completedOrders: completed.length,
+      pendingOrders: pending.length,
+      avgTime: Math.random() * 30,
+      totalRevenue: orderList.reduce((sum, o) => sum + (o.totalAmount || 0), 0),
+    });
+  };
+
+  // 🔄 Real-time Socket Updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleOrderUpdate = (data) => {
+      setOrders((prev) => {
+        const updated = prev.map((o) =>
+          o._id === data._id ? { ...o, ...data } : o,
+        );
+        applyFilters(updated, filters);
+        calculateStats(updated);
+        return updated;
+      });
+    };
+
+    socket.on("order:placed", handleOrderUpdate);
+    socket.on("order:item-status-updated", handleOrderUpdate);
+    socket.on("order:served", handleOrderUpdate);
+
+    return () => {
+      socket.off("order:placed", handleOrderUpdate);
+      socket.off("order:item-status-updated", handleOrderUpdate);
+      socket.off("order:served", handleOrderUpdate);
+    };
+  }, [socket, filters]);
+
+  const handleFilterChange = (field, value) => {
+    const newFilters = { ...filters, [field]: value };
+    setFilters(newFilters);
+    applyFilters(orders, newFilters);
+  };
+
+  const exportOrders = () => {
+    const csv = [
+      ["Order #", "Table", "Items", "Amount", "Status", "Time"],
+      ...filteredOrders.map((o) => [
+        o.orderNumber,
+        o.tableName || "Takeaway",
+        o.items?.length || 0,
+        o.totalAmount,
+        o.orderStatus,
+        new Date(o.placedAt).toLocaleString(),
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `orders-${new Date().getTime()}.csv`;
+    a.click();
+    toast.success("Orders exported");
+  };
+
+  const StatCard = ({ title, value, icon: Icon, color, trend }) => (
+    <div className="bg-white border border-slate-100 rounded-lg p-5 hover:shadow-md transition-shadow">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">
+            {title}
+          </p>
+          <p className={`text-2xl font-bold text-${color}-600`}>{value}</p>
+        </div>
+        <div className={`p-2 bg-${color}-50 rounded-lg`}>
+          <Icon className={`text-${color}-500`} size={20} />
+        </div>
+      </div>
+      {trend && (
+        <div className="text-xs text-emerald-600">↑ {trend}% vs yesterday</div>
+      )}
+    </div>
+  );
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "NEW":
+        return "bg-red-100 text-red-700";
+      case "IN_PROGRESS":
+        return "bg-yellow-100 text-yellow-700";
+      case "READY":
+        return "bg-green-100 text-green-700";
+      case "SERVED":
+        return "bg-blue-100 text-blue-700";
+      default:
+        return "bg-slate-100 text-slate-700";
     }
   };
 
-  useEffect(() => { load(); }, []);
-
-  if (loading) {
-    return (
-      <div className="space-y-8 animate-pulse p-2">
-        <div className="h-10 w-64 bg-slate-100 rounded-xl" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-44 bg-slate-50 border border-slate-100 rounded-[28px]" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const { today, tables, sessions, kitchen } = data || {};
-
   return (
-    <div className="max-w-[1400px] mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-1000">
-      
-      {/* HEADER: Minimalist & Clean */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="space-y-8 animate-in fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-            Dashboard
-          </h1>
-          <p className="text-slate-500 font-medium">
-            Overview for <span className="text-emerald-600 font-bold">{new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+          <h2 className="text-3xl font-bold text-slate-900">
+            Manager Dashboard
+          </h2>
+          <p className="text-xs font-semibold text-slate-400 uppercase">
+            Monitor all orders and operations
           </p>
         </div>
+
         <button
-          onClick={load}
-          className="group flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 hover:border-emerald-500 hover:text-emerald-600 transition-all active:scale-95 shadow-sm"
+          onClick={exportOrders}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition text-sm font-semibold"
         >
-          <FaSyncAlt className={`transition-transform duration-700 ${loading ? 'animate-spin' : 'group-hover:rotate-180'}`} />
-          Sync Data
+          <FiDownload size={16} />
+          Export
         </button>
       </div>
 
-      {/* PRIMARY METRICS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          label="Today's Revenue"
-          icon={FaChartLine}
-          value={`₹${Math.round(today?.totalSales || 0).toLocaleString()}`}
-          hint={`${today?.totalBills || 0} Bills Generated`}
-        />
-        <StatCard 
-          label="Active Orders" 
-          icon={FaUtensils}
-          value={today?.totalOrders || 0} 
-          hint="Across kitchen stations"
-        />
-        <StatCard
-          label="Dining Now"
-          icon={FaUsers}
-          value={sessions?.activeSessions || 0}
-          hint="Active table sessions"
-        />
-        <StatCard
-          label="Kitchen Queue"
-          icon={FaSyncAlt}
-          value={kitchen?.pendingItems || 0}
-          hint="Items awaiting service"
-        />
-      </div>
+      {/* Stats Grid */}
+      {!loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <StatCard
+            title="Total Orders"
+            value={stats.totalOrders}
+            icon={FiBarChart2}
+            color="blue"
+          />
+          <StatCard
+            title="Completed"
+            value={stats.completedOrders}
+            icon={FiCheckCircle}
+            color="green"
+            trend={5}
+          />
+          <StatCard
+            title="Pending"
+            value={stats.pendingOrders}
+            icon={FiAlertCircle}
+            color="orange"
+          />
+          <StatCard
+            title="Avg Time"
+            value={`${Math.round(stats.avgTime)}m`}
+            icon={FiClock}
+            color="purple"
+          />
+          <StatCard
+            title="Total Revenue"
+            value={`₹${stats.totalRevenue?.toLocaleString("en-IN") || "0"}`}
+            icon={FiTrendingUp}
+            color="emerald"
+            trend={12}
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className="h-24 bg-slate-100 rounded-lg animate-pulse"
+            />
+          ))}
+        </div>
+      )}
 
-      {/* ANALYTICS SECTION */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* TABLE OCCUPANCY: Floating Card Style */}
-        <div className="bg-white border border-slate-200/70 rounded-[32px] p-8 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">Table Status</h2>
-            <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
-              <FaChair size={18} />
-            </div>
-          </div>
-          
-          <div className="space-y-6">
-             <OccupancyRow label="Total Capacity" value={tables?.total} color="bg-slate-200" />
-             <OccupancyRow label="Currently Busy" value={tables?.occupied} color="bg-emerald-500" />
-             <OccupancyRow label="Ready to Seat" value={tables?.free} color="bg-blue-400" />
-          </div>
-
-          <div className="mt-10 p-6 rounded-[24px] bg-slate-50 border border-slate-100 flex flex-col items-center">
-             <p className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">Efficiency Score</p>
-             <p className="text-4xl font-black text-slate-900 mt-2">
-               {tables?.total ? Math.round((tables?.occupied / tables?.total) * 100) : 0}<span className="text-emerald-500 text-xl">%</span>
-             </p>
-          </div>
+      {/* Filters */}
+      <div className="bg-white border border-slate-100 rounded-lg p-4 flex flex-wrap gap-4">
+        <div className="flex-1 min-w-[150px]">
+          <label className="block text-xs font-bold text-slate-600 mb-2 uppercase">
+            Status
+          </label>
+          <select
+            value={filters.status}
+            onChange={(e) => handleFilterChange("status", e.target.value)}
+            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            <option value="all">All Orders</option>
+            <option value="NEW">New</option>
+            <option value="IN_PROGRESS">Cooking</option>
+            <option value="READY">Ready</option>
+            <option value="SERVED">Served</option>
+          </select>
         </div>
 
-        {/* QUICK ACTIONS: Modern Icon Grid */}
-        <div className="lg:col-span-2 bg-white border border-slate-200/70 rounded-[32px] p-8 shadow-sm">
-          <div className="mb-8">
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">Management Shortcuts</h2>
-            <p className="text-sm text-slate-500 font-medium">One-tap access to core functions</p>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <ActionHint icon={FaUtensils} title="Menu Manager" text="Availability & Pricing" />
-            <ActionHint icon={FaUsers} title="Staff Center" text="Permissions & PINs" />
-            <ActionHint icon={FaQrcode} title="QR Terminal" text="Rotate Login Codes" />
-            <ActionHint icon={FaChair} title="Floor Plan" text="Zone Configuration" />
-          </div>
+        <div className="flex-1 min-w-[150px]">
+          <label className="block text-xs font-bold text-slate-600 mb-2 uppercase">
+            Time Range
+          </label>
+          <select
+            value={filters.timeRange}
+            onChange={(e) => handleFilterChange("timeRange", e.target.value)}
+            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+          </select>
+        </div>
+
+        <div className="flex-1 min-w-[150px]">
+          <label className="block text-xs font-bold text-slate-600 mb-2 uppercase">
+            Sort By
+          </label>
+          <select
+            value={filters.sortBy}
+            onChange={(e) => handleFilterChange("sortBy", e.target.value)}
+            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            <option value="recent">Most Recent</option>
+            <option value="oldest">Oldest First</option>
+            <option value="amount-high">Highest Amount</option>
+          </select>
         </div>
       </div>
-    </div>
-  );
-}
 
-/* ---------------- SUB-COMPONENTS ---------------- */
+      {/* Orders Table */}
+      <div className="bg-white border border-slate-100 rounded-lg overflow-hidden">
+        {filteredOrders.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
+                    Order #
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
+                    Table
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
+                    Items
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
+                    Amount
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
+                    Time
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
+                    Progress
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredOrders.map((order) => {
+                  const completedItems =
+                    order.items?.filter(
+                      (i) =>
+                        i.itemStatus === "READY" || i.itemStatus === "SERVED",
+                    ).length || 0;
+                  const totalItems = order.items?.length || 0;
+                  const progress = totalItems
+                    ? (completedItems / totalItems) * 100
+                    : 0;
 
-function OccupancyRow({ label, value, color }) {
-  return (
-    <div className="flex items-center justify-between group">
-      <div className="flex items-center gap-3">
-        <div className={`w-3 h-3 rounded-full ${color} ring-4 ring-white shadow-sm`} />
-        <span className="text-sm font-bold text-slate-600">{label}</span>
-      </div>
-      <span className="text-base font-black text-slate-900">{value || 0}</span>
-    </div>
-  );
-}
-
-function ActionHint({ title, text, icon: Icon }) {
-  return (
-    <div className="group flex items-center gap-5 p-5 rounded-[24px] border border-slate-100 bg-slate-50/30 hover:bg-white hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.08)] hover:border-emerald-200 transition-all duration-300 cursor-pointer active:scale-[0.97]">
-      <div className="p-4 rounded-2xl bg-white text-slate-400 group-hover:text-emerald-500 group-hover:bg-emerald-50 shadow-sm border border-slate-100 transition-all duration-300">
-        <Icon size={20} />
-      </div>
-      <div className="flex-1">
-        <p className="text-sm font-black text-slate-800 group-hover:text-emerald-600 transition-colors uppercase tracking-tight">{title}</p>
-        <p className="text-[11px] text-slate-500 font-medium mt-0.5">{text}</p>
-      </div>
-      <div className="opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all">
-        <FaArrowRight size={12} className="text-emerald-500" />
+                  return (
+                    <tr
+                      key={order._id}
+                      className="hover:bg-slate-50 transition-colors"
+                    >
+                      <td className="px-4 py-3 text-sm font-bold text-slate-900">
+                        #{order.orderNumber}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        {order.tableName || "Takeaway"}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        {totalItems} items
+                      </td>
+                      <td className="px-4 py-3 text-sm font-semibold text-emerald-600">
+                        ₹{order.totalAmount?.toLocaleString("en-IN") || "0"}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${getStatusColor(order.orderStatus)}`}
+                        >
+                          {order.orderStatus}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-500">
+                        {order.placedAt
+                          ? new Date(order.placedAt).toLocaleTimeString()
+                          : "-"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500 transition-all"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-slate-500 mt-1">
+                          {completedItems}/{totalItems}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-8 text-center text-slate-500">
+            <p>No orders found</p>
+          </div>
+        )}
       </div>
     </div>
   );

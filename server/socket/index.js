@@ -2,6 +2,8 @@ import { Server as SocketIOServer } from "socket.io";
 import jwt from "jsonwebtoken";
 import UserModel from "../models/user.model.js";
 import StationQueueEvent from "../models/stationQueueEvent.model.js";
+import Order from "../models/order.model.js";
+import { registerSocket } from "./emitter.js";
 
 let io;
 
@@ -19,6 +21,12 @@ export function initSocketServer(httpServer, options = {}) {
     pingInterval: 25000,
     pingTimeout: 60000,
   });
+
+  /**
+   * Register socket instance in emitter module
+   * This allows all controllers to emit events
+   */
+  registerSocket(io);
 
   /* ================= SOCKET AUTH ================= */
   io.use(async (socket, next) => {
@@ -41,6 +49,7 @@ export function initSocketServer(httpServer, options = {}) {
 
           socket.user = {
             id: String(user._id),
+            name: user.name,
             role: user.role,
             restaurantId: String(user.restaurantId),
             station: user.kitchenStation || null,
@@ -82,6 +91,11 @@ export function initSocketServer(httpServer, options = {}) {
       /* ---------- BASE ROOM ---------- */
       socket.join(`restaurant:${user.restaurantId}`);
 
+      /* ---------- MANAGER ROOM ---------- */
+      if (user.role === "MANAGER" || user.role === "BRAND_ADMIN") {
+        socket.join(`restaurant:${user.restaurantId}:managers`);
+      }
+
       /* ---------- WAITER ROOM ---------- */
       if (user.role === "WAITER" || user.role === "MANAGER") {
         socket.join(`restaurant:${user.restaurantId}:waiters`);
@@ -90,18 +104,150 @@ export function initSocketServer(httpServer, options = {}) {
       /* ---------- CHEF ROOM ---------- */
       if (user.role === "CHEF" && user.station) {
         socket.join(`restaurant:${user.restaurantId}:station:${user.station}`);
+        socket.join(`restaurant:${user.restaurantId}:kitchen`);
       }
+
+      /* ---------- CASHIER ROOM ---------- */
+      if (user.role === "CASHIER") {
+        socket.join(`restaurant:${user.restaurantId}:cashier`);
+      }
+
+      /* ---------- USER-SPECIFIC ROOM (for direct notifications) ---------- */
+      socket.join(`user:${user.id}`);
     }
 
-    /* ---------- OPTIONAL EXPLICIT JOIN (frontend) ---------- */
-    socket.on("join:waiter", ({ restaurantId }) => {
-      if (restaurantId === user.restaurantId) {
-        socket.join(`restaurant:${restaurantId}:waiters`);
+    /* ---------- CUSTOMER JOINS ---------- */
+    socket.on("join:customer", ({ sessionId, tableId, restaurantId }) => {
+      if (restaurantId) {
+        socket.join(`restaurant:${restaurantId}:customers`);
+        socket.join(`session:${sessionId}`);
+        console.log(
+          `👥 Customer joined: session:${sessionId} | restaurant:${restaurantId}`,
+        );
       }
     });
 
-    /* ================= CHEF EVENTS ================= */
+    /* ================= CHEF KITCHEN EVENTS ================= */
 
+    /**
+     * Chef claims an item from queue
+     */
+    socket.on("kitchen:claim-item", async ({ orderId, itemIndex }, ack) => {
+      try {
+        if (user.role !== "CHEF") {
+          return ack({ ok: false, error: "Not authorized" });
+        }
+
+        const order = await Order.findById(orderId);
+        if (!order) return ack({ ok: false, error: "Order not found" });
+
+        const item = order.items[itemIndex];
+        if (!item) return ack({ ok: false, error: "Item not found" });
+
+        if (item.itemStatus !== "NEW") {
+          return ack({
+            ok: false,
+            error: "Item already claimed",
+          });
+        }
+
+        // Update item status
+        item.itemStatus = "IN_PROGRESS";
+        item.chefId = user.id;
+        item.claimedAt = new Date();
+
+        await order.save();
+
+        // Emit to all relevant parties
+        io.to(`restaurant:${user.restaurantId}`).emit("order:item-claimed", {
+          orderId,
+          itemIndex,
+          itemName: item.name,
+          chefName: user.name,
+          station: item.station,
+          claimedAt: item.claimedAt,
+        });
+
+        io.to(`session:${order.sessionId}`).emit("order:item-status", {
+          orderId,
+          itemIndex,
+          itemName: item.name,
+          status: "IN_PROGRESS",
+        });
+
+        ack({ ok: true });
+      } catch (err) {
+        console.error("kitchen:claim-item error:", err);
+        ack({ ok: false, error: err.message });
+      }
+    });
+
+    /**
+     * Chef marks item as ready
+     */
+    socket.on("kitchen:mark-ready", async ({ orderId, itemIndex }, ack) => {
+      try {
+        if (user.role !== "CHEF") {
+          return ack({ ok: false, error: "Not authorized" });
+        }
+
+        const order = await Order.findById(orderId);
+        if (!order) return ack({ ok: false, error: "Order not found" });
+
+        const item = order.items[itemIndex];
+        if (!item) return ack({ ok: false, error: "Item not found" });
+
+        // Update item status
+        item.itemStatus = "READY";
+        item.readyAt = new Date();
+
+        // Check if all items in order are ready
+        const allReady = order.items.every((i) => i.itemStatus === "READY");
+
+        await order.save();
+
+        // Emit to waiter - item ready for serving
+        io.to(`restaurant:${user.restaurantId}:waiters`).emit(
+          "order:item-ready",
+          {
+            orderId,
+            itemIndex,
+            itemName: item.name,
+            tableId: order.tableId,
+            tableName: order.tableName,
+            allReady,
+          },
+        );
+
+        // Emit to customer
+        io.to(`session:${order.sessionId}`).emit("order:item-ready", {
+          orderId,
+          itemName: item.name,
+          itemStatus: "READY",
+          allReady,
+        });
+
+        // If all items ready, notify kitchen
+        if (allReady) {
+          io.to(`restaurant:${user.restaurantId}`).emit(
+            "order:ready-for-serving",
+            {
+              orderId,
+              tableName: order.tableName,
+            },
+          );
+        }
+
+        ack({ ok: true });
+      } catch (err) {
+        console.error("kitchen:mark-ready error:", err);
+        ack({ ok: false, error: err.message });
+      }
+    });
+
+    /**
+     * Station/Kitchen queue update (send to all chefs at station)
+     */
     socket.on("station:event:claim", async ({ eventId }, ack) => {
       try {
         const event = await StationQueueEvent.findById(eventId);
@@ -118,7 +264,8 @@ export function initSocketServer(httpServer, options = {}) {
         });
 
         ack({ ok: true });
-      } catch {
+      } catch (err) {
+        console.error("station:event:claim error:", err);
         ack({ ok: false });
       }
     });
@@ -141,23 +288,63 @@ export function initSocketServer(httpServer, options = {}) {
         });
 
         ack({ ok: true });
-      } catch {
+      } catch (err) {
+        console.error("station:event:update error:", err);
         ack({ ok: false });
       }
     });
 
-    /* ================= CUSTOMER MENU UPDATES ================= */
-    socket.on("join:customer", ({ sessionId, tableId, restaurantId }) => {
-      // Customer joins room for real-time menu updates
-      // restaurantId comes from their session or table info
-      if (restaurantId) {
-        socket.join(`restaurant:${restaurantId}:customers`);
-        console.log(
-          `👥 Customer joined: restaurant:${restaurantId}:customers (Session: ${sessionId})`,
-        );
+    /* ================= WAITER EVENTS ================= */
+
+    /**
+     * Waiter serves an order
+     */
+    socket.on("waiter:serve-item", async ({ orderId, itemIndex }, ack) => {
+      try {
+        if (!["WAITER", "MANAGER"].includes(user.role)) {
+          return ack({ ok: false, error: "Not authorized" });
+        }
+
+        const order = await Order.findById(orderId);
+        if (!order) return ack({ ok: false, error: "Order not found" });
+
+        const item = order.items[itemIndex];
+        if (!item) return ack({ ok: false, error: "Item not found" });
+
+        // Update item status
+        item.itemStatus = "SERVED";
+        item.waiterId = user.id;
+        item.servedAt = new Date();
+
+        // Check if all items served
+        const allServed = order.items.every((i) => i.itemStatus === "SERVED");
+
+        await order.save();
+
+        // Emit order served event
+        io.to(`restaurant:${user.restaurantId}`).emit("order:item-served", {
+          orderId,
+          itemIndex,
+          itemName: item.name,
+          tableId: order.tableId,
+          tableName: order.tableName,
+          allServed,
+        });
+
+        io.to(`session:${order.sessionId}`).emit("order:item-served", {
+          orderId,
+          itemName: item.name,
+          allServed,
+        });
+
+        ack({ ok: true });
+      } catch (err) {
+        console.error("waiter:serve-item error:", err);
+        ack({ ok: false, error: err.message });
       }
     });
 
+    /* ================= CUSTOMER MENU UPDATES ================= */
     socket.on("disconnect", () => {
       console.log(`❌ ${socket.id} disconnected`);
     });

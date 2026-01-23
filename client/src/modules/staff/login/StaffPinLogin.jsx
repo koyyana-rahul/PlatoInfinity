@@ -52,6 +52,12 @@ export default function StaffLogin() {
         },
       });
 
+      // ✅ Store JWT token in localStorage for subsequent requests
+      if (res.data?.data?.accessToken) {
+        localStorage.setItem("authToken", res.data.data.accessToken);
+        console.log("✅ JWT token stored in localStorage");
+      }
+
       // Hydrate full profile (sets brand + role + restaurantId + onDuty etc)
       const meRes = await Axios(SummaryApi.me);
       const user = meRes?.data?.data;
@@ -63,20 +69,20 @@ export default function StaffLogin() {
           `/${user.brand.slug}/staff/${user.role.toLowerCase()}/restaurants/${
             user.restaurantId
           }`,
-          { replace: true }
+          { replace: true },
         );
       } else {
         // fallback to response data
         const { role, restaurantId, brandSlug } = res.data.data;
         navigate(
           `/${brandSlug}/staff/${role.toLowerCase()}/restaurants/${restaurantId}`,
-          { replace: true }
+          { replace: true },
         );
       }
     } catch (error) {
       console.error("Staff login error:", error);
       toast.error(
-        error?.response?.data?.message || "Invalid PIN or expired QR"
+        error?.response?.data?.message || "Invalid PIN or expired QR",
       );
     } finally {
       setLoading(false);

@@ -9,7 +9,7 @@ export function initAxiosInterceptors() {
 
   /* =====================================================
      REQUEST INTERCEPTOR
-     Attach RAW customer session token
+     Attach JWT tokens for admin + customer session tokens
   ===================================================== */
   Axios.interceptors.request.use(
     (config) => {
@@ -20,7 +20,39 @@ export function initAxiosInterceptors() {
         return config;
       }
 
+      // ✅ ADMIN/MANAGER PROTECTED ROUTES
+      // Attach JWT token for dashboard, restaurants, reports, etc.
+      if (
+        url.startsWith("/api/dashboard") ||
+        url.startsWith("/api/restaurants") ||
+        url.startsWith("/api/staff") ||
+        url.startsWith("/api/manager") ||
+        url.startsWith("/api/report") ||
+        url.startsWith("/api/kitchen")
+      ) {
+        const jwtToken =
+          localStorage.getItem("authToken") ||
+          localStorage.getItem("token") ||
+          sessionStorage.getItem("authToken");
+
+        if (jwtToken) {
+          config.headers["Authorization"] = `Bearer ${jwtToken}`;
+          console.log(
+            "✅ Attached JWT token to admin route:",
+            url,
+            "| Token:",
+            jwtToken.substring(0, 10) + "...",
+          );
+        } else {
+          console.warn(
+            "⚠️ No JWT token found in localStorage/sessionStorage for admin route:",
+            url,
+          );
+        }
+      }
+
       // ✅ CUSTOMER PROTECTED ROUTES
+      // Attach customer session token for cart, orders, etc.
       if (
         url.startsWith("/api/cart") ||
         url.startsWith("/api/order") ||

@@ -36,6 +36,7 @@ import waiterRouter from "./route/waiter.route.js";
 import addressRouter from "./route/address.route.js";
 import publicRouter from "./route/public.route.js";
 import shiftRouter from "./route/shift.route.js";
+import notificationRouter from "./route/notification.route.js";
 
 // SOCKET
 import { initSocketServer } from "./socket/index.js";
@@ -43,6 +44,7 @@ import { initSocketServer } from "./socket/index.js";
 // CRON + ERROR
 import { initCronJobs } from "./cron.js";
 import { handleJsonError } from "./middleware/handleJsonError.js";
+import { requireAuth } from "./middleware/requireAuth.js";
 
 /* ======================================================
    APP SETUP
@@ -59,9 +61,9 @@ app.use(express.urlencoded({ extended: true }));
 ====================================================== */
 
 const allowedOrigins = [
-  // "http://localhost:5173",
-  "https://platoinfinity.xyz",
-  "https://www.platoinfinity.xyz",
+  "http://localhost:5173",
+  // "https://platoinfinity.xyz",
+  // "https://www.platoinfinity.xyz",
 ];
 
 app.use(
@@ -99,6 +101,29 @@ app.get("/", (req, res) => res.json({ ok: true, service: "Plato API" }));
 
 app.get("/health", (req, res) => res.json({ ok: true, time: new Date() }));
 
+// TEST ENDPOINT FOR COOKIES
+app.get("/api/test/debug", requireAuth, (req, res) => {
+  return res.json({
+    success: true,
+    message: "Debug endpoint - requireAuth passed",
+    user: req.user,
+    cookies: req.cookies,
+  });
+});
+
+// DIAGNOSTIC: Check if dashboard route is even being hit
+app.use("/api/dashboard", (req, res, next) => {
+  console.log("🔍 DASHBOARD REQUEST INTERCEPTED");
+  console.log("   URL:", req.originalUrl);
+  console.log("   Method:", req.method);
+  console.log("   Cookies:", req.cookies);
+  console.log(
+    "   Auth Header:",
+    req.headers.authorization ? "Present" : "Missing",
+  );
+  next();
+});
+
 /* ======================================================
    ROUTES
 ====================================================== */
@@ -129,6 +154,7 @@ app.use("/api/kitchen", kitchenRouter);
 app.use("/api", billShareRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/waiter", waiterRouter);
+app.use("/api/notifications", notificationRouter);
 
 /* ======================================================
    FRONTEND (VITE BUILD)

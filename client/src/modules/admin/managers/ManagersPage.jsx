@@ -7,7 +7,7 @@ import {
   FiClock,
   FiPlus,
   FiArrowLeft,
-  FiActivity,
+  FiRefreshCw,
 } from "react-icons/fi";
 import clsx from "clsx";
 
@@ -19,13 +19,18 @@ import InviteManagerModal from "./InviteManagerModal";
 import ManagerTable from "./ManagerTable";
 import ConfirmRemoveModal from "./ConfirmRemoveModal";
 
+/**
+ * Managers Page - Professional manager management interface
+ * Fully responsive for mobile, tablet, and desktop
+ */
 export default function ManagersPage() {
-  const { restaurantId } = useParams();
+  const { restaurantId, brandSlug } = useParams();
   const navigate = useNavigate();
 
   const [restaurant, setRestaurant] = useState(null);
   const [managers, setManagers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [openInvite, setOpenInvite] = useState(false);
   const [removeTarget, setRemoveTarget] = useState(null);
@@ -34,9 +39,9 @@ export default function ManagersPage() {
   const loadManagers = useCallback(async () => {
     try {
       const res = await Axios(restaurantApi.managers(restaurantId));
-      setManagers(res.data.data);
-    } catch {
-      // Quiet background failure
+      setManagers(res.data.data || []);
+    } catch (err) {
+      console.error("Failed to load managers:", err);
     }
   }, [restaurantId]);
 
@@ -47,6 +52,9 @@ export default function ManagersPage() {
         const r = await Axios(restaurantApi.getById(restaurantId));
         setRestaurant(r.data.data);
         await loadManagers();
+      } catch (err) {
+        console.error("Failed to initialize:", err);
+        toast.error("Failed to load data");
       } finally {
         setLoading(false);
       }
@@ -54,6 +62,7 @@ export default function ManagersPage() {
     initialize();
   }, [restaurantId, loadManagers]);
 
+  // Auto-refresh every 10 seconds
   useEffect(() => {
     const interval = setInterval(loadManagers, 10000);
     const onFocus = () => loadManagers();
@@ -64,25 +73,34 @@ export default function ManagersPage() {
     };
   }, [loadManagers]);
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadManagers();
+    setRefreshing(false);
+    toast.success("Refreshed");
+  };
+
   const handleResend = async (managerId) => {
     try {
-      toast.loading("Re-authorizing...", { id: "resend" });
+      const toastId = toast.loading("Sending invite...");
       await Axios(managerApi.resendInvite(restaurantId, managerId));
-      toast.success("Dispatched", { id: "resend" });
+      toast.success("Invite resent successfully", { id: toastId });
+      loadManagers();
     } catch (err) {
-      toast.error("Failed", { id: "resend" });
+      toast.error("Failed to resend invite");
     }
   };
 
   const handleRemove = async () => {
     try {
       setActionLoading(true);
+      const toastId = toast.loading("Removing manager...");
       await Axios(managerApi.removeManager(restaurantId, removeTarget._id));
-      toast.success("Access revoked");
+      toast.success("Manager access revoked", { id: toastId });
       setRemoveTarget(null);
       loadManagers();
     } catch (err) {
-      toast.error("Operation failed");
+      toast.error("Failed to remove manager");
     } finally {
       setActionLoading(false);
     }
@@ -92,75 +110,91 @@ export default function ManagersPage() {
   const invitedCount = managers.length - activeCount;
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
-      <div className="px-4 pb-10 pt-4 sm:px-10 sm:pt-8 space-y-6 sm:space-y-10 animate-in fade-in duration-700 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500">
         {/* ================= HEADER ================= */}
-        <div className="flex flex-col gap-4">
+        <div className="space-y-4 sm:space-y-6">
+          {/* Back Button */}
           <button
-            onClick={() => navigate(-1)}
-            className="group flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-emerald-600 transition-colors w-fit"
+            onClick={() => navigate(`/${brandSlug}/admin/restaurants`)}
+            className="inline-flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg transition"
           >
-            <FiArrowLeft className="group-hover:-translate-x-0.5 transition-transform" />
-            Back to Units
+            <FiArrowLeft size={18} />
+            <span className="text-sm font-semibold">Back</span>
           </button>
 
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-0.5">
-              <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight uppercase">
-                Authority Hub
+          {/* Main Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
+                👥 Manager Access
               </h1>
-              <div className="flex items-center gap-2">
-                <div className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  {restaurant?.name || "Initializing..."} • Managed Live
-                </p>
-              </div>
+              <p className="text-slate-600 mt-2">
+                {restaurant?.name || "Restaurant"} • Manage administrative
+                access
+              </p>
             </div>
 
-            {/* Main Action: Emerald-500 */}
-            <button
-              onClick={() => setOpenInvite(true)}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-500 text-white px-7 py-3.5 sm:py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-emerald-100 hover:bg-emerald-600 transition-all active:scale-[0.97]"
-            >
-              <FiPlus size={16} strokeWidth={3} />
-              Invite Manager
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
+              >
+                <FiRefreshCw
+                  size={18}
+                  className={refreshing ? "animate-spin" : ""}
+                />
+                <span className="hidden sm:inline text-sm font-semibold">
+                  Refresh
+                </span>
+              </button>
+
+              <button
+                onClick={() => setOpenInvite(true)}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 sm:px-6 py-3 rounded-lg font-bold text-sm sm:text-base transition shadow-lg hover:shadow-xl"
+              >
+                <FiPlus size={20} />
+                <span className="hidden sm:inline">Invite Manager</span>
+                <span className="sm:hidden">Add</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* ================= METRICS ================= */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
-          <StatCard
-            icon={FiUsers}
-            label="Total Members"
-            value={managers.length}
-            color="slate"
-          />
-          <StatCard
-            icon={FiUserCheck}
-            label="Active Admins"
-            value={activeCount}
-            color="emerald"
-          />
-          <StatCard
-            icon={FiClock}
-            label="Pending Access"
-            value={invitedCount}
-            color="orange"
-          />
-        </div>
+        {/* ================= STATISTICS ================= */}
+        {!loading && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+            <StatCard
+              icon={FiUsers}
+              label="Total Managers"
+              value={managers.length}
+              bgColor="bg-blue-50"
+              textColor="text-blue-600"
+            />
+            <StatCard
+              icon={FiUserCheck}
+              label="Active Managers"
+              value={activeCount}
+              bgColor="bg-emerald-50"
+              textColor="text-emerald-600"
+            />
+            <StatCard
+              icon={FiClock}
+              label="Pending Invites"
+              value={invitedCount}
+              bgColor="bg-orange-50"
+              textColor="text-orange-600"
+            />
+          </div>
+        )}
 
         {/* ================= CONTENT ================= */}
         <div className="pt-2">
           {loading ? (
-            <div className="grid gap-4 sm:grid-cols-3">
-              {[...Array(3)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-32 rounded-[28px] bg-white border border-slate-100 animate-pulse"
-                />
-              ))}
-            </div>
+            <LoadingState />
+          ) : managers.length === 0 ? (
+            <EmptyState onInvite={() => setOpenInvite(true)} />
           ) : (
             <div className="animate-in slide-in-from-bottom-3 duration-500">
               <ManagerTable
@@ -173,7 +207,7 @@ export default function ManagersPage() {
         </div>
       </div>
 
-      {/* MODALS */}
+      {/* ================= MODALS ================= */}
       {openInvite && (
         <InviteManagerModal
           restaurantId={restaurantId}
@@ -194,42 +228,71 @@ export default function ManagersPage() {
   );
 }
 
-/* ================= STAT CARD ================= */
-
-function StatCard({ icon: Icon, label, value, color }) {
-  const themes = {
-    slate: "text-slate-400 bg-slate-50",
-    emerald: "text-emerald-500 bg-emerald-50",
-    orange: "text-orange-500 bg-orange-50",
-  };
-
+/**
+ * Statistic Card Component
+ */
+function StatCard({ icon: Icon, label, value, bgColor, textColor }) {
   return (
-    <div className="group relative p-5 rounded-[28px] border border-slate-100 bg-white transition-all hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.04)] flex items-center justify-between overflow-hidden">
-      <div className="flex items-center gap-4 relative z-10">
-        {/* Background Decorative Icon */}
-        <div className="absolute -right-16 -bottom-10 opacity-[0.03] group-hover:scale-110 transition-transform duration-700">
-          <Icon size={100} />
-        </div>
-
+    <div
+      className={`${bgColor} rounded-xl border border-slate-200 p-4 sm:p-6 hover:shadow-lg transition group`}
+    >
+      <div className="flex items-center gap-3 sm:gap-4">
         <div
-          className={clsx(
-            "h-11 w-11 rounded-2xl flex items-center justify-center shadow-inner shrink-0 transition-all duration-500 group-hover:bg-emerald-500 group-hover:text-white",
-            themes[color],
-          )}
+          className={`${textColor} p-3 rounded-lg group-hover:scale-110 transition`}
         >
-          <Icon size={20} strokeWidth={2.5} />
+          <Icon size={24} />
         </div>
-        <div className="min-w-0">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">
+        <div>
+          <p className="text-xs sm:text-sm font-semibold text-slate-600">
             {label}
           </p>
-          <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">
+          <p className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">
             {value}
           </p>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <div className="h-1 w-1 rounded-full bg-slate-200 group-hover:bg-emerald-500 transition-colors" />
+/**
+ * Loading State Component
+ */
+function LoadingState() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      {[...Array(6)].map((_, i) => (
+        <div
+          key={i}
+          className="h-48 bg-white rounded-xl border border-slate-200 animate-pulse"
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Empty State Component
+ */
+function EmptyState({ onInvite }) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 text-center">
+      <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <FiUsers size={32} className="text-slate-300" />
+      </div>
+      <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
+        No managers yet
+      </h3>
+      <p className="text-slate-600 max-w-sm mx-auto mb-6">
+        Invite your first manager to manage this restaurant and its operations
+      </p>
+      <button
+        onClick={onInvite}
+        className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-bold transition"
+      >
+        <FiPlus size={20} />
+        Invite Manager
+      </button>
     </div>
   );
 }

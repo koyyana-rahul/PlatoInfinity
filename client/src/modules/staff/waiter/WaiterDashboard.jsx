@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
 
+import { useSocket } from "../../../socket/SocketProvider";
 import Axios from "../../../api/axios";
 import tableApi from "../../../api/table.api";
 import sessionApi from "../../../api/session.api";
@@ -25,27 +26,103 @@ export default function WaiterDashboard() {
     setSessions(s.data.data || []);
   };
 
-  useEffect(() => {
-    load();
-    const id = setInterval(load, 20000); // fallback auto refresh
-    return () => clearInterval(id);
-  }, [restaurantId]);
+    const socket = useSocket();
 
-  const sessionByTable = useMemo(() => {
-    const map = new Map();
-    sessions.forEach((s) => map.set(String(s.tableId._id), s));
-    return map;
-  }, [sessions]);
+  
 
-  const openSession = async (tableId) => {
-    const res = await Axios({
-      ...sessionApi.open(restaurantId),
-      data: { tableId },
-    });
-    setPinInfo(res.data.data);
-    toast.success("Session opened");
-    load();
-  };
+    useEffect(() => {
+
+      load();
+
+    }, [restaurantId]);
+
+  
+
+    useEffect(() => {
+
+      if (!socket) return;
+
+  
+
+      const handleSessionOpened = (newSession) => {
+
+        setSessions((prev) => [...prev, newSession]);
+
+        setTables((prev) =>
+
+          prev.map((t) =>
+
+            t._id === newSession.tableId._id ? { ...t, status: "OCCUPIED" } : t
+
+          )
+
+        );
+
+      };
+
+  
+
+      const handleSessionClosed = ({ sessionId, tableId }) => {
+
+        setSessions((prev) => prev.filter((s) => s._id !== sessionId));
+
+        setTables((prev) =>
+
+          prev.map((t) => (t._id === tableId ? { ...t, status: "FREE" } : t))
+
+        );
+
+      };
+
+  
+
+      socket.on("session:opened", handleSessionOpened);
+
+      socket.on("session:closed", handleSessionClosed);
+
+  
+
+      return () => {
+
+        socket.off("session:opened", handleSessionOpened);
+
+        socket.off("session:closed", handleSessionClosed);
+
+      };
+
+    }, [socket]);
+
+  
+
+    const sessionByTable = useMemo(() => {
+
+      const map = new Map();
+
+      sessions.forEach((s) => map.set(String(s.tableId._id), s));
+
+      return map;
+
+    }, [sessions]);
+
+  
+
+    const openSession = async (tableId) => {
+
+      const res = await Axios({
+
+        ...sessionApi.open(restaurantId),
+
+        data: { tableId },
+
+      });
+
+      setPinInfo(res.data.data);
+
+      toast.success("Session opened");
+
+      // load() is no longer needed here
+
+    };
 
   return (
     <div className="space-y-6">

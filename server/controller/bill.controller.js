@@ -1,5 +1,7 @@
 import Bill from "../models/bill.model.js";
 import Order from "../models/order.model.js";
+import Session from "../models/session.model.js";
+import Table from "../models/table.model.js";
 
 /**
  * =========================
@@ -112,8 +114,23 @@ export async function payBillController(req, res) {
           closedAt: bill.closedAt,
           closedByUserId: req.user._id,
         },
-      }
+      },
     );
+
+    const session = await Session.findById(bill.sessionId);
+    if (session) {
+      session.status = "CLOSED";
+      session.closedAt = new Date();
+      await session.save();
+
+      await Table.findByIdAndUpdate(session.tableId, { status: "FREE" });
+
+      const io = req.app.locals.io;
+      io.to(`restaurant:${session.restaurantId}`).emit("session:closed", {
+        tableId: session.tableId,
+        sessionId: session._id,
+      });
+    }
 
     return res.json({
       success: true,
