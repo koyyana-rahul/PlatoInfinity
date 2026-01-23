@@ -3,6 +3,7 @@ import brandModel from "../models/brand.model.js";
 import restaurantModel from "../models/restaurant.model.js";
 import { generateTableQR } from "../utils/generateTableQR.js";
 import { uploadQrToCloudinary } from "../utils/uploadQrToCloudinary.js";
+import generateFrontendUrl from "../utils/generateFrontendUrl.js";
 
 /* ======================================================
    CREATE TABLE (MANAGER)
@@ -61,10 +62,7 @@ export async function createTableController(req, res) {
       isArchived: false,
     });
 
-    const baseUrl = "https://platoinfinity.xyz";
-
-    /* ================= QR URL ================= */
-    const qrUrl = `${baseUrl}/${brandSlug}/${restaurantSlug}/table/${table._id}`;
+    const qrUrl = generateFrontendUrl(`/${brandSlug}/${restaurantSlug}/table/${table._id}`);
 
     const qrBase64 = await generateTableQR({
       url: qrUrl,
