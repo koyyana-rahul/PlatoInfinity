@@ -61,10 +61,7 @@ export async function createTableController(req, res) {
       isArchived: false,
     });
 
-    const baseUrl =
-      process.env.FRONTEND_URL ||
-      "http://localhost:5173" ||
-      "https://platoinfinity.xyz";
+    const baseUrl = process.env.FRONTEND_URL;
 
     /* ================= QR URL ================= */
     const qrUrl = `${baseUrl}/${brandSlug}/${restaurantSlug}/table/${table._id}`;
