@@ -58,32 +58,10 @@ export function initAxiosInterceptors() {
         url.startsWith("/api/order") ||
         url.startsWith("/api/customer")
       ) {
-        let sessionToken = null;
-        let sessionKey = null;
-
-        // NEW: Try to get tableId from URL for accuracy
-        const match = window.location.pathname.match(/table\/([^/]+)/);
-        if (match) {
-          const tableId = match[1];
-          sessionKey = `plato:customerSession:${tableId}`;
-          sessionToken = localStorage.getItem(sessionKey);
-          console.log(
-            `🎯 Found tableId '${tableId}' in URL, using session key: ${sessionKey}`,
-          );
-        }
-
-        // FALLBACK: If no tableId in URL, use the old (less reliable) method
-        if (!sessionToken) {
-          console.log(
-            "⚠️ Could not find session token using tableId from URL, trying fallback.",
-          );
-          sessionKey = Object.keys(localStorage).find((k) =>
-            k.startsWith("plato:customerSession:"),
-          );
-          if (sessionKey) {
-            sessionToken = localStorage.getItem(sessionKey);
-          }
-        }
+        // Get session token from sessionStorage or localStorage
+        const sessionToken =
+          sessionStorage.getItem("plato:token") ||
+          localStorage.getItem("plato:token");
 
         if (sessionToken) {
           config.headers["x-customer-session"] = sessionToken;
@@ -94,7 +72,7 @@ export function initAxiosInterceptors() {
             sessionToken.substring(0, 10) + "...",
           );
         } else {
-          console.warn("⚠️ No session token found in localStorage for", url);
+          console.warn("⚠️ No session token found in storage for", url);
         }
       }
 

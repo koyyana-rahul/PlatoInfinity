@@ -33,6 +33,7 @@ import kitchenRouter from "./route/kitchen.route.js";
 import billShareRouter from "./route/billShare.route.js";
 import dashboardRouter from "./route/dashboard.route.js";
 import waiterRouter from "./route/waiter.route.js";
+import cashierRouter from "./route/cashier.route.js";
 import addressRouter from "./route/address.route.js";
 import publicRouter from "./route/public.route.js";
 import shiftRouter from "./route/shift.route.js";
@@ -154,6 +155,7 @@ app.use("/api/kitchen", kitchenRouter);
 app.use("/api", billShareRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/waiter", waiterRouter);
+app.use("/api/cashier", cashierRouter);
 app.use("/api/notifications", notificationRouter);
 
 /* ======================================================

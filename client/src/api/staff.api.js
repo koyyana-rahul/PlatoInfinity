@@ -48,6 +48,11 @@ const staffApi = {
     url: "/api/staff/shift/end",
     method: "POST",
   },
+
+  getShiftStatus: {
+    url: "/api/staff/shift/status",
+    method: "GET",
+  },
 };
 
 export default staffApi;

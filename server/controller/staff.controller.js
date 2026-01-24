@@ -269,6 +269,54 @@ export async function staffLoginController(req, res) {
   }
 }
 /* ======================================================
+   STAFF SHIFT START (CLOCK IN)
+====================================================== */
+export async function startStaffShiftController(req, res) {
+  try {
+    const staff = req.user;
+
+    if (!["WAITER", "CHEF", "CASHIER"].includes(staff.role)) {
+      return res.status(403).json({ message: "Staff only" });
+    }
+
+    // ✅ IDEMPOTENT: If already on duty, return current shift
+    if (staff.onDuty) {
+      return res.json({
+        success: true,
+        message: "Already on duty",
+        data: {
+          id: staff._id,
+          name: staff.name,
+          role: staff.role,
+          onDuty: true,
+          shiftStartedAt: staff.lastShiftIn,
+        },
+      });
+    }
+
+    // ⏰ START SHIFT
+    staff.onDuty = true;
+    staff.lastShiftIn = new Date();
+    await staff.save();
+
+    return res.json({
+      success: true,
+      message: "Shift started",
+      data: {
+        id: staff._id,
+        name: staff.name,
+        role: staff.role,
+        onDuty: true,
+        shiftStartedAt: staff.lastShiftIn,
+      },
+    });
+  } catch (err) {
+    console.error("startStaffShiftController:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+/* ======================================================
    STAFF SHIFT END (LOGOUT)
 ====================================================== */
 export async function endStaffShiftController(req, res) {
@@ -297,6 +345,34 @@ export async function endStaffShiftController(req, res) {
     });
   } catch (err) {
     console.error("endStaffShiftController:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+/* ======================================================
+   GET STAFF SHIFT STATUS
+====================================================== */
+export async function getStaffShiftStatusController(req, res) {
+  try {
+    const staff = req.user;
+
+    if (!["WAITER", "CHEF", "CASHIER"].includes(staff.role)) {
+      return res.status(403).json({ message: "Staff only" });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        id: staff._id,
+        name: staff.name,
+        role: staff.role,
+        onDuty: staff.onDuty,
+        shiftStartedAt: staff.lastShiftIn,
+        shiftEndedAt: staff.lastShiftOut,
+      },
+    });
+  } catch (err) {
+    console.error("getStaffShiftStatusController:", err);
     res.status(500).json({ message: "Server error" });
   }
 }

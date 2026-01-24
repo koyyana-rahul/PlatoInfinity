@@ -9,6 +9,9 @@ import {
   closeSessionController,
   getSessionController,
   listRestaurantSessionsController,
+  resumeSessionController,
+  checkTokenExpiryController,
+  getSessionStatusController,
 } from "../controller/session.controller.js";
 import requireSessionAuth from "../middleware/requireSessionAuth.js";
 
@@ -51,7 +54,16 @@ sessionRouter.get(
   listRestaurantSessionsController,
 );
 
-// Public: customer joins session via QR -> sends restaurantId + tableId + tablePin
+// PUBLIC: customer joins session via QR -> sends restaurantId + tableId + tablePin
 sessionRouter.post("/sessions/join", joinSessionController);
+
+// PUBLIC: customer resumes session after cookie loss
+sessionRouter.post("/sessions/resume", resumeSessionController);
+
+// CUSTOMER: check if token is still valid
+sessionRouter.post("/sessions/check-token", checkTokenExpiryController);
+
+// PUBLIC: get session status
+sessionRouter.get("/sessions/:sessionId/status", getSessionStatusController);
 
 export default sessionRouter;

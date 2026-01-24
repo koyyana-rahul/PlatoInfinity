@@ -98,12 +98,17 @@ export async function openTableSessionController(req, res) {
     await mongoSession.commitTransaction();
 
     const io = req.app.locals.io;
-    const populatedSession = await SessionModel.findById(sessionDoc[0]._id).populate(
+    const populatedSession = await SessionModel.findById(
+      sessionDoc[0]._id,
+    ).populate(
       "tableId",
-      "_id tableNumber name seatingCapacity status qrUrl qrImageUrl"
+      "_id tableNumber name seatingCapacity status qrUrl qrImageUrl",
     );
 
-    io.to(`restaurant:${restaurantId}`).emit("session:opened", populatedSession);
+    io.to(`restaurant:${restaurantId}`).emit(
+      "session:opened",
+      populatedSession,
+    );
 
     return res.status(201).json({
       success: true,
@@ -199,21 +204,32 @@ export async function joinSessionController(req, res) {
       });
     }
 
-    // 🔍 find OPEN session
+    /* ========== FIND OPEN SESSION ========== */
     const session = await SessionModel.findOne({
       tableId,
-      tablePin,
       status: "OPEN",
     });
 
     if (!session) {
       return res.status(400).json({
-        message: "Invalid table or PIN",
+        message: "Table session not found or closed",
         success: false,
       });
     }
 
-    // ✅ GENERATE NEW CUSTOMER TOKEN FOR THIS CUSTOMER
+    /* ========== VERIFY PIN WITH RATE LIMITING ========== */
+    const pinResult = await session.verifyPin(tablePin);
+
+    if (!pinResult.success) {
+      return res.status(401).json({
+        message: pinResult.message,
+        success: false,
+        isBlocked: pinResult.isBlocked || false,
+        attemptsLeft: pinResult.attemptsLeft || 0,
+      });
+    }
+
+    /* ========== ✅ PIN VERIFIED: GENERATE CUSTOMER TOKEN ========== */
     const rawCustomerToken = crypto.randomBytes(32).toString("hex");
     const tokenHash = hashToken(rawCustomerToken);
     const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
@@ -433,6 +449,199 @@ export async function getSessionController(req, res) {
     return res.status(500).json({
       message: "Server error",
       error: true,
+      success: false,
+    });
+  }
+}
+
+/* =========================================================
+   6️⃣ RESUME SESSION AFTER COOKIE LOSS
+   ========================================================= */
+export async function resumeSessionController(req, res) {
+  try {
+    let { tableId, tablePin, restaurantId } = req.body;
+
+    if (!tableId || !tablePin) {
+      return res.status(400).json({
+        message: "tableId and tablePin required",
+        success: false,
+      });
+    }
+
+    tablePin = String(tablePin);
+
+    if (!mongoose.Types.ObjectId.isValid(tableId)) {
+      return res.status(400).json({
+        message: "Invalid tableId",
+        success: false,
+      });
+    }
+
+    /* ========== FIND OPEN SESSION ========== */
+    const session = await SessionModel.findOne({
+      tableId,
+      status: "OPEN",
+    });
+
+    if (!session) {
+      return res.status(400).json({
+        message: "Table session not found or closed",
+        success: false,
+      });
+    }
+
+    /* ========== VERIFY PIN WITH RATE LIMITING ========== */
+    const pinResult = await session.verifyPin(tablePin);
+
+    if (!pinResult.success) {
+      return res.status(401).json({
+        message: pinResult.message,
+        success: false,
+        isBlocked: pinResult.isBlocked || false,
+        attemptsLeft: pinResult.attemptsLeft || 0,
+      });
+    }
+
+    /* ========== ✅ PIN VERIFIED: GENERATE CUSTOMER TOKEN ========== */
+    const rawCustomerToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = hashToken(rawCustomerToken);
+    const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
+
+    // Store the token hash in customerTokens array
+    session.customerTokens = session.customerTokens || [];
+    session.customerTokens.push({
+      tokenHash,
+      expiresAt,
+      lastActivityAt: new Date(),
+    });
+
+    session.lastActivityAt = new Date();
+    await session.save();
+
+    // ✅ RETURN RAW TOKEN TO CLIENT
+    const responseData = {
+      sessionId: session._id,
+      sessionToken: rawCustomerToken,
+      mode: session.mode || "INDIVIDUAL",
+    };
+
+    return res.json({
+      success: true,
+      data: responseData,
+    });
+  } catch (err) {
+    console.error("resumeSessionController:", err);
+    return res.status(500).json({
+      message: "Server error",
+      success: false,
+    });
+  }
+}
+
+/* =========================================================
+   7️⃣ CHECK TOKEN EXPIRY
+   ========================================================= */
+export async function checkTokenExpiryController(req, res) {
+  try {
+    const { sessionId } = req.body;
+
+    if (!sessionId) {
+      return res.status(400).json({
+        message: "sessionId required",
+        success: false,
+      });
+    }
+
+    const session = await SessionModel.findOne({
+      _id: sessionId,
+      status: "OPEN",
+    });
+
+    if (!session) {
+      return res.status(401).json({
+        message: "Session not found or expired",
+        success: false,
+        expired: true,
+      });
+    }
+
+    // Get the raw token from headers
+    const rawToken =
+      req.headers["x-customer-session"] || req.headers["x-session-token"];
+
+    if (!rawToken) {
+      return res.status(401).json({
+        message: "No token provided",
+        success: false,
+      });
+    }
+
+    const tokenHash = hashToken(rawToken);
+
+    // Check if token exists and is valid
+    const validToken = session.customerTokens?.find(
+      (t) => t.tokenHash === tokenHash && t.expiresAt > new Date(),
+    );
+
+    if (!validToken) {
+      return res.status(401).json({
+        message: "Token expired or invalid",
+        success: false,
+        expired: true,
+      });
+    }
+
+    // Update last activity
+    session.lastActivityAt = new Date();
+    await session.save();
+
+    return res.json({
+      success: true,
+      expired: false,
+      expiresAt: validToken.expiresAt,
+    });
+  } catch (err) {
+    console.error("checkTokenExpiryController:", err);
+    return res.status(500).json({
+      message: "Server error",
+      success: false,
+    });
+  }
+}
+
+/* =========================================================
+   8️⃣ GET SESSION STATUS
+   ========================================================= */
+export async function getSessionStatusController(req, res) {
+  try {
+    const { sessionId } = req.params;
+
+    const session = await SessionModel.findById(sessionId).select(
+      "_id status tableId restaurantId mode lastActivityAt",
+    );
+
+    if (!session) {
+      return res.status(404).json({
+        message: "Session not found",
+        success: false,
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        sessionId: session._id,
+        status: session.status,
+        tableId: session.tableId,
+        restaurantId: session.restaurantId,
+        mode: session.mode || "INDIVIDUAL",
+        lastActivityAt: session.lastActivityAt,
+      },
+    });
+  } catch (err) {
+    console.error("getSessionStatusController:", err);
+    return res.status(500).json({
+      message: "Server error",
       success: false,
     });
   }

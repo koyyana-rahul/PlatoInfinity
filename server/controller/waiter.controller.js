@@ -1,6 +1,87 @@
 import Order from "../models/order.model.js";
 import { emitKitchenEvent } from "../socket/emitter.js";
 
+/* ======================================================
+   GET WAITER ORDERS (All orders in restaurant)
+====================================================== */
+export async function getWaiterOrdersController(req, res) {
+  try {
+    const waiterId = req.user._id;
+    const restaurantId = req.user.restaurantId;
+
+    // Get all open orders for the restaurant
+    const orders = await Order.find({
+      restaurantId,
+      orderStatus: "OPEN",
+    })
+      .select("_id tableId tableName createdAt orderStatus items")
+      .lean();
+
+    // For each order, count ready and served items
+    const ordersWithStatus = orders.map((order) => {
+      const items = order.items || [];
+      const readyItems = items.filter((i) => i.itemStatus === "READY").length;
+      const servedItems = items.filter((i) => i.itemStatus === "SERVED").length;
+      const totalItems = items.length;
+
+      return {
+        ...order,
+        readyItemsCount: readyItems,
+        servedItemsCount: servedItems,
+        totalItemsCount: totalItems,
+        allServed: readyItems + servedItems === totalItems && totalItems > 0,
+      };
+    });
+
+    return res.json({
+      success: true,
+      data: ordersWithStatus,
+    });
+  } catch (err) {
+    console.error("getWaiterOrdersController:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+}
+
+/* ======================================================
+   GET READY ITEMS (Items ready to serve by waiter)
+====================================================== */
+export async function getReadyItemsController(req, res) {
+  try {
+    const restaurantId = req.user.restaurantId;
+
+    const orders = await Order.aggregate([
+      {
+        $match: {
+          restaurantId,
+          orderStatus: "OPEN",
+        },
+      },
+      {
+        $project: {
+          tableId: 1,
+          tableName: 1,
+          createdAt: 1,
+          items: {
+            $filter: {
+              input: "$items",
+              as: "item",
+              cond: { $eq: ["$$item.itemStatus", "READY"] },
+            },
+          },
+        },
+      },
+      { $match: { "items.0": { $exists: true } } },
+      { $sort: { createdAt: 1 } },
+    ]);
+
+    return res.json({ success: true, data: orders });
+  } catch (err) {
+    console.error("getReadyItemsController:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+}
+
 /**
  * WAITER SERVES ITEM
  * POST /api/waiter/order/:orderId/item/:itemId/serve
@@ -40,9 +121,7 @@ export async function serveOrderItemController(req, res) {
     item.servedAt = new Date();
 
     // 🔄 Auto-complete order if all served
-    const remaining = order.items.some(
-      (i) => i.itemStatus !== "SERVED"
-    );
+    const remaining = order.items.some((i) => i.itemStatus !== "SERVED");
 
     if (!remaining) {
       order.meta = {
@@ -64,7 +143,7 @@ export async function serveOrderItemController(req, res) {
         itemId,
         tableId: order.tableId,
         tableName: order.tableName,
-      }
+      },
     );
 
     return res.json({

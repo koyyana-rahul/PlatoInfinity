@@ -344,9 +344,204 @@ export function initSocketServer(httpServer, options = {}) {
       }
     });
 
-    /* ================= CUSTOMER MENU UPDATES ================= */
+    /* ================= KITCHEN STATION EVENTS ================= */
+
+    /**
+     * Chef comes online / goes offline
+     */
+    socket.on("kitchen:status-update", ({ status }, ack) => {
+      try {
+        if (user.role !== "CHEF")
+          return ack({ ok: false, error: "Not authorized" });
+
+        // Broadcast chef status to all kitchen staff
+        io.to(`restaurant:${user.restaurantId}:kitchen`).emit(
+          "kitchen:chef-status",
+          {
+            chefId: user.id,
+            chefName: user.name,
+            status, // "online" | "offline" | "on-break"
+            timestamp: new Date(),
+          },
+        );
+
+        ack({ ok: true });
+      } catch (err) {
+        console.error("kitchen:status-update error:", err);
+        ack({ ok: false });
+      }
+    });
+
+    /**
+     * Request waiter for item pickup
+     */
+    socket.on(
+      "kitchen:item-ready-alert",
+      ({ orderId, itemId, tableId, tableName }, ack) => {
+        try {
+          if (user.role !== "CHEF") return ack({ ok: false });
+
+          // Alert all waiters in the restaurant
+          io.to(`restaurant:${user.restaurantId}:waiters`).emit(
+            "waiter:item-ready-alert",
+            {
+              orderId,
+              itemId,
+              tableId,
+              tableName,
+              chefName: user.name,
+              timestamp: new Date(),
+            },
+          );
+
+          ack({ ok: true });
+        } catch (err) {
+          console.error("kitchen:item-ready-alert error:", err);
+          ack({ ok: false });
+        }
+      },
+    );
+
+    /* ================= WAITER REAL-TIME EVENTS ================= */
+
+    /**
+     * Waiter comes online / goes offline
+     */
+    socket.on("waiter:status-update", ({ status }, ack) => {
+      try {
+        if (user.role !== "WAITER") return ack({ ok: false });
+
+        // Broadcast waiter status to managers and other waiters
+        io.to(`restaurant:${user.restaurantId}:waiters`).emit(
+          "waiter:staff-status",
+          {
+            waiterId: user.id,
+            waiterName: user.name,
+            status, // "online" | "offline" | "on-break"
+            timestamp: new Date(),
+          },
+        );
+
+        // Also notify managers
+        io.to(`restaurant:${user.restaurantId}:managers`).emit(
+          "waiter:staff-status",
+          {
+            waiterId: user.id,
+            waiterName: user.name,
+            status,
+            timestamp: new Date(),
+          },
+        );
+
+        ack({ ok: true });
+      } catch (err) {
+        console.error("waiter:status-update error:", err);
+        ack({ ok: false });
+      }
+    });
+
+    /* ================= CASHIER REAL-TIME EVENTS ================= */
+
+    /**
+     * Notify managers when bill is paid
+     */
+    socket.on(
+      "cashier:bill-paid",
+      ({ billId, billTotal, paymentMethod }, ack) => {
+        try {
+          if (user.role !== "CASHIER") return ack({ ok: false });
+
+          // Broadcast to managers and waiters
+          io.to(`restaurant:${user.restaurantId}:managers`).emit(
+            "cashier:payment-processed",
+            {
+              billId,
+              billTotal,
+              paymentMethod,
+              cashierName: user.name,
+              timestamp: new Date(),
+            },
+          );
+
+          io.to(`restaurant:${user.restaurantId}:waiters`).emit(
+            "cashier:bill-settled",
+            {
+              billId,
+              timestamp: new Date(),
+            },
+          );
+
+          ack({ ok: true });
+        } catch (err) {
+          console.error("cashier:bill-paid error:", err);
+          ack({ ok: false });
+        }
+      },
+    );
+
+    /* ================= MANAGER REAL-TIME EVENTS ================= */
+
+    /**
+     * Manager broadcasts live metrics update
+     */
+    socket.on("manager:metrics-update", ({ metrics }, ack) => {
+      try {
+        if (!["MANAGER", "BRAND_ADMIN"].includes(user.role))
+          return ack({ ok: false });
+
+        // Broadcast to all managers
+        io.to(`restaurant:${user.restaurantId}:managers`).emit(
+          "dashboard:metrics-updated",
+          {
+            ...metrics,
+            timestamp: new Date(),
+          },
+        );
+
+        ack({ ok: true });
+      } catch (err) {
+        console.error("manager:metrics-update error:", err);
+        ack({ ok: false });
+      }
+    });
+
+    /**
+     * Manager broadcasts order update
+     */
+    socket.on("manager:order-update", ({ orderId, status }, ack) => {
+      try {
+        if (!["MANAGER", "BRAND_ADMIN"].includes(user.role))
+          return ack({ ok: false });
+
+        // Broadcast to all staff
+        io.to(`restaurant:${user.restaurantId}`).emit(
+          "manager:order-status-changed",
+          {
+            orderId,
+            status,
+            timestamp: new Date(),
+          },
+        );
+
+        ack({ ok: true });
+      } catch (err) {
+        console.error("manager:order-update error:", err);
+        ack({ ok: false });
+      }
+    });
+
+    /* ================= DISCONNECT ================= */
     socket.on("disconnect", () => {
       console.log(`❌ ${socket.id} disconnected`);
+
+      // Broadcast staff going offline
+      if (["CHEF", "WAITER", "CASHIER"].includes(user.role)) {
+        io.to(`restaurant:${user.restaurantId}`).emit("staff:went-offline", {
+          staffId: user.id,
+          role: user.role,
+          timestamp: new Date(),
+        });
+      }
     });
   });
 

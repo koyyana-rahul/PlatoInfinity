@@ -3,12 +3,18 @@ import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
 import Axios from "./api/axios";
+import { initAxiosInterceptors } from "./api/axios.interceptor";
 import SummaryApi from "./api/summaryApi";
 import { setUserDetails, logout } from "./store/auth/userSlice";
 
 const App = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // ✅ Initialize axios interceptors on app start
+    initAxiosInterceptors();
+  }, []);
 
   useEffect(() => {
     const initAuth = async () => {

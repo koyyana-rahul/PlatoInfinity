@@ -8,7 +8,9 @@ import {
   regenerateStaffPinController,
   toggleStaffActiveController,
   staffLoginController,
+  startStaffShiftController,
   endStaffShiftController,
+  getStaffShiftStatusController,
 } from "../controller/staff.controller.js";
 
 const staffRouter = express.Router();
@@ -24,7 +26,7 @@ staffRouter.post(
   "/restaurants/:restaurantId/staff",
   requireAuth,
   requireRole("MANAGER"),
-  createStaffController
+  createStaffController,
 );
 
 /**
@@ -34,7 +36,7 @@ staffRouter.get(
   "/restaurants/:restaurantId/staff",
   requireAuth,
   requireRole("MANAGER"),
-  listStaffController
+  listStaffController,
 );
 
 /**
@@ -44,7 +46,7 @@ staffRouter.post(
   "/restaurants/:restaurantId/staff/:staffId/regenerate-pin",
   requireAuth,
   requireRole("MANAGER"),
-  regenerateStaffPinController
+  regenerateStaffPinController,
 );
 
 /**
@@ -54,7 +56,7 @@ staffRouter.patch(
   "/restaurants/:restaurantId/staff/:staffId/toggle-active",
   requireAuth,
   requireRole("MANAGER"),
-  toggleStaffActiveController
+  toggleStaffActiveController,
 );
 
 /* ======================================================
@@ -67,14 +69,41 @@ staffRouter.patch(
  */
 staffRouter.post("/auth/staff-login", staffLoginController);
 
+/* ======================================================
+   STAFF SHIFT MANAGEMENT
+====================================================== */
+
 /**
- * STAFF LOGOUT (END DUTY)
+ * START SHIFT (CLOCK IN)
+ * POST /api/staff/shift/start
  */
 staffRouter.post(
-  "/staff/shift/end",
+  "/shift/start",
   requireAuth,
   requireRole("WAITER", "CHEF", "CASHIER"),
-  endStaffShiftController
+  startStaffShiftController,
+);
+
+/**
+ * GET SHIFT STATUS
+ * GET /api/staff/shift/status
+ */
+staffRouter.get(
+  "/shift/status",
+  requireAuth,
+  requireRole("WAITER", "CHEF", "CASHIER"),
+  getStaffShiftStatusController,
+);
+
+/**
+ * STAFF LOGOUT (END DUTY)
+ * POST /api/staff/shift/end
+ */
+staffRouter.post(
+  "/shift/end",
+  requireAuth,
+  requireRole("WAITER", "CHEF", "CASHIER"),
+  endStaffShiftController,
 );
 
 export default staffRouter;
