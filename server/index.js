@@ -61,9 +61,9 @@ app.use(express.urlencoded({ extended: true }));
 ====================================================== */
 
 const allowedOrigins = [
-  "http://localhost:5173",
-  // "https://platoinfinity.xyz",
-  // "https://www.platoinfinity.xyz",
+  // "http://localhost:5173",
+  "https://platoinfinity.xyz",
+  "https://www.platoinfinity.xyz",
 ];
 
 app.use(
