@@ -1,0 +1,307 @@
+/* ====================================
+   Dashboard Responsive Styles
+   2026 "Savory Modern" Design System
+   ==================================== */
+
+/* ====== DASHBOARD LAYOUTS ====== */
+
+.dashboard-container {
+  @apply min-h-screen bg-primary flex flex-col md:flex-row;
+  gap: 0;
+}
+
+.dashboard-sidebar {
+  @apply hidden md:flex w-full md:w-64 lg:w-72 xl:w-80;
+  background-color: var(--bg-secondary);
+  flex-direction: column;
+  box-shadow: var(--shadow-card);
+}
+
+.dashboard-content {
+  @apply flex-1 overflow-auto;
+  background-color: var(--bg-primary);
+}
+
+.dashboard-header {
+  @apply sticky top-0 z-40 py-4 md:py-6 px-responsive;
+  background-color: var(--bg-secondary);
+  box-shadow: var(--shadow-soft);
+}
+
+.dashboard-main {
+  @apply p-responsive;
+}
+
+/* Mobile Menu Toggle */
+@media (max-width: 767px) {
+  .dashboard-sidebar {
+    @apply flex fixed left-0 top-0 bottom-0 w-64 h-screen;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 50;
+  }
+
+  .dashboard-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .dashboard-overlay {
+    @apply hidden fixed inset-0 bg-black/50;
+    z-index: 40;
+  }
+
+  .dashboard-overlay.open {
+    @apply block;
+  }
+
+  .dashboard-header {
+    @apply py-3 px-4;
+  }
+}
+
+/* ====== SIDEBAR MENU ITEMS ====== */
+
+.sidebar-menu {
+  @apply flex flex-col gap-1 p-4 md:p-6;
+}
+
+.sidebar-menu-item {
+  @apply flex items-center gap-3 px-4 py-3 md:py-3;
+  @apply rounded-lg md:rounded-xl text-base md:text-sm;
+  @apply cursor-pointer transition-all duration-300;
+  color: var(--text-primary);
+  background-color: transparent;
+}
+
+.sidebar-menu-item:hover {
+  background-color: var(--bg-tertiary);
+  transform: translateX(4px);
+}
+
+.sidebar-menu-item.active {
+  background-color: rgba(233, 196, 106, 0.2);
+  color: var(--brand-cta);
+  font-weight: 600;
+  border-left: 3px solid var(--brand-cta);
+  padding-left: 13px;
+}
+
+.sidebar-menu-item.active:hover {
+  background-color: rgba(233, 196, 106, 0.3);
+}
+
+/* ====== GRID LAYOUTS ====== */
+
+.dashboard-grid {
+  @apply grid gap-4 md:gap-6;
+  grid-template-columns: repeat(1, 1fr);
+}
+
+@media (min-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ====== STAT CARDS ====== */
+
+.stat-card {
+  @apply bg-white rounded-2xl md:rounded-3xl p-4 md:p-6;
+  @apply flex flex-col gap-3 transition-all duration-300;
+  box-shadow: var(--shadow-card);
+  border-left: 4px solid var(--brand-cta);
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.stat-card.accent {
+  border-left-color: var(--brand-accent);
+}
+
+.stat-card.gold {
+  border-left-color: var(--brand-primary);
+}
+
+.stat-card-label {
+  @apply text-xs md:text-sm font-medium uppercase tracking-wider;
+  color: var(--text-light);
+}
+
+.stat-card-value {
+  @apply text-2xl md:text-3xl lg:text-4xl font-bold;
+  color: var(--text-primary);
+}
+
+.stat-card-change {
+  @apply text-xs md:text-sm font-semibold;
+  color: var(--color-success);
+}
+
+/* ====== CHART CONTAINERS ====== */
+
+.chart-container {
+  @apply bg-white rounded-2xl md:rounded-3xl p-4 md:p-6;
+  box-shadow: var(--shadow-card);
+  min-height: 300px;
+}
+
+.chart-container-lg {
+  @apply chart-container;
+  min-height: 400px;
+}
+
+@media (max-width: 640px) {
+  .chart-container {
+    min-height: 250px;
+  }
+
+  .chart-container-lg {
+    min-height: 300px;
+  }
+}
+
+/* ====== TABLE RESPONSIVE ====== */
+
+.table-responsive {
+  @apply overflow-x-auto;
+}
+
+.table-responsive-sm {
+  @apply hidden md:block;
+}
+
+.table-responsive-lg {
+  @apply block;
+}
+
+table {
+  @apply w-full text-sm md:text-base;
+  border-collapse: collapse;
+}
+
+thead {
+  background-color: var(--bg-tertiary);
+  border-bottom: 2px solid #e5e7eb;
+}
+
+th {
+  @apply px-4 md:px-6 py-3 md:py-4;
+  @apply text-left font-semibold;
+  color: var(--text-primary);
+}
+
+tbody tr:not(:last-child) {
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color var(--transition-fast);
+}
+
+tbody tr:hover {
+  background-color: rgba(233, 196, 106, 0.05);
+}
+
+td {
+  @apply px-4 md:px-6 py-3 md:py-4;
+  color: var(--text-primary);
+}
+
+/* ====== MODALS AND DIALOGS ====== */
+
+.modal-backdrop {
+  @apply fixed inset-0 bg-black/50 flex items-center justify-center;
+  z-index: 1000;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.modal-content {
+  @apply bg-white rounded-2xl md:rounded-3xl w-full;
+  @apply max-w-sm md:max-w-md lg:max-w-lg;
+  @apply p-4 md:p-8;
+  box-shadow: var(--shadow-card-hover);
+  animation: slideUp 0.3s ease-out;
+}
+
+.modal-header {
+  @apply text-xl md:text-2xl font-bold mb-4 md:mb-6;
+  color: var(--text-primary);
+}
+
+.modal-footer {
+  @apply flex gap-3 mt-6 md:mt-8;
+  @apply flex-col md:flex-row;
+}
+
+/* ====== FILTERS & CONTROLS ====== */
+
+.filter-bar {
+  @apply bg-white rounded-xl md:rounded-2xl p-4 md:p-6;
+  @apply flex flex-col md:flex-row gap-3 md:gap-4;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 1.5rem;
+}
+
+.filter-group {
+  @apply flex flex-col md:flex-row gap-2 md:gap-3;
+  @apply flex-1;
+}
+
+.filter-label {
+  @apply text-xs md:text-sm font-semibold uppercase;
+  color: var(--text-secondary);
+}
+
+.filter-select,
+.filter-input {
+  @apply w-full px-3 md:px-4 py-2 md:py-3;
+  @apply rounded-lg md:rounded-xl border border-gray-200;
+  @apply text-sm md:text-base;
+  @apply transition-all duration-300;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.filter-select:focus,
+.filter-input:focus {
+  outline: none;
+  border-color: var(--brand-cta);
+  box-shadow: 0 0 0 3px rgba(231, 111, 81, 0.1);
+}
+
+/* ====== EMPTY STATES ====== */
+
+.empty-state {
+  @apply flex flex-col items-center justify-center py-12 md:py-16 lg:py-20;
+  @apply gap-4 md:gap-6;
+  text-align: center;
+}
+
+.empty-state-icon {
+  @apply text-5xl md:text-6xl;
+  opacity: 0.3;
+}
+
+.empty-state-title {
+  @apply text-lg md:text-2xl font-bold;
+  color: var(--text-primary);
+}
+
+.empty-state-text {
+  @apply text-sm md:text-base;
+  color: var(--text-secondary);
+  max-width: 400px;
+}

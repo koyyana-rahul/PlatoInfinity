@@ -24,6 +24,16 @@ export async function kpiMetricsController(req, res) {
       filter.restaurantId = restaurantId;
     } else if (user.restaurantId) {
       filter.restaurantId = user.restaurantId;
+    } else if (user.brandId) {
+      // Brand Admin: Get all restaurants belonging to this brand
+      const brandRestaurants = await Restaurant.find({ brandId: user.brandId })
+        .select("_id")
+        .lean();
+      const restaurantIds = brandRestaurants.map((r) => r._id);
+
+      if (restaurantIds.length > 0) {
+        filter.restaurantId = { $in: restaurantIds };
+      }
     }
 
     // Date range
@@ -212,6 +222,16 @@ export async function performanceMetricsController(req, res) {
         branchName = restaurant.name;
       }
     } else if (user.brandId) {
+      // Brand Admin: Get all restaurants belonging to this brand
+      const brandRestaurants = await Restaurant.find({ brandId: user.brandId })
+        .select("_id")
+        .lean();
+      const restaurantIds = brandRestaurants.map((r) => r._id);
+
+      if (restaurantIds.length > 0) {
+        filter.restaurantId = { $in: restaurantIds };
+      }
+
       const brand = await Brand.findById(user.brandId).select("name").lean();
       if (brand) {
         branchName = brand.name;
@@ -346,6 +366,16 @@ export async function operationalMetricsController(req, res) {
       filter.restaurantId = restaurantId;
     } else if (user.restaurantId) {
       filter.restaurantId = user.restaurantId;
+    } else if (user.brandId) {
+      // Brand Admin: Get all restaurants belonging to this brand
+      const brandRestaurants = await Restaurant.find({ brandId: user.brandId })
+        .select("_id")
+        .lean();
+      const restaurantIds = brandRestaurants.map((r) => r._id);
+
+      if (restaurantIds.length > 0) {
+        filter.restaurantId = { $in: restaurantIds };
+      }
     }
 
     // Date range
@@ -437,6 +467,16 @@ export async function revenueBreakdownController(req, res) {
       filter.restaurantId = restaurantId;
     } else if (user.restaurantId) {
       filter.restaurantId = user.restaurantId;
+    } else if (user.brandId) {
+      // Brand Admin: Get all restaurants belonging to this brand
+      const brandRestaurants = await Restaurant.find({ brandId: user.brandId })
+        .select("_id")
+        .lean();
+      const restaurantIds = brandRestaurants.map((r) => r._id);
+
+      if (restaurantIds.length > 0) {
+        filter.restaurantId = { $in: restaurantIds };
+      }
     }
 
     // Date range

@@ -3,7 +3,7 @@ import { requireAuth } from "../middleware/requireAuth.js";
 import { getCustomerMenuController } from "../controller/customerMenu.controller.js";
 import Order from "../models/order.model.js";
 import Bill from "../models/bill.model.js";
-import MenuItem from "../models/MenuItem.model.js";
+import BranchMenuItem from "../models/branchMenuItem.model.js";
 
 const customerMenuRouter = express.Router();
 
@@ -202,7 +202,7 @@ customerMenuRouter.get(
     try {
       const { restaurantId, categoryId } = req.params;
 
-      const items = await MenuItem.find({
+      const items = await BranchMenuItem.find({
         restaurantId,
         category: categoryId,
         isAvailable: true,
@@ -237,7 +237,7 @@ customerMenuRouter.get("/menu/:restaurantId/search", async (req, res) => {
       });
     }
 
-    const items = await MenuItem.find(
+    const items = await BranchMenuItem.find(
       {
         restaurantId,
         isAvailable: true,
@@ -271,7 +271,7 @@ customerMenuRouter.get("/menu/:restaurantId/stats", async (req, res) => {
   try {
     const { restaurantId } = req.params;
 
-    const items = await MenuItem.find({
+    const items = await BranchMenuItem.find({
       restaurantId,
       isAvailable: true,
     })
@@ -281,7 +281,7 @@ customerMenuRouter.get("/menu/:restaurantId/stats", async (req, res) => {
       .lean();
 
     const stats = {
-      totalItems: await MenuItem.countDocuments({
+      totalItems: await BranchMenuItem.countDocuments({
         restaurantId,
         isAvailable: true,
       }),
