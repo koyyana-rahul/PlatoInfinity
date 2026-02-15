@@ -40,7 +40,7 @@ export async function createBrandController(req, res) {
     if (req.file) {
       const uploadRes = await uploadImageClodinary(
         req.file.buffer,
-        "brand-logos"
+        "brand-logos",
       );
       logoUrl = uploadRes.secure_url;
     }
@@ -65,7 +65,7 @@ export async function createBrandController(req, res) {
             sortOrder: i + 1,
           },
         },
-        { upsert: true }
+        { upsert: true },
       );
     }
 
@@ -97,7 +97,7 @@ export async function listBrandsController(req, res) {
     const admin = req.user;
 
     const brands = await BrandModel.find({ ownerId: admin._id }).select(
-      "name slug logoUrl"
+      "name slug logoUrl",
     );
 
     return res.json({
@@ -107,6 +107,71 @@ export async function listBrandsController(req, res) {
     });
   } catch (err) {
     console.error("listBrandsController:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
+}
+
+export async function updateBrandSettingsController(req, res) {
+  try {
+    const user = req.user;
+    const {
+      storeName,
+      address,
+      phone,
+      email,
+      description,
+      gst,
+      fssai,
+      serviceCharge,
+      taxRate,
+      deliveryFee,
+    } = req.body;
+
+    // Find brand by user's brandId
+    const brand = await BrandModel.findOne({
+      _id: user.brandId,
+      ownerId: user._id,
+    });
+
+    if (!brand) {
+      return res.status(404).json({
+        message: "Brand not found",
+        error: true,
+        success: false,
+      });
+    }
+
+    // Update brand settings
+    const updateData = {};
+    if (storeName !== undefined) updateData.storeName = storeName;
+    if (address !== undefined) updateData.address = address;
+    if (phone !== undefined) updateData.phone = phone;
+    if (email !== undefined) updateData.email = email;
+    if (description !== undefined) updateData.description = description;
+    if (gst !== undefined) updateData.gst = gst;
+    if (fssai !== undefined) updateData.fssai = fssai;
+    if (serviceCharge !== undefined) updateData.serviceCharge = serviceCharge;
+    if (taxRate !== undefined) updateData.taxRate = taxRate;
+    if (deliveryFee !== undefined) updateData.deliveryFee = deliveryFee;
+
+    const updatedBrand = await BrandModel.findByIdAndUpdate(
+      brand._id,
+      updateData,
+      { new: true },
+    );
+
+    return res.json({
+      message: "Brand settings updated successfully",
+      error: false,
+      success: true,
+      data: updatedBrand,
+    });
+  } catch (err) {
+    console.error("updateBrandSettingsController:", err);
     return res.status(500).json({
       message: "Server error",
       error: true,

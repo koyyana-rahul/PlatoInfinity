@@ -38,6 +38,7 @@ import addressRouter from "./route/address.route.js";
 import publicRouter from "./route/public.route.js";
 import shiftRouter from "./route/shift.route.js";
 import notificationRouter from "./route/notification.route.js";
+import userRouter from "./route/user.route.js";
 
 // SOCKET
 import { initSocketServer } from "./socket/index.js";
@@ -135,6 +136,7 @@ app.use("/api/master-menu", masterMenuRouter);
 app.use("/api/auth/invite", authInviteRouter);
 
 app.use("/api/auth", authRouter);
+app.use("/api/user", userRouter);
 app.use("/api/brand", brandRouter);
 app.use("/api/restaurants", restaurantRouter);
 app.use("/api/restaurants/:restaurantId/managers", managerRouter);

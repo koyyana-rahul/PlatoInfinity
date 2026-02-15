@@ -5,6 +5,7 @@ import { requireRole } from "../middleware/requireRole.js";
 import {
   createBrandController,
   listBrandsController,
+  updateBrandSettingsController,
 } from "../controller/brand.controller.js";
 import upload from "../config/multer.js";
 
@@ -16,12 +17,21 @@ brandRouter.post(
   requireAuth,
   requireRole("BRAND_ADMIN"),
   upload.single("logo"),
-  createBrandController
+  createBrandController,
 );
 brandRouter.get(
   "/",
   requireAuth,
   requireRole("BRAND_ADMIN"),
-  listBrandsController
+  listBrandsController,
 );
+
+// Update brand settings
+brandRouter.put(
+  "/settings",
+  requireAuth,
+  requireRole("BRAND_ADMIN"),
+  updateBrandSettingsController,
+);
+
 export default brandRouter;

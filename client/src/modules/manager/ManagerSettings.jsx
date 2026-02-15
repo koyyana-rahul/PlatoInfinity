@@ -5,6 +5,22 @@ import AuthAxios from "../../api/authAxios";
 import settingsApi from "../../api/settings.api";
 import toast from "react-hot-toast";
 
+// Component definition outside to prevent re-creation on each render
+const ToggleSetting = ({ label, value, onChange, help }) => (
+  <div className="flex items-start justify-between p-4 bg-slate-50 rounded-lg">
+    <div>
+      <p className="font-semibold text-slate-900">{label}</p>
+      {help && <p className="text-xs text-slate-500 mt-1">{help}</p>}
+    </div>
+    <input
+      type="checkbox"
+      checked={value}
+      onChange={(e) => onChange(e.target.checked)}
+      className="w-4 h-4 rounded cursor-pointer"
+    />
+  </div>
+);
+
 export default function ManagerSettings() {
   const user = useSelector((state) => state.user);
 
@@ -81,21 +97,6 @@ export default function ManagerSettings() {
       setSaving(false);
     }
   };
-
-  const ToggleSetting = ({ label, value, onChange, help }) => (
-    <div className="flex items-start justify-between p-4 bg-slate-50 rounded-lg">
-      <div>
-        <p className="font-semibold text-slate-900">{label}</p>
-        {help && <p className="text-xs text-slate-500 mt-1">{help}</p>}
-      </div>
-      <input
-        type="checkbox"
-        checked={value}
-        onChange={(e) => onChange(e.target.checked)}
-        className="w-4 h-4 rounded cursor-pointer"
-      />
-    </div>
-  );
 
   return (
     <div className="space-y-8 animate-in fade-in">

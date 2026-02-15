@@ -7,12 +7,38 @@ import {
   FiDollarSign,
   FiPhone,
 } from "react-icons/fi";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import AuthAxios from "../../api/authAxios";
 import settingsApi from "../../api/settings.api";
 import toast from "react-hot-toast";
+import { updateBrandSettings } from "../../store/brand/brandSlice";
+import { setUserDetails } from "../../store/auth/userSlice";
+
+// Component definitions outside to prevent re-creation on each render
+const SettingGroup = ({ title, children }) => (
+  <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-8 space-y-4 sm:space-y-6 shadow-sm hover:shadow-md transition-shadow">
+    <h3 className="text-lg sm:text-xl font-bold text-slate-900">{title}</h3>
+    {children}
+  </div>
+);
+
+const SettingField = ({ label, value, onChange, type = "text", help }) => (
+  <div>
+    <label className="block text-sm font-semibold text-slate-700 mb-2">
+      {label}
+    </label>
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm transition"
+    />
+    {help && <p className="text-xs text-slate-500 mt-2">{help}</p>}
+  </div>
+);
 
 export default function AdminSettings() {
+  const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
   const { brand } = useSelector((state) => state.brand);
 
@@ -32,7 +58,7 @@ export default function AdminSettings() {
   const [userSettings, setUserSettings] = useState({
     name: user?.name || "",
     email: user?.email || "",
-    phone: user?.phone || "",
+    phone: user?.mobile || "",
   });
 
   const [passwords, setPasswords] = useState({
@@ -43,6 +69,24 @@ export default function AdminSettings() {
 
   const [activeTab, setActiveTab] = useState("restaurant");
   const [saving, setSaving] = useState(false);
+
+  // Update local state when brand changes
+  useEffect(() => {
+    if (brand) {
+      setSettings({
+        storeName: brand?.storeName || "",
+        address: brand?.address || "",
+        phone: brand?.phone || "",
+        email: brand?.email || "",
+        description: brand?.description || "",
+        gst: brand?.gst || "",
+        fssai: brand?.fssai || "",
+        serviceCharge: brand?.serviceCharge || 0,
+        taxRate: brand?.taxRate || 0,
+        deliveryFee: brand?.deliveryFee || 0,
+      });
+    }
+  }, [brand]);
 
   const handleSettingsChange = (field, value) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
@@ -63,6 +107,10 @@ export default function AdminSettings() {
 
       if (res.data?.success) {
         toast.success("Restaurant settings updated");
+        // Update Redux store with new brand settings
+        if (res.data.data) {
+          dispatch(updateBrandSettings(res.data.data));
+        }
       }
     } catch (error) {
       console.error("❌ Error:", error.message);
@@ -83,6 +131,10 @@ export default function AdminSettings() {
 
       if (res.data?.success) {
         toast.success("Profile updated");
+        // Update Redux store with new user details
+        if (res.data.data) {
+          dispatch(setUserDetails(res.data.data));
+        }
       }
     } catch (error) {
       console.error("❌ Error:", error.message);
@@ -122,28 +174,6 @@ export default function AdminSettings() {
       setSaving(false);
     }
   };
-
-  const SettingGroup = ({ title, children }) => (
-    <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-8 space-y-4 sm:space-y-6 shadow-sm hover:shadow-md transition-shadow">
-      <h3 className="text-lg sm:text-xl font-bold text-slate-900">{title}</h3>
-      {children}
-    </div>
-  );
-
-  const SettingField = ({ label, value, onChange, type = "text", help }) => (
-    <div>
-      <label className="block text-sm font-semibold text-slate-700 mb-2">
-        {label}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm transition"
-      />
-      {help && <p className="text-xs text-slate-500 mt-2">{help}</p>}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50 to-slate-100 p-4 sm:p-6 lg:p-8">

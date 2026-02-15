@@ -622,7 +622,10 @@ export async function userDetailsController(req, res) {
       .select(
         "-password -refresh_token -forgotPasswordOtpHash -forgotPasswordExpiry ",
       )
-      .populate("brandId", "name slug logoUrl")
+      .populate(
+        "brandId",
+        "name slug logoUrl storeName address phone email description gst fssai serviceCharge taxRate deliveryFee",
+      )
       .lean();
 
     if (!user) {

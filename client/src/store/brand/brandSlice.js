@@ -5,6 +5,16 @@ const initialValue = {
   name: "",
   slug: "",
   logoUrl: "",
+  storeName: "",
+  address: "",
+  phone: "",
+  email: "",
+  description: "",
+  gst: "",
+  fssai: "",
+  serviceCharge: 0,
+  taxRate: 0,
+  deliveryFee: 0,
 };
 
 const brandSlice = createSlice({
@@ -12,19 +22,17 @@ const brandSlice = createSlice({
   initialState: initialValue,
   reducers: {
     setBrandDetails: (state, action) => {
-      state._id = action.payload._id;
-      state.name = action.payload.name;
-      state.slug = action.payload.slug;
-      state.logoUrl = action.payload.logoUrl;
+      Object.assign(state, action.payload);
+    },
+    updateBrandSettings: (state, action) => {
+      Object.assign(state, action.payload);
     },
     clearBrand: (state) => {
-      state._id = "";
-      state.name = "";
-      state.slug = "";
-      state.logoUrl = "";
+      Object.assign(state, initialValue);
     },
   },
 });
 
-export const { setBrandDetails, clearBrand } = brandSlice.actions;
+export const { setBrandDetails, updateBrandSettings, clearBrand } =
+  brandSlice.actions;
 export default brandSlice.reducer;
