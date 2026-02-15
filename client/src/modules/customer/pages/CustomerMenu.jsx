@@ -117,9 +117,9 @@ export default function CustomerMenu() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative pt-6 md:pt-4 space-y-8 md:space-y-10">
       {/* 1. STICKY CATEGORY BAR - Locked to top during scroll */}
-      <div className="sticky top-0 z-[50] bg-white/95 backdrop-blur-md border-b border-slate-50 pt-2">
+      <div className="sticky top-0 z-[50] bg-[#f8f8f7]/95 backdrop-blur-md py-3 md:py-4">
         <CategoryBar
           categories={menu}
           activeId={activeCat}
@@ -131,9 +131,9 @@ export default function CustomerMenu() {
         />
       </div>
 
-      <div className="px-5">
+      <div id="browse" className="px-1 md:px-0 mt-8 md:mt-10 space-y-8 md:space-y-10">
         {/* 2. SUBCATEGORY FILTER - Standard scroll (Non-sticky) */}
-        <div className="mt-6 mb-8 overflow-hidden">
+        <div className="mt-10 mb-14 overflow-hidden">
           <SubcategoryFilter
             subcategories={category?.subcategories || []}
             activeId={activeSub}

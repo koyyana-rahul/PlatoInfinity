@@ -17,7 +17,7 @@ export default function SubcategoryFilter({
         snap-x snap-mandatory
       "
     >
-      <div className="flex gap-2 py-2 min-w-max">
+      <div className="flex gap-3 py-2.5 min-w-max">
         {/* ALL */}
         <FilterPill
           label="All"
@@ -49,16 +49,17 @@ function FilterPill({ label, active, onClick }) {
       onClick={onClick}
       className={`
         snap-start
-        px-4 py-2
+        px-6 py-3
         rounded-full
-        text-sm font-semibold
+        text-sm font-semibold tracking-tight
         whitespace-nowrap
         transition-all duration-200
-        focus:outline-none focus:ring-2 focus:ring-black/20
+        active:scale-95
+        focus:outline-none focus:ring-2 focus:ring-orange-200
         ${
           active
-            ? "bg-black text-white shadow-md"
-            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            ? "bg-[#F35C2B] text-white startup-shadow"
+            : "bg-white text-slate-600 startup-shadow"
         }
       `}
     >

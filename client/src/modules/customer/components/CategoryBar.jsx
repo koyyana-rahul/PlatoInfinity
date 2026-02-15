@@ -1,15 +1,15 @@
 export default function CategoryBar({ categories, activeId, onSelect }) {
   return (
-    <div className="sticky top-14 z-30 bg-white border-b">
-      <div className="flex gap-2 px-4 py-2 overflow-x-auto no-scrollbar">
+    <div className="overflow-x-auto no-scrollbar">
+      <div className="flex gap-3.5 px-4 py-3 min-w-max">
         {categories.map((c) => (
           <button
             key={c.id}
             onClick={() => onSelect(c.id)}
-            className={`px-4 py-2 rounded-full text-sm whitespace-nowrap ${
+            className={`px-6 py-3 rounded-full text-sm font-semibold whitespace-nowrap tracking-tight transition-all duration-200 active:scale-95 ${
               activeId === c.id
-                ? "bg-emerald-600 text-white"
-                : "bg-gray-100 text-gray-700"
+                ? "bg-[#F35C2B] text-white startup-shadow"
+                : "bg-white text-slate-700 startup-shadow"
             }`}
           >
             {c.name}

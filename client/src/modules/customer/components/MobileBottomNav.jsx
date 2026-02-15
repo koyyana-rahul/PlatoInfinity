@@ -1,0 +1,61 @@
+import { House, Search, ShoppingCart } from "lucide-react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+
+export default function MobileBottomNav() {
+  const { brandSlug, restaurantSlug, tableId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  if (!brandSlug || !restaurantSlug || !tableId) return null;
+
+  const base = `/${brandSlug}/${restaurantSlug}/table/${tableId}`;
+  const path = location.pathname;
+
+  const tabs = [
+    {
+      key: "home",
+      label: "Home",
+      icon: House,
+      to: `${base}/menu`,
+      active: path.includes("/menu"),
+    },
+    {
+      key: "search",
+      label: "Search",
+      icon: Search,
+      to: `${base}/menu#browse`,
+      active: path.includes("/menu") && location.hash === "#browse",
+    },
+    {
+      key: "cart",
+      label: "Cart",
+      icon: ShoppingCart,
+      to: `${base}/cart`,
+      active: path.includes("/cart"),
+    },
+  ];
+
+  return (
+    <nav className="md:hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-[70] w-[calc(100%-1.25rem)] max-w-md rounded-3xl bg-white/90 backdrop-blur-xl startup-shadow px-2 py-2">
+      <div className="grid grid-cols-3 gap-2">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => navigate(tab.to)}
+              className={`h-14 rounded-2xl flex flex-col items-center justify-center gap-1 text-[11px] font-semibold tracking-tight transition-all active:scale-95 ${
+                tab.active
+                  ? "bg-[#F35C2B] text-white startup-shadow"
+                  : "text-slate-500 bg-transparent"
+              }`}
+            >
+              <Icon size={18} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}

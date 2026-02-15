@@ -16,7 +16,7 @@ export default function ItemGrid({
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col items-center justify-center py-20 px-10 text-center"
       >
-        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
+        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 startup-shadow">
           <Utensils className="text-slate-200" size={24} strokeWidth={1.5} />
         </div>
         <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
@@ -28,7 +28,7 @@ export default function ItemGrid({
 
   /* ================= GRID RENDER ================= */
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 lg:grid-cols-4 px-1 pb-10">
+    <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 px-1 pb-20">
       <AnimatePresence mode="popLayout">
         {items.map((item, index) => (
           <motion.div

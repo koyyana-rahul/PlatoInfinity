@@ -17,11 +17,11 @@ export default function ItemCard({ item, qty = 0, onAdd, onMinus }) {
     <div
       onClick={goToItem}
       className="
-        group bg-white rounded-2xl border border-gray-100
+        group bg-white rounded-3xl startup-shadow
         overflow-hidden relative cursor-pointer
-        transition-all duration-200
-        hover:shadow-lg hover:-translate-y-0.5
-        active:scale-[0.98]
+        transition-all duration-300 will-change-transform
+        hover:scale-[1.02]
+        active:scale-[0.99]
       "
     >
       {/* IMAGE */}
@@ -30,11 +30,16 @@ export default function ItemCard({ item, qty = 0, onAdd, onMinus }) {
           src={item.image || "/food-placeholder.jpg"}
           alt={item.name}
           loading="lazy"
-          className="h-40 w-full object-cover bg-gray-100"
+          className="h-44 w-full object-cover bg-gray-100"
         />
 
         {/* SOFT GRADIENT */}
-        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/40 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
+
+        {/* PRICE TAG */}
+        <div className="absolute bottom-4 right-4 bg-white/60 backdrop-blur-md text-slate-900 text-sm font-bold px-4 py-2 rounded-full startup-shadow">
+          ₹{item.price}
+        </div>
 
         {/* FAVORITE */}
         {/* <FavoriteButton
@@ -43,37 +48,34 @@ export default function ItemCard({ item, qty = 0, onAdd, onMinus }) {
         /> */}
 
         {/* VEG / NON-VEG */}
-        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-1.5 py-1 rounded-md shadow-sm">
+        <div className="absolute top-3 left-3 bg-white/80 backdrop-blur-md px-2 py-1 rounded-xl startup-shadow">
           <VegNonVegIcon isVeg={item.isVeg} size={10} />
         </div>
 
         {/* QTY BADGE (ONLY INDICATOR) */}
         {qty > 0 && (
-          <div className="absolute bottom-2 right-2 bg-emerald-600 text-white text-xs px-2 py-0.5 rounded-full font-semibold shadow-md">
+          <div className="absolute top-3 right-3 bg-[#F35C2B] text-white text-xs px-2.5 py-1 rounded-full font-semibold startup-shadow">
             {qty}
           </div>
         )}
       </div>
 
       {/* CONTENT */}
-      <div className="p-3 space-y-2">
+      <div className="p-5 space-y-4">
         {/* NAME */}
-        <p className="font-semibold text-sm leading-tight line-clamp-2">
+        <p className="font-bold tracking-tight text-base leading-tight line-clamp-2 text-slate-900">
           {item.name}
         </p>
 
         {/* DESCRIPTION */}
         {item.description && (
-          <p className="text-xs text-gray-500 line-clamp-2">
+          <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">
             {item.description}
           </p>
         )}
 
         {/* PRICE + STEPPER (ONLY IF IN CART) */}
-        <div className="flex justify-between items-center pt-1">
-          <span className="font-semibold text-sm text-gray-900">
-            ₹{item.price}
-          </span>
+        <div className="flex justify-end items-center pt-1">
 
           {qty > 0 && (
             <QuantityStepper

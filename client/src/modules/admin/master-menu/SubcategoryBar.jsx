@@ -11,9 +11,9 @@ export default function SubcategoryBar({
 }) {
   return (
     /* OUTER TRACK - Apple Control Center Style */
-    <div className="bg-[#787880]/[0.12] border border-black/[0.03] rounded-[22px] p-0.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
+    <div className="bg-white rounded-3xl p-1.5 startup-shadow">
       <div
-        className="flex gap-1 overflow-x-auto scrollbar-hide items-center touch-pan-x scroll-smooth px-1 py-0.5"
+        className="flex gap-2 overflow-x-auto scrollbar-hide items-center touch-pan-x scroll-smooth px-1 py-1"
         role="tablist"
       >
         {/* ================= ALL SECTION ================= */}
@@ -23,9 +23,9 @@ export default function SubcategoryBar({
           aria-selected={activeSubcategoryId === null}
           onClick={() => onSelect(null)}
           className={clsx(
-            "flex-shrink-0 h-9 rounded-[18px] text-[10px] font-[800] uppercase tracking-widest transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]",
+            "flex-shrink-0 h-10 rounded-full text-[10px] font-[800] uppercase tracking-widest transition-all duration-300",
             activeSubcategoryId === null
-              ? "bg-white text-black shadow-sm ring-1 ring-black/[0.04] px-6 min-w-[70px]"
+              ? "bg-[#F35C2B] text-white startup-shadow px-6 min-w-[70px]"
               : "text-slate-500 hover:text-black active:scale-95 px-4 min-w-[50px]",
           )}
         >
@@ -48,9 +48,9 @@ export default function SubcategoryBar({
                 aria-selected={isActive}
                 onClick={() => onSelect(sub.id)}
                 className={clsx(
-                  "relative flex items-center justify-center rounded-[18px] text-[10px] font-[800] uppercase tracking-widest transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] h-9",
+                  "relative flex items-center justify-center rounded-full text-[10px] font-[800] uppercase tracking-widest transition-all duration-300 h-10",
                   isActive
-                    ? "bg-white text-black shadow-md ring-1 ring-black/[0.04] px-14 min-w-[150px] z-10"
+                    ? "bg-[#F35C2B] text-white startup-shadow px-14 min-w-[150px] z-10"
                     : "bg-transparent text-slate-500 hover:text-black active:scale-95 px-4 min-w-[70px] max-w-[130px]",
                 )}
               >
@@ -108,7 +108,7 @@ export default function SubcategoryBar({
           <button
             type="button"
             onClick={onAdd}
-            className="flex-shrink-0 flex items-center justify-center w-9 h-9 ml-1 bg-white/40 rounded-full text-slate-500 hover:text-emerald-600 hover:bg-white transition-all active:scale-90 border border-black/[0.03]"
+            className="flex-shrink-0 flex items-center justify-center w-10 h-10 ml-1 bg-[#F35C2B] rounded-full text-white startup-shadow hover:brightness-105 transition-all active:scale-95"
           >
             <Plus size={16} strokeWidth={3} />
           </button>

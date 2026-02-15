@@ -81,7 +81,7 @@ export default function AdminDashboard() {
   useSocketUpdates(socket, setStats, addRecentOrder);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-4 sm:p-6 lg:p-8 space-y-10 sm:space-y-12 animate-in fade-in duration-500">
       {/* ============================================
           HEADER SECTION
           ============================================ */}
@@ -103,10 +103,10 @@ export default function AdminDashboard() {
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm capitalize transition ${
+              className={`px-4 sm:px-6 py-2.5 rounded-full font-semibold text-xs sm:text-sm capitalize transition-all active:scale-95 ${
                 timeRange === range
-                  ? "bg-blue-600 text-white shadow-lg"
-                  : "bg-white text-slate-700 border border-slate-200 hover:border-blue-300"
+                  ? "bg-[#F35C2B] text-white startup-shadow"
+                  : "bg-white text-slate-700 startup-shadow"
               }`}
             >
               {range}
@@ -145,9 +145,9 @@ export default function AdminDashboard() {
       {/* ============================================
           MAIN CONTENT GRID - Responsive Layout
           ============================================ */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 lg:gap-10">
         {/* Left Column: Orders & Tracking (2/3 width) */}
-        <div className="xl:col-span-2 space-y-6 lg:space-y-8">
+        <div className="xl:col-span-2 space-y-8 lg:space-y-10">
           {/* Active Orders Tracking */}
           <RealTimeOrderTracking
             activeOrders={recentOrders}
@@ -159,7 +159,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Right Column: Analytics Sidebar (1/3 width) */}
-        <div className="space-y-6 lg:space-y-8">
+        <div className="space-y-8 lg:space-y-10">
           {/* Revenue Breakdown */}
           <RevenueBreakdown breakdown={breakdown} loading={revenueLoading} />
 

@@ -10,19 +10,19 @@ export default function CategoryBar({
 }) {
   if (!categories.length) {
     return (
-      <div className="px-4 py-6 text-center text-[12px] font-medium text-slate-400 bg-white/40 backdrop-blur-md border-b border-black/[0.04]">
+      <div className="px-4 py-6 text-center text-[12px] font-medium text-slate-400 bg-white/70 backdrop-blur-md rounded-2xl startup-shadow">
         No categories found
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-white/80 backdrop-blur-3xl border-b border-black/[0.05] transition-all duration-700 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5)]">
+    <div className="w-full bg-white/90 backdrop-blur-3xl transition-all duration-700 startup-shadow rounded-2xl">
       <div
         className="
-          flex gap-1.5
+          flex gap-2
           overflow-x-auto
-          px-2 py-2
+          px-3 py-3
           scrollbar-hide
           touch-pan-x
           items-center
@@ -39,10 +39,10 @@ export default function CategoryBar({
                 type="button"
                 onClick={() => onSelect(cat.id)}
                 className={clsx(
-                  "relative flex flex-col items-center gap-1.5 p-1.5 rounded-[20px] outline-none transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+                  "relative flex flex-col items-center gap-1.5 p-2 rounded-2xl outline-none transition-all duration-300",
                   "min-w-[68px] max-w-[100px]",
                   isActive
-                    ? "bg-white shadow-[0_8px_16px_-4px_rgba(0,0,0,0.12)] scale-105 z-10 ring-1 ring-black/[0.03]"
+                    ? "bg-[#F35C2B] text-white startup-shadow scale-[1.02] z-10"
                     : "hover:bg-black/[0.03] active:scale-95",
                 )}
               >
@@ -51,7 +51,7 @@ export default function CategoryBar({
                   className={clsx(
                     "w-10 h-10 rounded-[14px] flex items-center justify-center text-lg transition-all duration-500",
                     isActive
-                      ? "bg-emerald-300 text-emerald-600 shadow-[inset_0_1px_2px_rgba(16,185,129,0.1)]"
+                      ? "bg-white/25 text-white"
                       : "bg-slate-100/50 group-hover:bg-white",
                   )}
                 >
@@ -65,7 +65,7 @@ export default function CategoryBar({
                   className={clsx(
                     "w-full px-1 truncate text-center text-[8.5px] font-[900] uppercase tracking-[0.08em] leading-tight transition-all duration-300",
                     isActive
-                      ? "text-black"
+                      ? "text-white"
                       : "text-slate-500 group-hover:text-black",
                   )}
                 >
@@ -75,7 +75,7 @@ export default function CategoryBar({
                 {/* ACTIVE INDICATOR */}
                 <div
                   className={clsx(
-                    "absolute -bottom-0.5 h-[2px] rounded-full bg-emerald-500 transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] shadow-[0_0_8px_rgba(16,185,129,0.5)]",
+                    "absolute -bottom-0.5 h-[2px] rounded-full bg-[#F35C2B] transition-all duration-700",
                     isActive ? "w-4 opacity-100" : "w-0 opacity-0",
                   )}
                 />

@@ -732,3 +732,128 @@ export async function emitPaymentReceived(paymentData) {
     paidAt,
   });
 }
+
+/**
+ * ==============================================
+ * EMIT TO KITCHEN STATION
+ * ==============================================
+ * Sends order items to specific kitchen stations
+ */
+export async function emitToStationWrapper({
+  restaurantId,
+  stationId,
+  stationName,
+  eventPayload,
+}) {
+  if (!ioRef) {
+    console.warn("⚠️ Socket IO not initialized");
+    return;
+  }
+
+  try {
+    const {
+      eventId,
+      orderId,
+      branchMenuItemId,
+      name,
+      quantity,
+      status,
+      createdAt,
+    } = eventPayload;
+
+    const stationRoom = stationName
+      ? `restaurant:${restaurantId}:station:${stationName}`
+      : `restaurant:${restaurantId}:kitchen`;
+
+    console.log(
+      `📢 Emitting to station: ${stationRoom} | Item: ${name} (${quantity}x)`,
+    );
+
+    // Emit to specific station
+    ioRef.to(stationRoom).emit("station:new-item", {
+      eventId,
+      orderId,
+      branchMenuItemId,
+      itemName: name,
+      quantity,
+      status,
+      station: stationName,
+      createdAt,
+      restaurantId,
+    });
+
+    // Also emit to general kitchen room for managers
+    ioRef.to(`restaurant:${restaurantId}:kitchen`).emit("kitchen:item-added", {
+      eventId,
+      orderId,
+      itemName: name,
+      quantity,
+      station: stationName,
+      status,
+    });
+
+    return true;
+  } catch (error) {
+    console.error("❌ emitToStationWrapper error:", error);
+    throw error;
+  }
+}
+
+/**
+ * ==============================================
+ * EMIT STATION STATUS UPDATE
+ * ==============================================
+ * When station item status changes (PREPARING, READY, SERVED)
+ */
+export async function emitStationStatusUpdate({
+  restaurantId,
+  stationName,
+  eventId,
+  orderId,
+  itemName,
+  status,
+  tableId,
+  tableName,
+}) {
+  if (!ioRef) return;
+
+  console.log(
+    `📍 STATION STATUS UPDATE - ${itemName} → ${status} at ${stationName}`,
+  );
+
+  // Notify the specific station
+  if (stationName) {
+    ioRef
+      .to(`restaurant:${restaurantId}:station:${stationName}`)
+      .emit("station:item-updated", {
+        eventId,
+        orderId,
+        itemName,
+        status,
+        tableId,
+        tableName,
+      });
+  }
+
+  // Notify kitchen managers
+  ioRef.to(`restaurant:${restaurantId}:kitchen`).emit("kitchen:status-update", {
+    eventId,
+    orderId,
+    itemName,
+    status,
+    station: stationName,
+    tableId,
+    tableName,
+  });
+
+  // Notify waiters if item is READY
+  if (status === "READY") {
+    ioRef.to(`restaurant:${restaurantId}:waiters`).emit("waiter:item-ready", {
+      orderId,
+      itemName,
+      station: stationName,
+      tableId,
+      tableName,
+    });
+  }
+}

@@ -47,7 +47,7 @@ export default function ItemCard({ item, onDelete, refresh }) {
 
   return (
     <>
-      <div className="group relative bg-white rounded-[24px] p-2 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_24px_rgba(0,0,0,0.06)] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]">
+      <div className="group relative bg-white rounded-[24px] p-2 startup-shadow hover:scale-[1.02] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]">
         {/* IMAGE CONTAINER */}
         <div
           className="relative aspect-square rounded-[18px] overflow-hidden bg-[#F2F2F7]"
@@ -73,7 +73,7 @@ export default function ItemCard({ item, onDelete, refresh }) {
 
           {/* STANDARD FOOD INDICATOR (Using your VegNonVegIcon) */}
           <div className="absolute top-2 left-2 z-30">
-            <div className="backdrop-blur-md bg-white/80 p-1 rounded-md shadow-sm border border-white/40 flex items-center justify-center">
+            <div className="backdrop-blur-md bg-white/80 p-1 rounded-md startup-shadow flex items-center justify-center">
               <VegNonVegIcon isVeg={item.isVeg} size={8} />
             </div>
           </div>
@@ -83,13 +83,13 @@ export default function ItemCard({ item, onDelete, refresh }) {
             <div className="absolute inset-0 flex items-center justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
               <button
                 onClick={prev}
-                className="h-7 w-7 rounded-full bg-white/80 backdrop-blur-md text-black flex items-center justify-center shadow-sm pointer-events-auto active:scale-90 transition-transform"
+                className="h-7 w-7 rounded-full bg-white/80 backdrop-blur-md text-black flex items-center justify-center startup-shadow pointer-events-auto active:scale-95 transition-transform"
               >
                 <ChevronLeft size={14} strokeWidth={3} />
               </button>
               <button
                 onClick={next}
-                className="h-7 w-7 rounded-full bg-white/80 backdrop-blur-md text-black flex items-center justify-center shadow-sm pointer-events-auto active:scale-90 transition-transform"
+                className="h-7 w-7 rounded-full bg-white/80 backdrop-blur-md text-black flex items-center justify-center startup-shadow pointer-events-auto active:scale-95 transition-transform"
               >
                 <ChevronRight size={14} strokeWidth={3} />
               </button>
@@ -115,13 +115,13 @@ export default function ItemCard({ item, onDelete, refresh }) {
           <div className="absolute inset-0 bg-black/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500 hidden lg:flex items-center justify-center gap-3 z-30">
             <button
               onClick={() => setEditOpen(true)}
-              className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-lg shadow-xl flex items-center justify-center text-slate-700 hover:text-emerald-500 hover:scale-110 transition-all active:scale-95"
+              className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-lg startup-shadow flex items-center justify-center text-slate-700 hover:text-[#F35C2B] hover:scale-110 transition-all active:scale-95"
             >
               <Pencil size={16} strokeWidth={2.5} />
             </button>
             <button
               onClick={onDelete}
-              className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-lg shadow-xl flex items-center justify-center text-slate-700 hover:text-red-500 hover:scale-110 transition-all active:scale-95"
+              className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-lg startup-shadow flex items-center justify-center text-slate-700 hover:text-red-500 hover:scale-110 transition-all active:scale-95"
             >
               <Trash2 size={16} strokeWidth={2.5} />
             </button>
@@ -134,7 +134,7 @@ export default function ItemCard({ item, onDelete, refresh }) {
             {item.name}
           </h4>
           <div className="flex items-center justify-between">
-            <span className="text-[12px] font-[900] text-black tracking-tight">
+            <span className="text-[12px] font-[900] text-[#F35C2B] tracking-tight">
               ₹{Number(price).toFixed(2)}
             </span>
 

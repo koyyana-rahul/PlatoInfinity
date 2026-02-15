@@ -19,6 +19,8 @@
     /* Functional Colors */
     --danger: #e11d48;
     --success: #10b981;
+    --startup-cta: #f35c2b;
+    --startup-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.05);
   }
 
   .dark {
@@ -34,43 +36,76 @@
   body {
     background-color: var(--bg);
     color: var(--text-main);
-    font-family: "Inter", system-ui, sans-serif;
+    font-family: "Inter", "Plus Jakarta Sans", system-ui, -apple-system,
+      BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
     letter-spacing: -0.01em;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    letter-spacing: -0.02em;
   }
 }
 
 @layer components {
   /* Modern Glass Card */
   .glass-card {
-    @apply rounded-3xl border shadow-2xl shadow-black/5 transition-all duration-300;
+    @apply rounded-3xl shadow-2xl shadow-black/5 transition-all duration-300;
     background: var(--card);
-    border-color: var(--border);
   }
 
   /* Professional "Startup" Button */
   .btn-startup {
-    @apply flex items-center justify-center px-6 py-3 rounded-2xl font-semibold 
-           transition-all duration-200 active:scale-[0.97] disabled:opacity-50;
-    background-color: var(--primary);
+    @apply flex items-center justify-center px-8 py-3.5 rounded-full font-semibold
+           transition-all duration-200 active:scale-95 disabled:opacity-50;
+    background-color: var(--startup-cta);
     color: white;
-    box-shadow: 0 4px 12px var(--primary-glow);
+    box-shadow: var(--startup-shadow);
   }
 
   .btn-startup:hover {
-    filter: brightness(1.1);
-    box-shadow: 0 6px 20px var(--primary-glow);
+    filter: brightness(1.03);
+    transform: scale(1.02);
   }
 
   /* Floating Label Input */
   .input-startup {
-    @apply w-full px-4 py-3 rounded-2xl border bg-transparent 
+    @apply w-full px-4 py-3 rounded-2xl bg-white startup-shadow
            outline-none transition-all duration-200 text-sm;
-    border-color: var(--border);
   }
 
   .input-startup:focus {
     @apply ring-4;
-    border-color: var(--primary);
     --tw-ring-color: var(--ring);
+  }
+
+  .startup-panel {
+    @apply bg-white rounded-3xl startup-shadow;
+  }
+
+  .startup-heading {
+    @apply tracking-tight font-bold text-slate-900;
+  }
+
+  .tap-scale {
+    @apply active:scale-95 transition-transform duration-200;
+  }
+
+  .startup-shadow {
+    box-shadow: var(--startup-shadow);
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }

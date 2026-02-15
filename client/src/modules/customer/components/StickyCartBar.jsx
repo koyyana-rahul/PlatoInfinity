@@ -83,8 +83,6 @@ import {
   ChevronRight,
   X,
   ArrowRight,
-  Minus,
-  Plus,
 } from "lucide-react";
 
 import {
@@ -116,36 +114,36 @@ export default function StickyCartBar() {
       <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="fixed bottom-6 left-0 right-0 z-40 px-6 pointer-events-none"
+        className="fixed bottom-24 md:bottom-6 left-0 right-0 z-40 px-4 md:px-6 pointer-events-none"
       >
         <button
           onClick={() => setIsOpen(true)}
-          className="max-w-md mx-auto w-full h-16 bg-slate-900 rounded-[22px] flex items-center justify-between px-5 shadow-[0_20px_40px_rgba(0,0,0,0.3)] pointer-events-auto active:scale-[0.97] transition-all"
+          className="max-w-xl mx-auto w-full h-16 bg-white rounded-3xl flex items-center justify-between px-5 startup-shadow pointer-events-auto active:scale-95 transition-all"
         >
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="bg-emerald-500 p-2.5 rounded-xl">
+              <div className="bg-[#F35C2B] p-2.5 rounded-2xl">
                 <ShoppingBag size={20} className="text-white" />
               </div>
-              <span className="absolute -top-2 -right-2 bg-white text-slate-900 text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
+              <span className="absolute -top-2 -right-2 bg-slate-900 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">
                 {qty}
               </span>
             </div>
             <div className="text-left">
-              <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.15em] leading-none mb-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] leading-none mb-1">
                 Your Basket
               </p>
-              <p className="text-base font-black text-white leading-none">
+              <p className="text-base font-black text-slate-900 leading-none">
                 ₹{total.toLocaleString()}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-white/10 py-2 px-4 rounded-xl border border-white/5">
+          <div className="flex items-center gap-2 bg-[#F35C2B] py-2 px-4 rounded-full">
             <span className="text-[10px] font-black text-white uppercase tracking-widest">
               Review
             </span>
-            <ChevronRight size={14} className="text-emerald-400" />
+            <ChevronRight size={14} className="text-white" />
           </div>
         </button>
       </motion.div>
@@ -169,10 +167,10 @@ export default function StickyCartBar() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 250 }}
-              className="fixed bottom-0 left-0 right-0 bg-white z-[60] rounded-t-[3rem] shadow-2xl flex flex-col max-h-[70vh]"
+              className="fixed bottom-0 left-0 right-0 bg-white z-[60] rounded-t-[2rem] startup-shadow flex flex-col max-h-[70vh]"
             >
               {/* HEADER AREA */}
-              <div className="sticky top-0 bg-white rounded-t-[3rem] z-10">
+              <div className="sticky top-0 bg-white rounded-t-[2rem] z-10">
                 <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mt-4 mb-2" />
                 <div className="px-8 py-5 flex items-center justify-between">
                   <div>
@@ -212,7 +210,7 @@ export default function StickyCartBar() {
                             ₹{item.price}
                           </span>
                           <span className="w-1 h-1 bg-slate-200 rounded-full" />
-                          <span className="text-[11px] font-black text-emerald-600 uppercase tracking-widest">
+                          <span className="text-[11px] font-black text-[#F35C2B] uppercase tracking-widest">
                             Qty {item.quantity}
                           </span>
                         </div>
@@ -228,7 +226,7 @@ export default function StickyCartBar() {
               </div>
 
               {/* FOOTER (Glassmorphism Effect) */}
-              <div className="p-8 pt-6 bg-slate-50/80 backdrop-blur-sm border-t border-slate-100">
+              <div className="p-8 pt-6 bg-slate-50/80 backdrop-blur-sm">
                 <div className="flex justify-between items-end mb-6">
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
@@ -248,12 +246,12 @@ export default function StickyCartBar() {
                     setIsOpen(false);
                     navigate("../cart");
                   }}
-                  className="w-full bg-slate-900 hover:bg-black h-16 rounded-[20px] flex items-center justify-between px-8 text-white shadow-xl active:scale-[0.98] transition-all"
+                  className="w-full bg-[#F35C2B] hover:brightness-105 h-16 rounded-full flex items-center justify-between px-8 text-white startup-shadow active:scale-95 transition-all"
                 >
                   <span className="font-black uppercase text-xs tracking-[0.2em]">
                     Proceed to Cart
                   </span>
-                  <div className="bg-emerald-500 rounded-lg p-1.5">
+                  <div className="bg-white/20 rounded-xl p-1.5">
                     <ArrowRight size={18} />
                   </div>
                 </button>

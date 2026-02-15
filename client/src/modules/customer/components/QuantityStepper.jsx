@@ -9,17 +9,16 @@ export default function QuantityStepper({ value, onAdd, onMinus }) {
         whileTap={{ scale: 0.95 }}
         onClick={onAdd}
         className="
-          px-6 py-2 
-          bg-emerald-600 
-          hover:bg-emerald-700 
+          px-6 py-2.5 
+          bg-[#F35C2B] 
+          hover:brightness-105 
           text-white 
-          rounded-xl 
+          rounded-full 
           text-[11px] 
-          font-black 
+          font-bold 
           uppercase 
           tracking-widest 
-          shadow-lg 
-          shadow-emerald-100 
+          startup-shadow
           transition-colors
         "
       >
@@ -33,11 +32,11 @@ export default function QuantityStepper({ value, onAdd, onMinus }) {
     <motion.div
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      className="flex items-center bg-slate-900 text-white rounded-xl shadow-lg overflow-hidden"
+      className="flex items-center bg-[#F35C2B] text-white rounded-full startup-shadow overflow-hidden"
     >
       <button
         onClick={onMinus}
-        className="w-9 h-9 flex items-center justify-center hover:bg-white/10 active:scale-75 transition-all text-emerald-400"
+        className="w-9 h-9 flex items-center justify-center hover:bg-white/15 active:scale-95 transition-all text-white"
       >
         <Minus size={14} strokeWidth={3} />
       </button>
@@ -59,7 +58,7 @@ export default function QuantityStepper({ value, onAdd, onMinus }) {
 
       <button
         onClick={onAdd}
-        className="w-9 h-9 flex items-center justify-center hover:bg-white/10 active:scale-75 transition-all text-emerald-400"
+        className="w-9 h-9 flex items-center justify-center hover:bg-white/15 active:scale-95 transition-all text-white"
       >
         <Plus size={14} strokeWidth={3} />
       </button>

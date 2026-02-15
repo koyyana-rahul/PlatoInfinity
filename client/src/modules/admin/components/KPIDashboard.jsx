@@ -21,7 +21,7 @@ const KPICard = ({
 }) => {
   if (loading) {
     return (
-      <div className="bg-white border border-slate-200 rounded-lg p-6">
+      <div className="bg-white rounded-3xl p-6 startup-shadow">
         <div className="h-4 bg-slate-100 rounded animate-pulse mb-4 w-32" />
         <div className="h-8 bg-slate-100 rounded animate-pulse" />
       </div>
@@ -37,7 +37,7 @@ const KPICard = ({
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+    <div className="bg-white rounded-3xl p-6 startup-shadow hover:scale-[1.02] transition-all duration-300">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
@@ -64,7 +64,7 @@ const KPICard = ({
             </div>
           )}
         </div>
-        <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
+        <div className={`p-3 rounded-2xl ${colorClasses[color]}`}>
           <Icon size={24} />
         </div>
       </div>
@@ -81,7 +81,7 @@ export const KPIDashboard = ({ stats, loading }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
       {/* Total Revenue */}
       <KPICard
         title="Total Revenue"

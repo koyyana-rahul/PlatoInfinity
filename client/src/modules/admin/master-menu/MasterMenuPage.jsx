@@ -104,26 +104,26 @@ export default function MasterMenuPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#F2F2F7] flex flex-col selection:bg-emerald-100 font-sans tracking-tight">
+    <div className="relative min-h-screen bg-[#F2F2F7] flex flex-col selection:bg-orange-100 font-sans tracking-tight">
       {/* ================= STATIONARY TOP REGION ================= */}
       <div className="sticky top-0 z-30 w-full">
         {/* LAYER 1: MAIN HEADER */}
-        <header className="bg-white/95 backdrop-blur-xl border-b border-black/[0.05] w-full shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 py-2 sm:py-3 flex items-center justify-between gap-2">
+        <header className="bg-white/95 backdrop-blur-xl w-full startup-shadow">
+          <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 shrink-0">
               <h1 className="text-lg sm:text-xl font-[800] text-black tracking-tight leading-none">
                 Menu Setup
               </h1>
-              <div className="hidden xs:flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 rounded-full border border-emerald-100/50">
-                <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[7px] font-bold text-emerald-700 uppercase tracking-widest">
+              <div className="hidden xs:flex items-center gap-1.5 px-2 py-1 bg-orange-50 rounded-full startup-shadow">
+                <div className="h-1.5 w-1.5 rounded-full bg-[#F35C2B] animate-pulse" />
+                <p className="text-[8px] font-bold text-[#F35C2B] uppercase tracking-widest">
                   Live
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="flex bg-[#787880]/[0.1] rounded-lg p-0.5 shrink-0">
+              <div className="flex bg-slate-100 rounded-full p-1 shrink-0 startup-shadow">
                 {[
                   { id: "all", label: "All" },
                   { id: "veg", label: "Veg", isVeg: true },
@@ -133,9 +133,9 @@ export default function MasterMenuPage() {
                     key={v.id}
                     onClick={() => setVegFilter(v.id)}
                     className={clsx(
-                      "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-200 flex items-center gap-1",
+                      "px-3 py-1.5 text-[10px] font-bold rounded-full transition-all duration-200 flex items-center gap-1 active:scale-95",
                       vegFilter === v.id
-                        ? "bg-white text-black shadow-sm"
+                        ? "bg-[#F35C2B] text-white startup-shadow"
                         : "text-slate-500 hover:text-black",
                     )}
                   >
@@ -149,7 +149,7 @@ export default function MasterMenuPage() {
 
               <button
                 onClick={() => setModal({ type: "category" })}
-                className="bg-emerald-500 text-white p-2 sm:px-3 sm:py-1.5 rounded-lg shadow-lg shadow-emerald-200/50 hover:bg-emerald-600 transition-all active:scale-95 shrink-0"
+                className="bg-[#F35C2B] text-white p-2.5 sm:px-4 sm:py-2 rounded-full startup-shadow hover:brightness-105 transition-all active:scale-95 shrink-0"
               >
                 <Plus size={18} strokeWidth={3} />
               </button>
@@ -158,7 +158,7 @@ export default function MasterMenuPage() {
         </header>
 
         {/* LAYER 2: CATEGORY NAVIGATION */}
-        <div className="bg-white/95 backdrop-blur-xl border-b border-black/[0.03] w-full shadow-sm">
+        <div className="bg-white/95 backdrop-blur-xl w-full startup-shadow">
           <div className="max-w-7xl mx-auto">
             <CategoryBar
               categories={menu}
@@ -181,13 +181,13 @@ export default function MasterMenuPage() {
       </div>
 
       {/* ================= SCROLLABLE CONTENT REGION ================= */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-3 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-3 py-6 sm:py-8 space-y-8 sm:space-y-10">
         {/* SECTION NAVIGATION (Scrolls with the grid) */}
         {activeCategory && (
-          <div className="space-y-2 animate-in fade-in duration-300">
+          <div className="space-y-3 animate-in fade-in duration-300">
             <div className="flex items-center gap-1.5 px-1">
               <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                <Layout size={10} className="text-emerald-500" />
+                <Layout size={10} className="text-[#F35C2B]" />
                 {activeCategory.name} Sections
               </p>
             </div>
@@ -211,10 +211,10 @@ export default function MasterMenuPage() {
         )}
 
         {/* ITEMS REGISTRY (Scrolls with the grid) */}
-        <div className="animate-in fade-in slide-in-from-bottom-1 duration-500 pb-10">
-          <div className="flex items-center justify-between mb-3 px-1">
+        <div className="animate-in fade-in slide-in-from-bottom-1 duration-500 pb-16">
+          <div className="flex items-center justify-between mb-5 px-1">
             <h3 className="text-base font-extrabold text-black tracking-tight flex items-center gap-2">
-              <div className="w-1 h-3 bg-emerald-500 rounded-full" />
+              <div className="w-1 h-3 bg-[#F35C2B] rounded-full" />
               {activeSubcategoryId === null
                 ? "General List"
                 : activeSubcategory?.name}
@@ -224,7 +224,7 @@ export default function MasterMenuPage() {
             </h3>
           </div>
 
-          <div className="rounded-[20px] overflow-hidden">
+          <div className="rounded-3xl overflow-hidden">
             <ItemGrid
               items={visibleItems}
               isAllSection={activeSubcategoryId === null}

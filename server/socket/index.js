@@ -3,7 +3,11 @@ import jwt from "jsonwebtoken";
 import UserModel from "../models/user.model.js";
 import StationQueueEvent from "../models/stationQueueEvent.model.js";
 import Order from "../models/order.model.js";
-import { registerSocket } from "./emitter.js";
+import {
+  registerSocket,
+  emitStationStatusUpdate,
+  emitOrderItemStatusUpdate,
+} from "./emitter.js";
 
 let io;
 
@@ -158,21 +162,19 @@ export function initSocketServer(httpServer, options = {}) {
 
         await order.save();
 
-        // Emit to all relevant parties
-        io.to(`restaurant:${user.restaurantId}`).emit("order:item-claimed", {
-          orderId,
+        // Emit comprehensive status update
+        await emitOrderItemStatusUpdate({
+          orderId: String(orderId),
+          restaurantId: user.restaurantId,
+          sessionId: String(order.sessionId),
+          tableId: String(order.tableId),
+          tableName: order.tableName,
           itemIndex,
           itemName: item.name,
+          itemStatus: "IN_PROGRESS",
+          chefId: user.id,
           chefName: user.name,
-          station: item.station,
-          claimedAt: item.claimedAt,
-        });
-
-        io.to(`session:${order.sessionId}`).emit("order:item-status", {
-          orderId,
-          itemIndex,
-          itemName: item.name,
-          status: "IN_PROGRESS",
+          updatedAt: new Date(),
         });
 
         ack({ ok: true });
@@ -206,25 +208,19 @@ export function initSocketServer(httpServer, options = {}) {
 
         await order.save();
 
-        // Emit to waiter - item ready for serving
-        io.to(`restaurant:${user.restaurantId}:waiters`).emit(
-          "order:item-ready",
-          {
-            orderId,
-            itemIndex,
-            itemName: item.name,
-            tableId: order.tableId,
-            tableName: order.tableName,
-            allReady,
-          },
-        );
-
-        // Emit to customer
-        io.to(`session:${order.sessionId}`).emit("order:item-ready", {
-          orderId,
+        // Emit comprehensive status update
+        await emitOrderItemStatusUpdate({
+          orderId: String(orderId),
+          restaurantId: user.restaurantId,
+          sessionId: String(order.sessionId),
+          tableId: String(order.tableId),
+          tableName: order.tableName,
+          itemIndex,
           itemName: item.name,
           itemStatus: "READY",
-          allReady,
+          chefId: user.id,
+          chefName: user.name,
+          updatedAt: new Date(),
         });
 
         // If all items ready, notify kitchen
@@ -234,11 +230,12 @@ export function initSocketServer(httpServer, options = {}) {
             {
               orderId,
               tableName: order.tableName,
+              tableId: order.tableId,
             },
           );
         }
 
-        ack({ ok: true });
+        ack({ ok: true, allReady });
       } catch (err) {
         console.error("kitchen:mark-ready error:", err);
         ack({ ok: false, error: err.message });
@@ -272,19 +269,38 @@ export function initSocketServer(httpServer, options = {}) {
 
     socket.on("station:event:update", async ({ eventId, status }, ack) => {
       try {
-        const event = await StationQueueEvent.findById(eventId);
+        const event = await StationQueueEvent.findById(eventId)
+          .populate("orderId", "tableId tableName sessionId")
+          .lean();
         if (!event) return ack({ ok: false });
 
-        event.status = status;
-        if (status === "READY") event.readyAt = new Date();
-        if (status === "SERVED") event.servedAt = new Date();
-        await event.save();
+        // Update the event status
+        const updateData = { status };
+        if (status === "READY") updateData.readyAt = new Date();
+        if (status === "SERVED") updateData.servedAt = new Date();
 
+        await StationQueueEvent.findByIdAndUpdate(eventId, updateData);
+
+        // Emit status update to all relevant parties
+        await emitStationStatusUpdate({
+          restaurantId: String(event.restaurantId),
+          stationName: event.stationName,
+          eventId: String(eventId),
+          orderId: String(event.orderId._id),
+          itemName: event.name,
+          status,
+          tableId: event.orderId?.tableId
+            ? String(event.orderId.tableId)
+            : null,
+          tableName: event.orderId?.tableName || null,
+        });
+
+        // Also emit general update
         io.to(`restaurant:${user.restaurantId}`).emit("station:event:updated", {
           eventId,
           status,
-          tableId: event.tableId,
-          orderId: event.orderId,
+          tableId: event.orderId?.tableId,
+          orderId: String(event.orderId._id),
         });
 
         ack({ ok: true });

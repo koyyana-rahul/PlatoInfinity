@@ -6,6 +6,7 @@ import Axios from "../api/axios";
 import customerApi from "../api/customer.api";
 import { setBrandDetails } from "../store/brand/brandSlice";
 import { fetchCustomerOrders } from "../store/customer/orderThunks";
+import MobileBottomNav from "../modules/customer/components/MobileBottomNav";
 
 export default function CustomerLayout() {
   const { tableId } = useParams();
@@ -37,27 +38,30 @@ export default function CustomerLayout() {
   }, [dispatch, sessionId]);
 
   return (
-    <div className="min-h-screen bg-white selection:bg-emerald-100 selection:text-emerald-900 antialiased font-sans">
-      {/* 1. BRAND HEADER - Non-sticky to allow Category Bar to take over */}
-      <div className="w-full bg-white">
-        <div className="max-w-2xl mx-auto border-b border-slate-50">
+    <div className="min-h-screen bg-[#f8f8f7] selection:bg-orange-100 selection:text-orange-900 antialiased font-sans">
+      {/* 1. BRAND HEADER - Desktop/Tablet only */}
+      <div className="hidden md:block w-full bg-transparent pt-5">
+        <div className="max-w-6xl mx-auto px-6">
           <CustomerHeader />
         </div>
       </div>
 
       {/* 2. MAIN CONTENT AREA */}
-      <main className="max-w-2xl mx-auto relative flex-1">
+      <main className="max-w-6xl mx-auto relative flex-1 px-4 sm:px-6 lg:px-8 pb-36 md:pb-20 pt-2 md:pt-4">
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
           <Outlet />
         </div>
       </main>
 
-      {/* 3. FOOTER SPACING (Matches Cart Bar height) */}
-      <footer className="h-32 pointer-events-none" />
+      {/* 3. MOBILE BOTTOM NAV */}
+      <MobileBottomNav />
+
+      {/* 4. FOOTER SPACING */}
+      <footer className="h-24 md:h-12 pointer-events-none" />
 
       <style>{`
         :root { scroll-behavior: smooth; }
-        body { 
+        body {
           background-color: #ffffff; 
           overscroll-behavior-y: none; 
           -webkit-font-smoothing: antialiased;

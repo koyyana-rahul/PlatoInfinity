@@ -16,8 +16,10 @@ import { setUserDetails } from "../../store/auth/userSlice";
 
 // Component definitions outside to prevent re-creation on each render
 const SettingGroup = ({ title, children }) => (
-  <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-8 space-y-4 sm:space-y-6 shadow-sm hover:shadow-md transition-shadow">
-    <h3 className="text-lg sm:text-xl font-bold text-slate-900">{title}</h3>
+  <div className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 sm:space-y-7 startup-shadow hover:scale-[1.01] transition-all duration-300">
+    <h3 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+      {title}
+    </h3>
     {children}
   </div>
 );
@@ -31,7 +33,7 @@ const SettingField = ({ label, value, onChange, type = "text", help }) => (
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm transition"
+      className="w-full px-4 py-3.5 rounded-2xl bg-white startup-shadow focus:outline-none focus:ring-2 focus:ring-orange-300 text-sm transition"
     />
     {help && <p className="text-xs text-slate-500 mt-2">{help}</p>}
   </div>
@@ -177,10 +179,10 @@ export default function AdminSettings() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50 to-slate-100 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500">
+      <div className="max-w-6xl mx-auto space-y-10 sm:space-y-12 animate-in fade-in duration-500">
         {/* Header */}
         <div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900">
             ⚙️ Settings
           </h1>
           <p className="text-sm sm:text-base text-slate-600 mt-2">
@@ -191,15 +193,15 @@ export default function AdminSettings() {
 
         {/* Tabs */}
         <div className="overflow-x-auto">
-          <div className="flex gap-2 sm:gap-4 border-b-2 border-slate-200 flex-nowrap pb-4">
+          <div className="flex gap-2 sm:gap-4 flex-nowrap pb-4">
             {["restaurant", "profile", "security", "billing"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 sm:px-6 py-3 font-semibold text-sm whitespace-nowrap transition-all relative ${
+                className={`px-5 sm:px-7 py-3 rounded-full font-semibold text-sm whitespace-nowrap transition-all relative active:scale-95 ${
                   activeTab === tab
-                    ? "text-orange-600"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "bg-[#F35C2B] text-white startup-shadow"
+                    : "bg-white text-slate-600 startup-shadow"
                 }`}
               >
                 {tab === "restaurant" && "🏪 "}
@@ -207,9 +209,6 @@ export default function AdminSettings() {
                 {tab === "security" && "🔒 "}
                 {tab === "billing" && "💳 "}
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                {activeTab === tab && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-full"></div>
-                )}
               </button>
             ))}
           </div>
@@ -253,7 +252,7 @@ export default function AdminSettings() {
                     handleSettingsChange("description", e.target.value)
                   }
                   rows="4"
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm transition"
+                  className="w-full px-4 py-3.5 rounded-2xl bg-white startup-shadow focus:outline-none focus:ring-2 focus:ring-orange-300 text-sm transition"
                 />
               </div>
             </SettingGroup>
@@ -279,7 +278,7 @@ export default function AdminSettings() {
               <button
                 onClick={saveRestaurantSettings}
                 disabled={saving}
-                className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg hover:shadow-orange-500/30 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-7 sm:px-10 py-3.5 sm:py-4 bg-[#F35C2B] text-white rounded-full startup-shadow hover:scale-[1.02] transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiSave size={18} />
                 {saving ? "Saving..." : "Save Changes"}
@@ -317,7 +316,7 @@ export default function AdminSettings() {
               <button
                 onClick={saveUserProfile}
                 disabled={saving}
-                className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:shadow-lg hover:shadow-orange-500/30 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-7 sm:px-10 py-3.5 sm:py-4 bg-[#F35C2B] text-white rounded-full startup-shadow hover:scale-[1.02] transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiSave size={18} />
                 {saving ? "Updating..." : "Update Profile"}
@@ -330,7 +329,7 @@ export default function AdminSettings() {
         {activeTab === "security" && (
           <div className="space-y-6 sm:space-y-8">
             <SettingGroup title="🔒 Change Password">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+              <div className="bg-amber-50 rounded-2xl p-4 mb-6 startup-shadow">
                 <p className="text-sm text-amber-800 flex items-start gap-2">
                   <span>⚠️</span>
                   <span>
@@ -373,7 +372,7 @@ export default function AdminSettings() {
               <button
                 onClick={changePassword}
                 disabled={saving}
-                className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:shadow-lg hover:shadow-blue-500/30 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-7 sm:px-10 py-3.5 sm:py-4 bg-[#F35C2B] text-white rounded-full startup-shadow hover:scale-[1.02] transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiLock size={18} />
                 {saving ? "Updating..." : "Change Password"}
@@ -417,12 +416,12 @@ export default function AdminSettings() {
               </div>
             </SettingGroup>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 sm:p-6">
+            <div className="bg-blue-50 rounded-3xl p-4 sm:p-6 startup-shadow">
               <h4 className="font-semibold text-blue-900 mb-3">
                 💡 Billing Summary
               </h4>
               <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="bg-white rounded-lg p-3 sm:p-4 border border-blue-100">
+                <div className="bg-white rounded-2xl p-3 sm:p-4 startup-shadow">
                   <p className="text-xs sm:text-sm text-slate-600">
                     Service Charge
                   </p>
@@ -430,13 +429,13 @@ export default function AdminSettings() {
                     {settings.serviceCharge}%
                   </p>
                 </div>
-                <div className="bg-white rounded-lg p-3 sm:p-4 border border-blue-100">
+                <div className="bg-white rounded-2xl p-3 sm:p-4 startup-shadow">
                   <p className="text-xs sm:text-sm text-slate-600">Tax Rate</p>
                   <p className="text-lg sm:text-2xl font-bold text-blue-600">
                     {settings.taxRate}%
                   </p>
                 </div>
-                <div className="bg-white rounded-lg p-3 sm:p-4 border border-blue-100">
+                <div className="bg-white rounded-2xl p-3 sm:p-4 startup-shadow">
                   <p className="text-xs sm:text-sm text-slate-600">
                     Delivery Fee
                   </p>
@@ -451,7 +450,7 @@ export default function AdminSettings() {
               <button
                 onClick={saveRestaurantSettings}
                 disabled={saving}
-                className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:shadow-lg hover:shadow-emerald-500/30 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-7 sm:px-10 py-3.5 sm:py-4 bg-[#F35C2B] text-white rounded-full startup-shadow hover:scale-[1.02] transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiSave size={18} />
                 {saving ? "Saving..." : "Save Changes"}

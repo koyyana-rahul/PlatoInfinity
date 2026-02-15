@@ -50,10 +50,10 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }) {
   }, []);
 
   if (!user?._id || !brand?.name)
-    return <div className="h-20 animate-pulse bg-white border-b" />;
+    return <div className="h-24 animate-pulse bg-[#FCFCFC]" />;
 
   return (
-    <header className="h-20 bg-white border-b border-slate-100 sticky top-0 z-[130] flex items-center justify-between px-4 sm:px-8">
+    <header className="h-24 bg-[#FCFCFC] sticky top-0 z-[130] flex items-center justify-between px-4 sm:px-8">
       {/* ================= LEFT: BRANDING & TOGGLE ================= */}
       <div className="flex items-center gap-4 min-w-0">
         {/* THE TOGGLE BUTTON */}
@@ -65,10 +65,10 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }) {
             onMenuClick(); // Triggers toggle in parent
           }}
           className={clsx(
-            "lg:hidden w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-300 active:scale-90",
+            "lg:hidden w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-300 active:scale-95",
             isSidebarOpen
-              ? "bg-slate-900 text-white shadow-lg"
-              : "bg-slate-50 text-slate-600 hover:bg-slate-100",
+              ? "bg-[#F35C2B] text-white shadow-[0_20px_25px_-5px_rgb(243_92_43_/_0.35)]"
+              : "bg-white text-slate-600 shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.05)] hover:scale-[1.02]",
           )}
           aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
         >
@@ -87,9 +87,9 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }) {
           )}
         </button>
 
-        <div className="flex items-center gap-3 min-w-0 group">
+        <div className="flex items-center gap-3 min-w-0 group bg-white rounded-3xl px-3 py-2 shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.05)]">
           {brand.logoUrl ? (
-            <div className="h-12 w-12 rounded-2xl ring-4 ring-slate-50 bg-white overflow-hidden flex-shrink-0 transition-transform duration-500 group-hover:scale-105 border border-slate-100 shadow-sm">
+            <div className="h-12 w-12 rounded-2xl bg-white overflow-hidden flex-shrink-0 transition-transform duration-500 group-hover:scale-105 shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.05)]">
               <img
                 src={brand.logoUrl}
                 alt={brand.name}
@@ -97,7 +97,7 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }) {
               />
             </div>
           ) : (
-            <div className="h-12 w-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-black text-lg shadow-lg flex-shrink-0">
+            <div className="h-12 w-12 rounded-2xl bg-[#F35C2B] text-white flex items-center justify-center font-black text-lg shadow-[0_20px_25px_-5px_rgb(243_92_43_/_0.35)] flex-shrink-0">
               {brand.name.charAt(0)}
             </div>
           )}
@@ -107,7 +107,7 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }) {
               {brand.name}
             </h1>
             <div className="flex items-center gap-1.5 mt-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#F35C2B] animate-pulse" />
               <span className="text-[9px] text-slate-400 font-black uppercase tracking-[0.25em]">
                 {user.role}
               </span>
@@ -121,10 +121,10 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }) {
         <button
           onClick={() => setOpen((v) => !v)}
           className={clsx(
-            "flex items-center gap-3 p-1.5 sm:pl-2 sm:pr-4 py-1.5 rounded-[22px] transition-all duration-500 active:scale-95",
+            "flex items-center gap-3 p-1.5 sm:pl-2 sm:pr-4 py-1.5 rounded-3xl transition-all duration-500 active:scale-95",
             open
-              ? "bg-slate-900 text-white shadow-2xl"
-              : "bg-white border border-slate-100 shadow-sm hover:border-emerald-200",
+              ? "bg-[#F35C2B] text-white shadow-[0_20px_25px_-5px_rgb(243_92_43_/_0.35)]"
+              : "bg-white shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.05)] hover:scale-[1.02]",
           )}
         >
           <div className="relative">
@@ -133,13 +133,13 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }) {
                 "h-10 w-10 rounded-2xl flex items-center justify-center font-black text-sm shadow-inner transition-colors",
                 open
                   ? "bg-white/10 text-white"
-                  : "bg-emerald-50 text-emerald-600",
+                  : "bg-[#F35C2B]/10 text-[#F35C2B]",
               )}
             >
               {user.name?.charAt(0).toUpperCase()}
             </div>
             {!open && (
-              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#F35C2B] border-2 border-white rounded-full" />
             )}
           </div>
 
@@ -155,17 +155,17 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }) {
           <FiChevronDown
             className={clsx(
               "text-[12px] transition-transform duration-500",
-              open ? "rotate-180 text-emerald-400" : "text-slate-300",
+              open ? "rotate-180 text-white/80" : "text-slate-300",
             )}
           />
         </button>
 
         {/* DROPDOWN MENU */}
         {open && (
-          <div className="absolute right-0 mt-4 w-72 bg-white border border-slate-100 rounded-[32px] shadow-2xl z-[150] overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-300 origin-top-right">
-            <div className="px-7 py-6 bg-slate-50/50 border-b">
+          <div className="absolute right-0 mt-4 w-72 bg-white rounded-[32px] shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.08)] z-[150] overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-300 origin-top-right">
+            <div className="px-7 py-6 bg-slate-50/60">
               <div className="flex items-center gap-2 mb-2">
-                <FiActivity size={10} className="text-emerald-500" />
+                <FiActivity size={10} className="text-[#F35C2B]" />
                 <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.25em]">
                   Active Session
                 </p>
@@ -181,9 +181,9 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }) {
             <div className="p-3">
               <button
                 onClick={handleLogout}
-                className="w-full px-4 py-4 rounded-[22px] text-sm font-black text-red-500 hover:bg-red-50 flex items-center gap-4 transition-all active:scale-[0.98]"
+                className="w-full px-4 py-4 rounded-3xl text-sm font-black text-white bg-[#F35C2B] hover:scale-[1.02] flex items-center gap-4 transition-all active:scale-[0.95]"
               >
-                <div className="p-2.5 rounded-xl bg-red-100/50">
+                <div className="p-2.5 rounded-2xl bg-white/20">
                   <FiLogOut size={14} strokeWidth={3} />
                 </div>
                 Log Out Account

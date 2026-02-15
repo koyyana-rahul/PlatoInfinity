@@ -1,4 +1,3 @@
-// src/services/placeOrder.service.js
 import mongoose from "mongoose";
 import crypto from "crypto";
 
@@ -10,7 +9,7 @@ import StationQueueEventModel from "../models/stationQueueEvent.model.js";
 import KitchenStationModel from "../models/kitchenStation.model.js";
 import IdempotencyKeyModel from "../models/idempotencyKey.model.js";
 import SuspiciousOrderModel from "../models/suspiciousOrder.model.js";
-import { emitToStationWrapper } from "../socket/emitter.js";
+import { emitToStationWrapper, emitOrderPlaced } from "../socket/emitter.js";
 import AuditLog from "../models/auditLog.model.js"; // optional
 
 // configurable thresholds
@@ -75,7 +74,7 @@ export async function placeOrderService(payload) {
     if (existing) {
       if (existing.orderId) {
         const existingOrder = await OrderModel.findById(
-          existing.orderId
+          existing.orderId,
         ).lean();
         return {
           order: existingOrder,
@@ -107,7 +106,7 @@ export async function placeOrderService(payload) {
 
   // Load branch menu docs for requested items
   const branchMenuIds = requestedItems.map((i) =>
-    mongoose.Types.ObjectId(i.branchMenuItemId)
+    mongoose.Types.ObjectId(i.branchMenuItemId),
   );
   const branchMenuDocs = await BranchMenuItemModel.find({
     _id: { $in: branchMenuIds },
@@ -288,7 +287,7 @@ export async function placeOrderService(payload) {
       // persist station events (flat list)
       const eventsToCreate = [];
       for (const [stationName, stationItems] of Object.entries(
-        itemsByStation
+        itemsByStation,
       )) {
         // try to find stationId by name
         const stationDoc = await KitchenStationModel.findOne({
@@ -328,7 +327,7 @@ export async function placeOrderService(payload) {
               createdAt: new Date(),
             },
           ],
-          { session: mongoSession }
+          { session: mongoSession },
         );
       }
     }); // end transaction
@@ -345,6 +344,42 @@ export async function placeOrderService(payload) {
     const stationEvents = await StationQueueEventModel.find({
       orderId: createdOrderDoc._id,
     }).lean();
+
+    // Group items by station for the main order placed event
+    const itemsByStation = {};
+    orderItems.forEach((item, idx) => {
+      const station = item.station || "DEFAULT";
+      if (!itemsByStation[station]) {
+        itemsByStation[station] = [];
+      }
+      itemsByStation[station].push({
+        ...item,
+        itemIndex: idx,
+        itemStatus: "NEW",
+      });
+    });
+
+    // Emit comprehensive order placed event
+    await emitOrderPlaced({
+      orderId: String(createdOrderDoc._id),
+      restaurantId: String(sessionDoc.restaurantId),
+      sessionId: String(sessionDoc._id),
+      tableId: String(sessionDoc.tableId),
+      tableName: sessionDoc.tableNumber || String(sessionDoc.tableId),
+      orderNumber:
+        createdOrderDoc.orderNumber ||
+        `#${createdOrderDoc._id.toString().slice(-6)}`,
+      items: orderItems.map((item, idx) => ({
+        ...item,
+        itemIndex: idx,
+        itemStatus: "NEW",
+      })),
+      totalAmount: computedTotal,
+      placedBy: actor ? actor.name : "Customer",
+      placedAt: new Date(),
+    });
+
+    // Emit individual station events
     for (const ev of stationEvents) {
       const payload = {
         eventId: String(ev._id),
@@ -366,24 +401,24 @@ export async function placeOrderService(payload) {
           eventPayload: payload,
         });
         console.log(
-          `Emitted station event ${payload.eventId} -> station ${
+          `✅ Emitted station event ${payload.eventId} -> station ${
             payload.stationName || payload.stationId
-          }`
+          }`,
         );
       } catch (emitErr) {
         console.error(
-          "emitToStation failed for event",
+          "❌ emitToStation failed for event",
           payload.eventId,
-          emitErr
+          emitErr,
         );
         // optional: push to retry queue here
       }
     }
   } catch (err) {
     console.error(
-      "Failed to load/emit station events for order",
+      "❌ Failed to load/emit station events for order",
       createdOrderDoc._id,
-      err
+      err,
     );
   }
 
