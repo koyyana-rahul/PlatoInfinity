@@ -13,13 +13,16 @@ import {
 } from "lucide-react";
 
 import QuantityStepper from "../components/QuantityStepper";
+import CallWaiterModal from "../components/CallWaiterModal";
+import CustomerPinInputModal from "../components/CustomerPinInputModal";
+import Axios from "../../../api/axios";
+import customerApi from "../../../api/customer.api";
 
 import {
   fetchCart,
   updateCartItem,
   removeCartItem,
 } from "../../../store/customer/cartThunks";
-import { placeOrder } from "../../../store/customer/orderThunks";
 import {
   selectCartState,
   selectCartItems,
@@ -44,7 +47,17 @@ export default function CustomerCart() {
   const loading = useSelector(selectCartLoading);
 
   const [orderType, setOrderType] = useState("DINE_IN");
-  const [isPlacing, setIsPlacing] = useState(false);
+
+  // MODAL STATES
+  const [showCallWaiterModal, setShowCallWaiterModal] = useState(false);
+  const [showPinInputModal, setShowPinInputModal] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [pinError, setPinError] = useState(null);
+  const [attemptsLeft, setAttemptsLeft] = useState(null);
+  const [isBlocked, setIsBlocked] = useState(false);
+
+  // TABLE INFO
+  const [tableNumber, setTableNumber] = useState("Table");
 
   useEffect(() => {
     if (!sessionId) {
@@ -53,18 +66,64 @@ export default function CustomerCart() {
       return;
     }
     dispatch(fetchCart());
-  }, [dispatch, sessionId, navigate, base]);
 
-  const handlePlaceOrder = async () => {
+    // Load table info
+    (async () => {
+      try {
+        const res = await Axios(customerApi.publicTable(tableId));
+        if (res.data?.data?.tableNumber) {
+          setTableNumber(res.data.data.tableNumber);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+  }, [dispatch, sessionId, navigate, base, tableId]);
+
+  const handlePlaceOrderClick = () => {
+    // Step 1: Show "Call Waiter" message
+    setShowCallWaiterModal(true);
+  };
+
+  const handleWaiterConfirmed = () => {
+    // Step 2: Waiter has given PIN, now show PIN input
+    setPinError(null);
+    setAttemptsLeft(null);
+    setIsBlocked(false);
+    setShowPinInputModal(true);
+  };
+
+  const handleSubmitOrder = async (pinData) => {
     try {
-      setIsPlacing(true);
-      await dispatch(placeOrder()).unwrap();
-      toast.success("Order sent to kitchen");
-      navigate(base + "/orders");
+      setIsSubmittingOrder(true);
+      setPinError(null);
+
+      const payload = {
+        tablePin: pinData.tablePin,
+        mode: pinData.mode,
+      };
+
+      const res = await Axios({
+        ...customerApi.order.place,
+        data: payload,
+      });
+
+      if (res.data?.success) {
+        toast.success("Order placed successfully! 🎉");
+        setShowPinInputModal(false);
+        setShowCallWaiterModal(false);
+        navigate(base + "/orders");
+      } else {
+        setPinError(res.data?.message || "Failed to place order");
+      }
     } catch (err) {
-      toast.error(err || "Failed to place order");
+      const errorData = err?.response?.data;
+      setPinError(errorData?.message || "Invalid PIN. Please try again.");
+      setAttemptsLeft(errorData?.attemptsLeft);
+      setIsBlocked(errorData?.isBlocked);
+      toast.error(errorData?.message || "PIN verification failed");
     } finally {
-      setIsPlacing(false);
+      setIsSubmittingOrder(false);
     }
   };
 
@@ -242,18 +301,18 @@ export default function CustomerCart() {
       <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 p-5 z-40">
         <div className="max-w-2xl mx-auto">
           <button
-            disabled={isPlacing}
-            onClick={handlePlaceOrder}
+            disabled={isSubmittingOrder}
+            onClick={handlePlaceOrderClick}
             className="w-full h-16 bg-slate-900 disabled:bg-slate-200 text-white rounded-[20px] flex items-center justify-between px-8 transition-all active:scale-[0.98] shadow-2xl shadow-slate-300 overflow-hidden relative"
           >
-            {isPlacing && (
+            {isSubmittingOrder && (
               <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center backdrop-blur-sm z-10">
                 <Loader2 className="animate-spin text-white" size={24} />
               </div>
             )}
             <div className="text-left">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 mb-0.5">
-                Confirm Order
+                Ready to Order
               </p>
               <p className="text-[15px] font-bold tracking-tight">
                 {totalQty} {totalQty > 1 ? "Items" : "Item"} • ₹
@@ -261,11 +320,30 @@ export default function CustomerCart() {
               </p>
             </div>
             <div className="flex items-center gap-2 font-bold text-[13px] uppercase tracking-widest">
-              Checkout <ChevronRight size={18} strokeWidth={3} />
+              Place Order <ChevronRight size={18} strokeWidth={3} />
             </div>
           </button>
         </div>
       </div>
+
+      {/* MODALS */}
+      <CallWaiterModal
+        isOpen={showCallWaiterModal}
+        tableNumber={tableNumber}
+        onClose={() => setShowCallWaiterModal(false)}
+        onWaiterConfirmed={handleWaiterConfirmed}
+      />
+
+      <CustomerPinInputModal
+        isOpen={showPinInputModal}
+        tableNumber={tableNumber}
+        onClose={() => setShowPinInputModal(false)}
+        onSubmit={handleSubmitOrder}
+        isLoading={isSubmittingOrder}
+        errorMessage={pinError}
+        attemptsLeft={attemptsLeft}
+        isBlocked={isBlocked}
+      />
     </div>
   );
 }

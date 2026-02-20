@@ -76,14 +76,9 @@
 
 import { useState } from "react";
 import { useSelector } from "react-redux";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  ShoppingBag,
-  ChevronRight,
-  X,
-  ArrowRight,
-} from "lucide-react";
+import { ShoppingBag, ChevronRight, X, ArrowRight } from "lucide-react";
 
 import {
   selectTotalQty,
@@ -100,6 +95,11 @@ export default function StickyCartBar() {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const { brandSlug, restaurantSlug, tableId } = useParams();
+  const cartPath =
+    brandSlug && restaurantSlug && tableId
+      ? `/${brandSlug}/${restaurantSlug}/table/${tableId}/cart`
+      : "../cart";
 
   const isHidden =
     !qty ||
@@ -117,7 +117,7 @@ export default function StickyCartBar() {
         className="fixed bottom-24 md:bottom-6 left-0 right-0 z-40 px-4 md:px-6 pointer-events-none"
       >
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={() => navigate(cartPath)}
           className="max-w-xl mx-auto w-full h-16 bg-white rounded-3xl flex items-center justify-between px-5 startup-shadow pointer-events-auto active:scale-95 transition-all"
         >
           <div className="flex items-center gap-4">
@@ -244,7 +244,7 @@ export default function StickyCartBar() {
                 <button
                   onClick={() => {
                     setIsOpen(false);
-                    navigate("../cart");
+                    navigate(cartPath);
                   }}
                   className="w-full bg-[#F35C2B] hover:brightness-105 h-16 rounded-full flex items-center justify-between px-8 text-white startup-shadow active:scale-95 transition-all"
                 >

@@ -25,7 +25,7 @@ export default function TableCard({ table, activeSession, onOpen, onViewPin }) {
       <div className="mt-4">
         {activeSession ? (
           <button
-            onClick={onViewPin}
+            onClick={() => onViewPin?.(activeSession)}
             className="w-full py-2 rounded-xl border text-xs font-semibold hover:bg-gray-50"
           >
             View Customer PIN

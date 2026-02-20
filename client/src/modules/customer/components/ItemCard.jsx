@@ -6,90 +6,86 @@ import VegNonVegIcon from "../../../components/ui/VegNonVegIcon";
 export default function ItemCard({ item, qty = 0, onAdd, onMinus }) {
   const navigate = useNavigate();
   const { brandSlug, restaurantSlug, tableId } = useParams();
+  const itemId = item?.id || item?._id;
 
   const goToItem = () => {
-    navigate(
-      `/${brandSlug}/${restaurantSlug}/table/${tableId}/item/${item.id}`,
-    );
+    navigate(`/${brandSlug}/${restaurantSlug}/table/${tableId}/item/${itemId}`);
   };
 
   return (
     <div
       onClick={goToItem}
-      className="
-        group bg-white rounded-3xl startup-shadow
-        overflow-hidden relative cursor-pointer
-        transition-all duration-300 will-change-transform
-        hover:scale-[1.02]
-        active:scale-[0.99]
-      "
+      className="group bg-white rounded-2xl border border-slate-100 shadow-[0_14px_40px_-30px_rgba(15,23,42,0.35)] overflow-hidden relative cursor-pointer transition-all duration-300 will-change-transform hover:-translate-y-0.5 hover:shadow-[0_20px_55px_-35px_rgba(15,23,42,0.45)] active:scale-[0.99]"
     >
       {/* IMAGE */}
-      <div className="relative">
-        <img
-          src={item.image || "/food-placeholder.jpg"}
-          alt={item.name}
-          loading="lazy"
-          className="h-44 w-full object-cover bg-gray-100"
-        />
-
-        {/* SOFT GRADIENT */}
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
-
-        {/* PRICE TAG */}
-        <div className="absolute bottom-4 right-4 bg-white/60 backdrop-blur-md text-slate-900 text-sm font-bold px-4 py-2 rounded-full startup-shadow">
-          ₹{item.price}
+      <div className="relative p-3 pb-0">
+        <div className="relative overflow-hidden rounded-2xl bg-slate-100">
+          <img
+            src={item.image || "/food-placeholder.jpg"}
+            alt={item.name}
+            loading="lazy"
+            className="h-40 sm:h-44 md:h-48 w-full object-cover"
+          />
         </div>
 
-        {/* FAVORITE */}
-        {/* <FavoriteButton
-          onToggle={(e) => e.stopPropagation()}
-          className="absolute top-2 left-2"
-        /> */}
-
-        {/* VEG / NON-VEG */}
-        <div className="absolute top-3 left-3 bg-white/80 backdrop-blur-md px-2 py-1 rounded-xl startup-shadow">
-          <VegNonVegIcon isVeg={item.isVeg} size={10} />
+        {/* VEG / NON-VEG + STATION BADGE */}
+        <div className="absolute top-5 left-5 flex gap-2 items-start">
+          <div className="bg-white/90 backdrop-blur-md px-2 py-1 rounded-lg shadow-sm">
+            <VegNonVegIcon isVeg={item.isVeg} size={10} />
+          </div>
+          {/* KITCHEN STATION BADGE */}
+          {item.stationBadge && (
+            <div className="bg-amber-50/95 backdrop-blur-md px-3 py-1.5 rounded-lg shadow-sm border border-amber-100/50 flex items-center gap-1">
+              <span
+                className="text-lg"
+                title={item.stationDisplayName || item.station}
+              >
+                {item.stationBadge}
+              </span>
+              <span className="text-[11px] font-bold text-amber-900 hidden sm:inline max-w-[80px] truncate">
+                {item.stationDisplayName || item.station}
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* QTY BADGE (ONLY INDICATOR) */}
+        {/* STEPPER (ONLY IF IN CART) */}
         {qty > 0 && (
-          <div className="absolute top-3 right-3 bg-[#F35C2B] text-white text-xs px-2.5 py-1 rounded-full font-semibold startup-shadow">
-            {qty}
+          <div className="absolute bottom-4 right-5">
+            <QuantityStepper
+              value={qty}
+              onAdd={(e) => {
+                e.stopPropagation();
+                onAdd(itemId);
+              }}
+              onMinus={(e) => {
+                e.stopPropagation();
+                onMinus(itemId);
+              }}
+            />
           </div>
         )}
       </div>
 
       {/* CONTENT */}
-      <div className="p-5 space-y-4">
+      <div className="px-4 pb-4 pt-3 space-y-2">
         {/* NAME */}
-        <p className="font-bold tracking-tight text-base leading-tight line-clamp-2 text-slate-900">
+        <p className="font-extrabold tracking-tight text-[15px] sm:text-base leading-tight line-clamp-2 text-slate-900">
           {item.name}
         </p>
 
         {/* DESCRIPTION */}
         {item.description && (
-          <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">
+          <p className="text-[12px] sm:text-sm text-slate-500 line-clamp-2 leading-relaxed">
             {item.description}
           </p>
         )}
 
-        {/* PRICE + STEPPER (ONLY IF IN CART) */}
-        <div className="flex justify-end items-center pt-1">
-
-          {qty > 0 && (
-            <QuantityStepper
-              value={qty}
-              onAdd={(e) => {
-                e.stopPropagation();
-                onAdd(item.id);
-              }}
-              onMinus={(e) => {
-                e.stopPropagation();
-                onMinus(item.id);
-              }}
-            />
-          )}
+        {/* PRICE */}
+        <div className="pt-1">
+          <span className="text-[14px] font-bold text-slate-900">
+            ₹{item.price}
+          </span>
         </div>
       </div>
     </div>

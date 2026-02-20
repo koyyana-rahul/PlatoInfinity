@@ -9,9 +9,16 @@ import Order from "../models/order.model.js";
 
 const kitchenRouter = express.Router();
 
+// Match frontend API: /api/kitchen/:restaurantId/orders
+kitchenRouter.get("/:restaurantId/orders", listKitchenOrders);
+
+// Auth protected routes for staff
 kitchenRouter.use(requireAuth, requireRole("CHEF"));
 
-kitchenRouter.get("/orders", listKitchenOrders);
+kitchenRouter.put(
+  "/order/:orderId/item/:itemId/status",
+  updateKitchenItemStatus,
+);
 kitchenRouter.post(
   "/order/:orderId/item/:itemId/status",
   updateKitchenItemStatus,

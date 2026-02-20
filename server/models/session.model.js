@@ -1,6 +1,8 @@
 import mongoose, { Schema } from "mongoose";
 import mongoosePaginate from "mongoose-paginate-v2";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
+const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
 const sessionSchema = new mongoose.Schema(
   {
     restaurantId: {
@@ -20,7 +22,8 @@ const sessionSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    tablePin: { type: String, required: true },
+    tablePin: { type: String, default: null },
+    tablePinHash: { type: String, required: true },
 
     /* ========== 🪑 MODE: FAMILY vs INDIVIDUAL ========== */
     mode: {
@@ -92,6 +95,7 @@ sessionSchema.statics.createForTable = async function (
   session = null,
 ) {
   const tablePin = Math.floor(1000 + Math.random() * 9000).toString();
+  const tablePinHash = await bcrypt.hash(tablePin, SALT_ROUNDS);
   const token = crypto.randomBytes(24).toString("hex");
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
   const doc = new this({
@@ -100,6 +104,7 @@ sessionSchema.statics.createForTable = async function (
     openedByUserId,
     mode, // ✅ SET MODE
     tablePin,
+    tablePinHash,
     sessionTokenHash: tokenHash,
     tokenExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 8), // default 8 hours
     currentTableId: tableId,
@@ -168,7 +173,12 @@ sessionSchema.methods.verifyPin = async function (enteredPin) {
     };
   }
 
-  const isCorrect = this.tablePin === String(enteredPin);
+  let isCorrect = false;
+  if (this.tablePinHash) {
+    isCorrect = await bcrypt.compare(String(enteredPin), this.tablePinHash);
+  } else {
+    isCorrect = this.tablePin === String(enteredPin);
+  }
   await this.recordPinAttempt(enteredPin, isCorrect);
 
   if (isCorrect) {

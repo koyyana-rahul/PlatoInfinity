@@ -26,103 +26,68 @@ export default function WaiterDashboard() {
     setSessions(s.data.data || []);
   };
 
-    const socket = useSocket();
+  const socket = useSocket();
 
-  
+  useEffect(() => {
+    load();
+  }, [restaurantId]);
 
-    useEffect(() => {
+  useEffect(() => {
+    if (!socket) return;
 
-      load();
-
-    }, [restaurantId]);
-
-  
-
-    useEffect(() => {
-
-      if (!socket) return;
-
-  
-
-      const handleSessionOpened = (newSession) => {
-
-        setSessions((prev) => [...prev, newSession]);
-
-        setTables((prev) =>
-
-          prev.map((t) =>
-
-            t._id === newSession.tableId._id ? { ...t, status: "OCCUPIED" } : t
-
-          )
-
-        );
-
-      };
-
-  
-
-      const handleSessionClosed = ({ sessionId, tableId }) => {
-
-        setSessions((prev) => prev.filter((s) => s._id !== sessionId));
-
-        setTables((prev) =>
-
-          prev.map((t) => (t._id === tableId ? { ...t, status: "FREE" } : t))
-
-        );
-
-      };
-
-  
-
-      socket.on("session:opened", handleSessionOpened);
-
-      socket.on("session:closed", handleSessionClosed);
-
-  
-
-      return () => {
-
-        socket.off("session:opened", handleSessionOpened);
-
-        socket.off("session:closed", handleSessionClosed);
-
-      };
-
-    }, [socket]);
-
-  
-
-    const sessionByTable = useMemo(() => {
-
-      const map = new Map();
-
-      sessions.forEach((s) => map.set(String(s.tableId._id), s));
-
-      return map;
-
-    }, [sessions]);
-
-  
-
-    const openSession = async (tableId) => {
-
-      const res = await Axios({
-
-        ...sessionApi.open(restaurantId),
-
-        data: { tableId },
-
-      });
-
-      setPinInfo(res.data.data);
-
-      toast.success("Session opened");
-
-      // load() is no longer needed here
-
+    const handleSessionOpened = (newSession) => {
+      setSessions((prev) => [...prev, newSession]);
+      setTables((prev) =>
+        prev.map((t) =>
+          t._id === newSession.tableId._id ? { ...t, status: "OCCUPIED" } : t,
+        ),
+      );
     };
+
+    const handleSessionClosed = ({ sessionId, tableId }) => {
+      setSessions((prev) => prev.filter((s) => s._id !== sessionId));
+      setTables((prev) =>
+        prev.map((t) => (t._id === tableId ? { ...t, status: "FREE" } : t)),
+      );
+    };
+
+    socket.on("session:opened", handleSessionOpened);
+    socket.on("session:closed", handleSessionClosed);
+
+    return () => {
+      socket.off("session:opened", handleSessionOpened);
+      socket.off("session:closed", handleSessionClosed);
+    };
+  }, [socket]);
+
+  const sessionByTable = useMemo(() => {
+    const map = new Map();
+    sessions.forEach((s) => {
+      if (s.tableId) {
+        map.set(String(s.tableId._id), s);
+      }
+    });
+    return map;
+  }, [sessions]);
+
+  const openSession = async (tableId) => {
+    const res = await Axios({
+      ...sessionApi.open(restaurantId),
+      data: { tableId },
+    });
+    setPinInfo(res.data.data);
+    toast.success("Session opened");
+  };
+
+  const handleViewPin = async (session) => {
+    if (!session) return;
+    setPinInfo({ tablePin: session.tablePin });
+    try {
+      await Axios(sessionApi.logPinHandover(restaurantId, session._id));
+    } catch (err) {
+      console.error("Failed to log PIN handover:", err);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -137,11 +102,7 @@ export default function WaiterDashboard() {
               table={table}
               activeSession={session}
               onOpen={() => openSession(table._id)}
-              onViewPin={() =>
-                setPinInfo({
-                  tablePin: session.tablePin,
-                })
-              }
+              onViewPin={handleViewPin}
             />
           );
         })}

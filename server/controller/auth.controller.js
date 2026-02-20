@@ -5,6 +5,7 @@ import { Resend } from "resend";
 import crypto from "crypto";
 
 import UserModel from "../models/user.model.js";
+import KitchenStationModel from "../models/kitchenStation.model.js";
 import uploadImageClodinary from "../utils/uploadImageClodinary.js";
 import getInviteEmailTemplate from "../utils/getInviteEmailTemplate.js";
 import userModel from "../models/user.model.js";
@@ -636,6 +637,14 @@ export async function userDetailsController(req, res) {
       });
     }
 
+    let stationName = null;
+    if (user?.kitchenStationId) {
+      const station = await KitchenStationModel.findById(user.kitchenStationId)
+        .select("name")
+        .lean();
+      stationName = station?.name || null;
+    }
+
     return res.json({
       message: "User details",
       success: true,
@@ -643,6 +652,7 @@ export async function userDetailsController(req, res) {
       data: {
         ...user,
         brand: user.brandId || null, // 👈 VERY IMPORTANT
+        station: stationName,
       },
     });
   } catch (err) {

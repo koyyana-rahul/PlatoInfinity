@@ -6,7 +6,8 @@ import KitchenOrderCard from "../components/KitchenOrderCard";
 export default function ChefDashboard() {
   const station = useSelector((s) => s.user.station || "MAIN");
 
-  const { orders, loading, reload } = useKitchenOrders(station);
+  const { orders, loading, reload, updateOrderItemStatus } =
+    useKitchenOrders(station);
 
   if (loading) {
     return <div className="p-6 text-gray-500">Loading orders...</div>;
@@ -14,9 +15,7 @@ export default function ChefDashboard() {
 
   if (!orders.length) {
     return (
-      <div className="p-6 text-gray-400">
-        No active orders for this station
-      </div>
+      <div className="p-6 text-gray-400">No active orders for this station</div>
     );
   }
 
@@ -27,6 +26,7 @@ export default function ChefDashboard() {
           key={order._id}
           order={order}
           reload={reload}
+          onStatusUpdate={updateOrderItemStatus}
         />
       ))}
     </div>

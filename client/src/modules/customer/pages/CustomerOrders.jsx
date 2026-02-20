@@ -25,38 +25,59 @@ export default function CustomerOrders() {
   const sessionId = localStorage.getItem(sessionKey);
   const basePath = `/${brandSlug}/${restaurantSlug}/table/${tableId}`;
 
+  const getDeviceId = () => {
+    let deviceId = localStorage.getItem("plato:deviceId");
+    if (!deviceId) {
+      deviceId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem("plato:deviceId", deviceId);
+    }
+    return deviceId;
+  };
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrders, setExpandedOrders] = useState({}); // Track multiple open states
 
-  useEffect(() => {
-    if (!sessionId) {
-      toast.error("Please join the table first");
-      navigate(basePath, { replace: true });
-      return;
-    }
+  const loadOrders = async (showLoading = false) => {
+    try {
+      if (showLoading) setLoading(true);
+      const deviceId = getDeviceId();
+      const res = sessionId
+        ? await Axios(customerApi.order.listBySession(sessionId))
+        : await Axios({
+            ...customerApi.order.listByTable(tableId),
+            headers: {
+              "x-table-id": tableId,
+              "x-device-id": deviceId,
+            },
+          });
+      const orderData = res.data?.data || res.data || [];
+      const finalOrders = Array.isArray(orderData) ? orderData : [];
+      setOrders(finalOrders);
 
-    const loadOrders = async () => {
-      try {
-        setLoading(true);
-        const res = await Axios(customerApi.order.listBySession(sessionId));
-        const orderData = res.data?.data || res.data || [];
-        const finalOrders = Array.isArray(orderData) ? orderData : [];
-        setOrders(finalOrders);
-
-        // Auto-expand the most recent order if it exists
-        if (finalOrders.length > 0) {
-          setExpandedOrders({ [finalOrders[0]._id]: true });
-        }
-      } catch (err) {
-        toast.error(err?.response?.data?.message || "Failed to load orders");
-      } finally {
-        setLoading(false);
+      // Auto-expand the most recent order if it exists
+      if (finalOrders.length > 0) {
+        setExpandedOrders((prev) => ({
+          ...prev,
+          [finalOrders[0]._id]: true,
+        }));
       }
-    };
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to load orders");
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  };
 
-    loadOrders();
-  }, [sessionId, navigate, basePath]);
+  useEffect(() => {
+    loadOrders(true);
+
+    const interval = setInterval(() => {
+      loadOrders(false);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [sessionId, tableId]);
 
   const toggleOrder = (orderId) => {
     setExpandedOrders((prev) => ({
@@ -86,6 +107,15 @@ export default function CustomerOrders() {
       default:
         return `${base} bg-slate-900 text-white border-slate-900`;
     }
+  };
+
+  const formatItemStatus = (status) => {
+    const normalized = String(status || "PENDING").toUpperCase();
+    if (normalized === "NEW" || normalized === "PENDING") return "Pending";
+    if (normalized === "IN_PROGRESS") return "Sent";
+    if (normalized === "READY") return "Ready";
+    if (normalized === "SERVED") return "Served";
+    return normalized.replace(/_/g, " ");
   };
 
   if (loading) {
@@ -127,163 +157,178 @@ export default function CustomerOrders() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] font-sans max-w-2xl mx-auto pb-32">
+    <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white font-sans pb-32">
       {/* HEADER */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-5 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 active:scale-90 transition-transform"
-          >
-            <ChevronLeft
-              size={18}
-              className="text-slate-900"
-              strokeWidth={2.5}
-            />
-          </button>
-          <div>
-            <h1 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-900">
-              Orders
-            </h1>
-            <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">
-              Table Session
+      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 active:scale-90 transition-transform"
+            >
+              <ChevronLeft
+                size={18}
+                className="text-slate-900"
+                strokeWidth={2.5}
+              />
+            </button>
+            <div>
+              <h1 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-900">
+                Orders
+              </h1>
+              <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">
+                Table Session
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              Running Tab
+            </p>
+            <p className="text-sm font-black text-slate-900">
+              ₹{Math.round(grandTotal)}
             </p>
           </div>
-        </div>
-        <div className="text-right">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-            Total Bill
-          </p>
-          <p className="text-sm font-black text-slate-900">
-            ₹{Math.round(grandTotal)}
-          </p>
         </div>
       </header>
 
-      <main className="px-5 pt-8">
-        {/* SUMMARY CARD */}
-        <div className="mb-10 bg-slate-900 rounded-[2.5rem] p-6 text-white flex items-center justify-between shadow-2xl shadow-slate-200">
-          <div>
-            <h2 className="text-lg font-black">
-              {orders.length} {orders.length === 1 ? "Order" : "Orders"}
-            </h2>
-            <p className="text-[10px] text-white/50 uppercase font-bold tracking-widest mt-1">
-              {totalItemsCount} Items Total
-            </p>
+      <main className="px-4 sm:px-6 lg:px-8 pt-8">
+        <div className="max-w-5xl mx-auto">
+          {/* SUMMARY CARD */}
+          <div className="mb-10 bg-slate-900 rounded-[2.5rem] p-6 text-white flex items-center justify-between shadow-2xl shadow-slate-200">
+            <div>
+              <h2 className="text-lg font-black">
+                {orders.length} {orders.length === 1 ? "Order" : "Orders"}
+              </h2>
+              <p className="text-[10px] text-white/50 uppercase font-bold tracking-widest mt-1">
+                {totalItemsCount} Items Total
+              </p>
+            </div>
+            <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+              <CheckCircle2 size={20} className="text-emerald-400" />
+            </div>
           </div>
-          <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
-            <CheckCircle2 size={20} className="text-emerald-400" />
-          </div>
-        </div>
 
-        {/* ORDER ACCORDION LIST */}
-        <div className="space-y-4">
-          {orders.map((order) => {
-            const isExpanded = expandedOrders[order._id];
-            return (
-              <div key={order._id} className="overflow-hidden">
-                {/* ACCORDION TRIGGER */}
-                <button
-                  onClick={() => toggleOrder(order._id)}
-                  className={`w-full text-left flex items-center justify-between p-5 bg-white border border-slate-100 transition-all ${isExpanded ? "rounded-t-[2rem] border-b-0" : "rounded-[2rem] shadow-sm"}`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-900">
-                      <ReceiptText size={18} />
+          {/* ORDER ACCORDION LIST */}
+          <div className="space-y-4">
+            {orders.map((order) => {
+              const isExpanded = expandedOrders[order._id];
+              return (
+                <div key={order._id} className="overflow-hidden">
+                  {/* ACCORDION TRIGGER */}
+                  <button
+                    onClick={() => toggleOrder(order._id)}
+                    className={`w-full text-left flex items-center justify-between p-5 bg-white border border-slate-100 transition-all ${isExpanded ? "rounded-t-[2rem] border-b-0" : "rounded-[2rem] shadow-sm"}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-900">
+                        <ReceiptText size={18} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+                          {order.orderNumber ||
+                            `ID: ${(order._id || "").slice(-5).toUpperCase()}`}
+                        </p>
+                        <p className="text-[14px] font-black text-slate-900">
+                          ₹{Math.round(order.totalAmount)}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
-                        {order.orderNumber ||
-                          `ID: ${(order._id || "").slice(-5).toUpperCase()}`}
-                      </p>
-                      <p className="text-[14px] font-black text-slate-900">
-                        ₹{Math.round(order.totalAmount)}
-                      </p>
+
+                    <div className="flex items-center gap-3">
+                      {!isExpanded && (
+                        <span className="text-[9px] font-black bg-slate-100 px-2 py-1 rounded-md text-slate-500 uppercase">
+                          {order.items?.length} Items
+                        </span>
+                      )}
+                      <motion.div
+                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                        transition={{ duration: 0.3, ease: "circOut" }}
+                      >
+                        <ChevronDown size={18} className="text-slate-400" />
+                      </motion.div>
                     </div>
-                  </div>
+                  </button>
 
-                  <div className="flex items-center gap-3">
-                    {!isExpanded && (
-                      <span className="text-[9px] font-black bg-slate-100 px-2 py-1 rounded-md text-slate-500 uppercase">
-                        {order.items?.length} Items
-                      </span>
-                    )}
-                    <motion.div
-                      animate={{ rotate: isExpanded ? 180 : 0 }}
-                      transition={{ duration: 0.3, ease: "circOut" }}
-                    >
-                      <ChevronDown size={18} className="text-slate-400" />
-                    </motion.div>
-                  </div>
-                </button>
+                  {/* ACCORDION CONTENT */}
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "circOut" }}
+                        className="bg-white border-x border-b border-slate-100 rounded-b-[2rem] overflow-hidden"
+                      >
+                        <div className="p-5 pt-0 space-y-4">
+                          <div className="h-px bg-slate-50 w-full mb-4" />
 
-                {/* ACCORDION CONTENT */}
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: "circOut" }}
-                      className="bg-white border-x border-b border-slate-100 rounded-b-[2rem] overflow-hidden"
-                    >
-                      <div className="p-5 pt-0 space-y-4">
-                        <div className="h-px bg-slate-50 w-full mb-4" />
-
-                        {order.items?.map((it, i) => (
-                          <div
-                            key={i}
-                            className="flex justify-between items-start group"
-                          >
-                            <div className="flex-1">
-                              <h4 className="font-bold text-[13px] text-slate-800 uppercase leading-none mb-2">
-                                {it.name}
-                              </h4>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[9px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
-                                  x{it.quantity}
-                                </span>
-                                {it.itemStatus && (
-                                  <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1">
-                                    <Timer size={10} /> {it.itemStatus}
-                                  </span>
-                                )}
+                          {/* CUSTOMER LABEL (INDIVIDUAL MODE ONLY) */}
+                          {order.meta?.customerMode === "INDIVIDUAL" &&
+                            order.meta?.customerLabel && (
+                              <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-[12px] font-bold text-blue-900 flex items-center gap-2">
+                                👤 {order.meta.customerLabel}
                               </div>
-                            </div>
-                            <p className="font-bold text-[13px] text-slate-900">
-                              ₹{Math.round(it.price * it.quantity)}
-                            </p>
-                          </div>
-                        ))}
+                            )}
 
-                        <div className="mt-6 pt-4 border-t border-slate-50 flex justify-between items-center">
-                          <div className="flex items-center gap-2 text-slate-400">
-                            <Clock size={12} />
-                            <span className="text-[9px] font-bold uppercase tracking-widest">
-                              {order.createdAt
-                                ? new Date(order.createdAt).toLocaleTimeString(
-                                    [],
-                                    { hour: "2-digit", minute: "2-digit" },
-                                  )
-                                : "--:--"}
+                          {order.items?.map((it, i) => (
+                            <div
+                              key={i}
+                              className="flex justify-between items-start group"
+                            >
+                              <div className="flex-1">
+                                <h4 className="font-bold text-[13px] text-slate-800 uppercase leading-none mb-2">
+                                  {it.name}
+                                </h4>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[9px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                                    x{it.quantity}
+                                  </span>
+                                  <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1">
+                                    <Timer size={10} />
+                                    {formatItemStatus(it.itemStatus)}
+                                  </span>
+                                </div>
+                              </div>
+                              <p className="font-bold text-[13px] text-slate-900">
+                                ₹{Math.round(it.price * it.quantity)}
+                              </p>
+                            </div>
+                          ))}
+
+                          <div className="mt-6 pt-4 border-t border-slate-50 flex justify-between items-center">
+                            <div className="flex items-center gap-2 text-slate-400">
+                              <Clock size={12} />
+                              <span className="text-[9px] font-bold uppercase tracking-widest">
+                                {order.createdAt
+                                  ? new Date(
+                                      order.createdAt,
+                                    ).toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })
+                                  : "--:--"}
+                              </span>
+                            </div>
+                            <span
+                              className={getStatusStyles(order.orderStatus)}
+                            >
+                              {order.orderStatus || "PENDING"}
                             </span>
                           </div>
-                          <span className={getStatusStyles(order.orderStatus)}>
-                            {order.orderStatus || "PENDING"}
-                          </span>
                         </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </main>
 
       {/* FLOATING ACTION */}
-      <div className="fixed bottom-8 left-0 right-0 z-40 px-6">
+      <div className="fixed bottom-6 left-0 right-0 z-40 px-6 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
         <button
           onClick={() => navigate(basePath + "/menu")}
           className="max-w-md mx-auto w-full h-15 bg-slate-900 text-white rounded-3xl flex items-center justify-center gap-3 shadow-2xl shadow-slate-400 active:scale-95 transition-transform py-4"

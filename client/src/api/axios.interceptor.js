@@ -71,7 +71,7 @@ export function initAxiosInterceptors() {
             "| Token:",
             sessionToken.substring(0, 10) + "...",
           );
-        } else {
+        } else if (!url.startsWith("/api/cart")) {
           console.warn("⚠️ No session token found in storage for", url);
         }
       }

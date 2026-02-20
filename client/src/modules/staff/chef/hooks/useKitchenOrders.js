@@ -10,6 +10,23 @@ export default function useKitchenOrders(station) {
   const [loading, setLoading] = useState(true);
   const socket = useSocket();
 
+  const applyStatusUpdate = (orderId, itemId, status) => {
+    if (!orderId || !itemId || !status) return;
+    setOrders((prevOrders) =>
+      prevOrders.map((order) => {
+        if (order._id !== orderId) return order;
+        const newItems = order.items.map((item) => {
+          if (String(item._id) !== String(itemId)) return item;
+          return { ...item, itemStatus: status };
+        });
+        return {
+          ...order,
+          items: newItems,
+        };
+      }),
+    );
+  };
+
   const loadOrders = async () => {
     try {
       setLoading(true);
@@ -32,45 +49,55 @@ export default function useKitchenOrders(station) {
   useEffect(() => {
     if (!socket || !station) return;
 
-    const handleNewOrder = (newOrder) => {
-      const hasItemForStation = newOrder.items.some(
-        (item) => item.station === station
+    const handleNewOrder = (payload) => {
+      const orderPayload = payload.orderId
+        ? {
+            _id: payload.orderId,
+            tableId: payload.tableId,
+            tableName: payload.tableName,
+            orderNumber: payload.orderNumber,
+            createdAt: payload.placedAt || new Date().toISOString(),
+            items: payload.items || [],
+          }
+        : payload;
+
+      if (!orderPayload?.items?.length) return;
+
+      const hasItemForStation = orderPayload.items.some(
+        (item) => item.station === station,
       );
       if (hasItemForStation) {
         setOrders((prevOrders) => {
-          // Avoid duplicates
-          if (prevOrders.some((o) => o._id === newOrder._id)) {
+          if (prevOrders.some((o) => o._id === orderPayload._id)) {
             return prevOrders;
           }
-          return [newOrder, ...prevOrders];
+          return [orderPayload, ...prevOrders];
         });
       }
     };
 
     const handleStatusUpdate = (update) => {
-      setOrders((prevOrders) =>
-        prevOrders.map((order) => {
-          if (order._id !== update.orderId) return order;
-          const newItems = order.items.map((item) => {
-            if (item._id !== update.itemId) return item;
-            return { ...item, itemStatus: update.status };
-          });
-          return {
-            ...order,
-            items: newItems,
-          };
-        })
-      );
+      const status = update.status || update.itemStatus;
+      const itemId = update.itemId || update.itemIndex;
+      const orderId = update.orderId;
+      applyStatusUpdate(orderId, itemId, status);
     };
 
-    socket.on("order:placed", handleNewOrder);
+    socket.on("kitchen:order-new", handleNewOrder);
+    socket.on("order:item-status-updated", handleStatusUpdate);
     socket.on("order:itemStatus", handleStatusUpdate);
 
     return () => {
-      socket.off("order:placed", handleNewOrder);
+      socket.off("kitchen:order-new", handleNewOrder);
+      socket.off("order:item-status-updated", handleStatusUpdate);
       socket.off("order:itemStatus", handleStatusUpdate);
     };
   }, [socket, station]);
 
-  return { orders, loading, reload: loadOrders };
+  return {
+    orders,
+    loading,
+    reload: loadOrders,
+    updateOrderItemStatus: applyStatusUpdate,
+  };
 }

@@ -1,7 +1,7 @@
 // src/modules/staff/chef/components/KitchenOrderCard.jsx
 import KitchenItemRow from "./KitchenItemRow";
 
-export default function KitchenOrderCard({ order, reload }) {
+export default function KitchenOrderCard({ order, reload, onStatusUpdate }) {
   return (
     <div className="rounded-xl border bg-gray-50 p-4 space-y-3">
       <div className="flex justify-between items-center">
@@ -20,6 +20,7 @@ export default function KitchenOrderCard({ order, reload }) {
             item={item}
             orderId={order._id}
             onUpdated={reload}
+            onStatusUpdate={onStatusUpdate}
           />
         ))}
       </div>

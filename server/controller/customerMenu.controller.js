@@ -149,10 +149,8 @@ import BranchMenuItem from "../models/branchMenuItem.model.js";
 import MasterMenuItem from "../models/masterMenuItem.model.js";
 import MenuCategory from "../models/menuCategory.model.js";
 import MenuSubcategory from "../models/menuSubcategory.model.js";
+import KitchenStation from "../models/kitchenStation.model.js";
 import Table from "../models/table.model.js";
-
-
-
 
 export async function getPublicMenuItemController(req, res) {
   try {
@@ -163,7 +161,9 @@ export async function getPublicMenuItemController(req, res) {
     }
 
     const branch = await BranchMenuItem.findById(branchMenuItemId)
-      .select("name description price masterItemId trackStock stock")
+      .select(
+        "name description price masterItemId trackStock stock station restaurantId",
+      )
       .lean();
 
     if (!branch) {
@@ -174,6 +174,23 @@ export async function getPublicMenuItemController(req, res) {
       .select("image images isVeg dietaryTags")
       .lean();
 
+    // Fetch kitchen station badge
+    let stationBadge = null;
+    let stationDisplayName = null;
+
+    if (branch.station) {
+      const station = await KitchenStation.findOne({
+        restaurantId: branch.restaurantId,
+        name: branch.station,
+        isArchived: false,
+      }).lean();
+
+      if (station) {
+        stationBadge = station.badge || "🍳";
+        stationDisplayName = station.displayName || station.name;
+      }
+    }
+
     return res.json({
       success: true,
       data: {
@@ -181,6 +198,9 @@ export async function getPublicMenuItemController(req, res) {
         name: branch.name,
         description: branch.description,
         price: branch.price,
+        station: branch.station || null,
+        stationBadge: stationBadge,
+        stationDisplayName: stationDisplayName,
         image: master?.image || "",
         images: master?.images || [],
         isVeg: master?.isVeg ?? true,
@@ -266,6 +286,22 @@ export async function getCustomerMenuController(req, res) {
     });
 
     /* ======================================================
+       3️⃣.5️⃣ LOAD KITCHEN STATIONS FOR BADGES
+    ====================================================== */
+    const kitchenStations = await KitchenStation.find({
+      restaurantId,
+      isArchived: false,
+    }).lean();
+
+    const stationBadgeMap = {};
+    kitchenStations.forEach((station) => {
+      stationBadgeMap[String(station.name)] = {
+        badge: station.badge || "🍳",
+        displayName: station.displayName || station.name,
+      };
+    });
+
+    /* ======================================================
        4️⃣ BUILD MENU TREE (NO DROPS)
     ====================================================== */
     const categoryMap = {};
@@ -312,6 +348,13 @@ export async function getCustomerMenuController(req, res) {
         price: branch.price,
         image: master.image || "",
         isVeg: master.isVeg,
+        station: branch.station || null,
+        stationBadge: branch.station
+          ? stationBadgeMap[branch.station]?.badge || "🍳"
+          : null,
+        stationDisplayName: branch.station
+          ? stationBadgeMap[branch.station]?.displayName || branch.station
+          : null,
         available: !branch.trackStock || (branch.stock ?? 1) > 0,
       });
     }

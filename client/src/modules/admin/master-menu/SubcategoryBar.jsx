@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import clsx from "clsx";
 
@@ -8,24 +9,60 @@ export default function SubcategoryBar({
   onAdd,
   onEdit,
   onDelete,
+  disableExpand = false,
 }) {
+  const trackRef = useRef(null);
+  const itemRefs = useRef(new Map());
+
+  const scrollItemIntoView = (id) => {
+    const el = itemRefs.current.get(id);
+    if (!el) return;
+    el.scrollIntoView({
+      behavior: "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  };
+
+  useEffect(() => {
+    if (activeSubcategoryId === null) {
+      scrollItemIntoView("__all__");
+      return;
+    }
+    scrollItemIntoView(activeSubcategoryId);
+  }, [activeSubcategoryId]);
+
   return (
     /* OUTER TRACK - Apple Control Center Style */
-    <div className="bg-white rounded-3xl p-1.5 startup-shadow">
+    <div className="relative bg-white rounded-3xl p-1.5 startup-shadow">
       <div
-        className="flex gap-2 overflow-x-auto scrollbar-hide items-center touch-pan-x scroll-smooth px-1 py-1"
+        ref={trackRef}
+        className="flex gap-2 overflow-x-auto scrollbar-hide items-center touch-pan-x scroll-smooth px-1 py-1 snap-x snap-mandatory"
         role="tablist"
+        style={{ WebkitOverflowScrolling: "touch" }}
+        onWheel={(e) => {
+          if (!trackRef.current) return;
+          if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+            e.currentTarget.scrollBy({ left: e.deltaY, behavior: "auto" });
+          }
+        }}
       >
         {/* ================= ALL SECTION ================= */}
         <button
           type="button"
           role="tab"
           aria-selected={activeSubcategoryId === null}
-          onClick={() => onSelect(null)}
+          ref={(el) => {
+            if (el) itemRefs.current.set("__all__", el);
+          }}
+          onClick={() => {
+            onSelect(null);
+            scrollItemIntoView("__all__");
+          }}
           className={clsx(
-            "flex-shrink-0 h-10 rounded-full text-[10px] font-[800] uppercase tracking-widest transition-all duration-300",
+            "flex-shrink-0 h-10 rounded-full text-[10px] font-[800] uppercase tracking-widest transition-all duration-300 snap-start",
             activeSubcategoryId === null
-              ? "bg-[#F35C2B] text-white startup-shadow px-6 min-w-[70px]"
+              ? "bg-[#F35C2B] text-white startup-shadow px-6 min-w-fit"
               : "text-slate-500 hover:text-black active:scale-95 px-4 min-w-[50px]",
           )}
         >
@@ -37,7 +74,7 @@ export default function SubcategoryBar({
           const isActive = sub.id === activeSubcategoryId;
 
           return (
-            <div key={sub.id} className="relative flex-shrink-0">
+            <div key={sub.id} className="relative flex-shrink-0 snap-start">
               {/* THE PILL BUTTON 
                   We use PX-12 and MIN-W-140 only when active to reveal icons.
                   The transition-all duration-500 creates the 'slide out' expansion effect.
@@ -46,15 +83,31 @@ export default function SubcategoryBar({
                 type="button"
                 role="tab"
                 aria-selected={isActive}
-                onClick={() => onSelect(sub.id)}
+                ref={(el) => {
+                  if (el) itemRefs.current.set(sub.id, el);
+                }}
+                onClick={() => {
+                  onSelect(sub.id);
+                  scrollItemIntoView(sub.id);
+                }}
                 className={clsx(
-                  "relative flex items-center justify-center rounded-full text-[10px] font-[800] uppercase tracking-widest transition-all duration-300 h-10",
+                  "relative flex items-center justify-center rounded-full text-[10px] font-[800] uppercase tracking-widest transition-all duration-300 h-10 snap-start",
                   isActive
-                    ? "bg-[#F35C2B] text-white startup-shadow px-14 min-w-[150px] z-10"
+                    ? disableExpand
+                      ? "bg-[#F35C2B] text-white startup-shadow px-4 min-w-fit z-10"
+                      : "bg-[#F35C2B] text-white startup-shadow px-6 min-w-fit z-10"
                     : "bg-transparent text-slate-500 hover:text-black active:scale-95 px-4 min-w-[70px] max-w-[130px]",
                 )}
+                title={sub.name}
               >
-                <span className="truncate w-full text-center">{sub.name}</span>
+                <span
+                  className={clsx(
+                    "w-full text-center",
+                    isActive ? "whitespace-nowrap" : "truncate",
+                  )}
+                >
+                  {sub.name}
+                </span>
               </button>
 
               {/* ================= ADMIN CONTROLS ================= 

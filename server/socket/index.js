@@ -131,6 +131,19 @@ export function initSocketServer(httpServer, options = {}) {
       }
     });
 
+    /* ---------- KITCHEN JOIN (for chefs to listen to kitchen events) ---------- */
+    socket.on("join:kitchen", ({ restaurantId }) => {
+      if (user.role === "CHEF" && restaurantId) {
+        socket.join(`restaurant:${restaurantId}:kitchen`);
+        if (user.station) {
+          socket.join(`restaurant:${restaurantId}:station:${user.station}`);
+        }
+        console.log(
+          `👨‍🍳 Chef joined kitchen: restaurant:${restaurantId} | station:${user.station}`,
+        );
+      }
+    });
+
     /* ================= CHEF KITCHEN EVENTS ================= */
 
     /**

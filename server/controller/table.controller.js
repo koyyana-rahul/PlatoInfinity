@@ -10,11 +10,14 @@ import generateFrontendUrl from "../utils/generateFrontendUrl.js";
 ====================================================== */
 export async function createTableController(req, res) {
   try {
-    const restaurantId = req.user?.restaurantId;
+    const { restaurantId } = req.params;
     const { tableNumber, seatingCapacity = 4 } = req.body;
 
     if (!restaurantId) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
+      return res.status(400).json({
+        success: false,
+        message: "Restaurant ID is required",
+      });
     }
 
     if (!tableNumber?.trim()) {
@@ -62,7 +65,9 @@ export async function createTableController(req, res) {
       isArchived: false,
     });
 
-    const qrUrl = generateFrontendUrl(`/${brandSlug}/${restaurantSlug}/table/${table._id}`);
+    const qrUrl = generateFrontendUrl(
+      `/${brandSlug}/${restaurantSlug}/table/${table._id}`,
+    );
 
     const qrBase64 = await generateTableQR({
       url: qrUrl,
@@ -148,12 +153,12 @@ export async function getPublicTableController(req, res) {
 ====================================================== */
 export async function listTablesController(req, res) {
   try {
-    const restaurantId = req.user?.restaurantId || req.params.restaurantId;
+    const { restaurantId } = req.params;
 
     if (!restaurantId) {
       return res
         .status(400)
-        .json({ success: false, message: "Restaurant not found" });
+        .json({ success: false, message: "Restaurant ID is required" });
     }
 
     const tables = await Table.find({
@@ -183,20 +188,18 @@ export async function listTablesController(req, res) {
 ====================================================== */
 export async function deleteTableController(req, res) {
   try {
-    const restaurantId = req.user?.restaurantId;
-    const { tableId } = req.params;
+    const { restaurantId, tableId } = req.params;
 
-    if (!restaurantId) {
-      return res.status(401).json({
+    if (!restaurantId || !tableId) {
+      return res.status(400).json({
         success: false,
-        message: "Unauthorized",
+        message: "Restaurant ID and Table ID are required",
       });
     }
 
-    const table = await Table.findOne({
+    const table = await Table.findOneAndDelete({
       _id: tableId,
       restaurantId,
-      isArchived: false,
     });
 
     if (!table) {
@@ -205,10 +208,6 @@ export async function deleteTableController(req, res) {
         message: "Table not found",
       });
     }
-
-    table.isArchived = true;
-    table.isActive = false;
-    await table.save();
 
     return res.json({
       success: true,

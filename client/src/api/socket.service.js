@@ -179,11 +179,11 @@ class SocketService {
    * Kitchen gets notified when new order is placed
    */
   onNewOrder(callback) {
-    this.on("order:new", callback);
+    this.on("kitchen:order-new", callback);
   }
 
   offNewOrder() {
-    this.off("order:new");
+    this.off("kitchen:order-new");
   }
 
   /* ========== PAYMENT NOTIFICATIONS ========== */

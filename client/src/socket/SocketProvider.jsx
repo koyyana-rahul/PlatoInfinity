@@ -11,12 +11,14 @@ export function SocketProvider({ children }) {
   useEffect(() => {
     if (!restaurantId) return;
 
+    const token =
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("authToken");
+
     socketRef.current = io(import.meta.env.VITE_API_URL, {
       withCredentials: true,
-    });
-
-    socketRef.current.emit("join", {
-      room: `restaurant:${restaurantId}:waiters`,
+      auth: token ? { token } : undefined,
     });
 
     return () => socketRef.current?.disconnect();

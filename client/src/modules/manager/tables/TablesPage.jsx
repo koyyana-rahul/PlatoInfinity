@@ -230,10 +230,7 @@ export default function TablesPage() {
               <TableCard
                 key={t._id}
                 table={t}
-                onDeleted={(id) =>
-                  setTables((p) => p.filter((x) => x._id !== id))
-                }
-                onDeleteRequest={(table) => {
+                onDelete={(table) => {
                   if (table.status === "OCCUPIED") {
                     toast.error(
                       "Operation Denied: Table session is currently active",

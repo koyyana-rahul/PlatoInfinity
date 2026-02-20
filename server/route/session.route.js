@@ -12,6 +12,7 @@ import {
   resumeSessionController,
   checkTokenExpiryController,
   getSessionStatusController,
+  logPinHandoverController,
 } from "../controller/session.controller.js";
 import requireSessionAuth from "../middleware/requireSessionAuth.js";
 
@@ -52,6 +53,14 @@ sessionRouter.get(
   requireAuth,
   requireRole("WAITER", "MANAGER", "CASHIER"),
   listRestaurantSessionsController,
+);
+
+// Log waiter PIN handover
+sessionRouter.post(
+  "/restaurants/:restaurantId/sessions/:sessionId/pin-handover",
+  requireAuth,
+  requireRole("WAITER", "MANAGER"),
+  logPinHandoverController,
 );
 
 // PUBLIC: customer joins session via QR -> sends restaurantId + tableId + tablePin

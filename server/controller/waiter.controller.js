@@ -83,13 +83,32 @@ export async function getReadyItemsController(req, res) {
 }
 
 /**
- * WAITER SERVES ITEM
+ * WAITER SERVES ITEM (WITH PIN CONFIRMATION)
  * POST /api/waiter/order/:orderId/item/:itemId/serve
  */
 export async function serveOrderItemController(req, res) {
   try {
     const { orderId, itemId } = req.params;
+    const { staffPin } = req.body;
     const waiterId = req.user._id;
+    const waiterPin = req.user.staffPin; // Assuming this is set on user from login
+
+    // 🔐 PIN VERIFICATION
+    if (!staffPin) {
+      return res.status(400).json({
+        success: false,
+        message: "Staff PIN required to mark items as served",
+      });
+    }
+
+    // Simple PIN check
+    if (String(staffPin) !== String(waiterPin)) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid Staff PIN",
+        error: "INVALID_PIN",
+      });
+    }
 
     // 🔍 Find order
     const order = await Order.findOne({
@@ -143,6 +162,7 @@ export async function serveOrderItemController(req, res) {
         itemId,
         tableId: order.tableId,
         tableName: order.tableName,
+        waiterId,
       },
     );
 

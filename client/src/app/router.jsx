@@ -46,6 +46,7 @@ import StaffPage from "../modules/manager/staff/StaffPage";
 import ShiftQrPanel from "../modules/manager/staff/ShiftQrPanel";
 import ManagerReports from "../modules/manager/ManagerReports";
 import ManagerSettings from "../modules/manager/ManagerSettings";
+import ManagerSuspiciousOrders from "../modules/staff/pages/ManagerSuspiciousOrders";
 
 /* ================= STAFF ================= */
 import StaffLayout from "../layouts/StaffLayout";
@@ -71,7 +72,7 @@ import CashierSummary from "../modules/staff/cashier/CashierSummary";
 import CustomerLayout from "../layouts/CustomerLayout";
 import CustomerJoin from "../modules/customer/pages/CustomerJoin";
 import CustomerMenu from "../modules/customer/pages/CustomerMenu";
-import CustomerCart from "../modules/customer/pages/CustomerCart";
+import CustomerCart from "../modules/customer/pages/CustomerCartWithPin";
 import CustomerOrders from "../modules/customer/pages/CustomerOrders";
 import CustomerBill from "../modules/customer/pages/CustomerBill";
 import CustomerItem from "../modules/customer/pages/CustomerItem";
@@ -103,7 +104,8 @@ const router = createBrowserRouter([
     path: "/:brandSlug/:restaurantSlug/table/:tableId",
     element: <CustomerLayout />,
     children: [
-      { index: true, element: <CustomerJoin /> },
+      { index: true, element: <CustomerMenu /> },
+      { path: "join", element: <CustomerJoin /> },
       { path: "menu", element: <CustomerMenu /> },
       { path: "cart", element: <CustomerCart /> },
       { path: "orders", element: <CustomerOrders /> },
@@ -178,6 +180,10 @@ const router = createBrowserRouter([
       {
         path: "restaurants/:restaurantId/settings",
         element: <ManagerSettings />,
+      },
+      {
+        path: "restaurants/:restaurantId/suspicious-orders",
+        element: <ManagerSuspiciousOrders />,
       },
     ],
   },

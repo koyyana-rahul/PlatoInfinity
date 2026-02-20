@@ -4,15 +4,17 @@ import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
+import clsx from "clsx";
 
 import Axios from "../../../api/axios";
 import customerApi from "../../../api/customer.api";
 import { useCustomerSocket } from "../hooks/useCustomerSocket";
 
-import CategoryBar from "../components/CategoryBar";
-import SubcategoryFilter from "../components/SubcategoryFilter";
+import AdminCategoryBar from "../../admin/master-menu/CategoryBar";
+import AdminSubcategoryBar from "../../admin/master-menu/SubcategoryBar";
 import ItemGrid from "../components/ItemGrid";
 import StickyCartBar from "../components/StickyCartBar";
+import VegNonVegIcon from "../../../components/ui/VegNonVegIcon";
 
 import {
   fetchCart,
@@ -38,6 +40,7 @@ export default function CustomerMenu() {
   const [activeCat, setActiveCat] = useState(null);
   const [activeSub, setActiveSub] = useState(null);
   const [restaurantId, setRestaurantId] = useState(null);
+  const [vegFilter, setVegFilter] = useState("all");
 
   const cartItems = useSelector(selectCartItems);
   const quantities = useSelector(selectQuantities);
@@ -65,10 +68,6 @@ export default function CustomerMenu() {
   });
 
   useEffect(() => {
-    if (!sessionId) navigate(`../`, { replace: true });
-  }, [sessionId, navigate]);
-
-  useEffect(() => {
     let active = true;
     (async () => {
       try {
@@ -91,8 +90,8 @@ export default function CustomerMenu() {
   }, [tableId]);
 
   useEffect(() => {
-    if (sessionId) dispatch(fetchCart());
-  }, [dispatch, sessionId]);
+    dispatch(fetchCart());
+  }, [dispatch]);
 
   const category = useMemo(
     () => menu.find((c) => c.id === activeCat),
@@ -104,6 +103,27 @@ export default function CustomerMenu() {
     if (!activeSub) return category.subcategories.flatMap((s) => s.items);
     return category.subcategories.find((s) => s.id === activeSub)?.items || [];
   }, [category, activeSub]);
+
+  const visibleItems = useMemo(() => {
+    if (vegFilter === "veg") return items.filter((i) => i.isVeg);
+    if (vegFilter === "nonveg") return items.filter((i) => !i.isVeg);
+    return items;
+  }, [items, vegFilter]);
+
+  const isEmpty = !loading && visibleItems.length === 0;
+
+  useEffect(() => {
+    if (!isEmpty) return undefined;
+    const originalOverflow = document.body.style.overflow;
+    const originalOverscroll = document.body.style.overscrollBehaviorY;
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehaviorY = "none";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.overscrollBehaviorY = originalOverscroll;
+    };
+  }, [isEmpty]);
 
   if (loading) {
     return (
@@ -117,41 +137,102 @@ export default function CustomerMenu() {
   }
 
   return (
-    <div className="relative pt-6 md:pt-4 space-y-8 md:space-y-10">
-      {/* 1. STICKY CATEGORY BAR - Locked to top during scroll */}
-      <div className="sticky top-0 z-[50] bg-[#f8f8f7]/95 backdrop-blur-md py-3 md:py-4">
-        <CategoryBar
-          categories={menu}
-          activeId={activeCat}
-          onSelect={(id) => {
-            setActiveCat(id);
-            setActiveSub(null);
-            window.scrollTo({ top: 0, behavior: "smooth" }); // Smooth reset on change
-          }}
-        />
+    <div
+      className={clsx(
+        "relative min-h-screen bg-transparent flex flex-col selection:bg-orange-100 font-sans tracking-tight text-slate-900",
+        isEmpty && "h-screen overflow-hidden overscroll-none",
+      )}
+    >
+      {/* ================= STATIONARY TOP REGION ================= */}
+      <div className="sticky top-0 z-30 w-full">
+        {/* LAYER 1: MAIN HEADER */}
+        <header className="bg-white/95 backdrop-blur-xl w-full shadow-[0_8px_30px_-24px_rgba(15,23,42,0.35)]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 shrink-0">
+              <h1 className="text-lg sm:text-xl font-[800] text-black tracking-tight leading-none">
+                Menu
+              </h1>
+              <div className="hidden xs:flex items-center gap-1.5 px-2 py-1 bg-orange-50 rounded-full startup-shadow">
+                <div className="h-1.5 w-1.5 rounded-full bg-[#F35C2B] animate-pulse" />
+                <p className="text-[8px] font-bold text-[#F35C2B] uppercase tracking-widest">
+                  Live
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex flex-wrap bg-slate-100 rounded-full p-1 shrink-0 gap-1">
+                {[
+                  { id: "all", label: "All" },
+                  { id: "veg", label: "Veg", isVeg: true },
+                  { id: "nonveg", label: "Non", isVeg: false },
+                ].map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => setVegFilter(v.id)}
+                    className={clsx(
+                      "px-3 py-1.5 text-[10px] font-bold rounded-full transition-all duration-200 flex items-center gap-1 active:scale-95",
+                      vegFilter === v.id
+                        ? "bg-[#F35C2B] text-white shadow-[0_10px_25px_-15px_rgba(243,92,43,0.6)]"
+                        : "text-slate-500 hover:text-black",
+                    )}
+                  >
+                    {v.isVeg !== undefined && (
+                      <VegNonVegIcon isVeg={v.isVeg} size={6} />
+                    )}
+                    <span>{v.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* LAYER 2: CATEGORY NAVIGATION */}
+        <div className="bg-white/95 backdrop-blur-xl w-full shadow-[0_10px_30px_-26px_rgba(15,23,42,0.35)]">
+          <div className="max-w-7xl mx-auto">
+            <AdminCategoryBar
+              categories={menu}
+              activeCategoryId={activeCat}
+              onSelect={(id) => {
+                setActiveCat(id);
+                setActiveSub(null);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
+          </div>
+        </div>
       </div>
 
-      <div id="browse" className="px-1 md:px-0 mt-8 md:mt-10 space-y-8 md:space-y-10">
-        {/* 2. SUBCATEGORY FILTER - Standard scroll (Non-sticky) */}
-        <div className="mt-10 mb-14 overflow-hidden">
-          <SubcategoryFilter
+      {/* ================= SCROLLABLE CONTENT REGION ================= */}
+      <main
+        id="browse"
+        className={clsx(
+          "flex-1 max-w-7xl mx-auto w-full px-2 sm:px-4 lg:px-0 py-3 sm:py-4 space-y-3 sm:space-y-4",
+          isEmpty && "overflow-hidden pb-2 h-[calc(100vh-200px)]",
+        )}
+      >
+        {/* SUBCATEGORY FILTER */}
+        <div className="mt-0 overflow-hidden">
+          <AdminSubcategoryBar
             subcategories={category?.subcategories || []}
-            activeId={activeSub}
+            activeSubcategoryId={activeSub}
             onSelect={setActiveSub}
+            disableExpand
           />
         </div>
 
-        {/* 3. ITEM GRID - With staggered entrance animation */}
+        {/* ITEM GRID */}
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeSub || activeCat}
+            key={`${activeSub || "all"}-${vegFilter}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
             <ItemGrid
-              items={items}
+              items={visibleItems}
               quantities={quantities}
               onAdd={(id) =>
                 dispatch(addToCart({ branchMenuItemId: id, quantity: 1 }))
@@ -171,9 +252,9 @@ export default function CustomerMenu() {
             />
           </motion.div>
         </AnimatePresence>
-      </div>
+      </main>
 
-      {/* 4. GLOBAL CART BUTTON */}
+      {/* GLOBAL CART BUTTON */}
       <StickyCartBar />
     </div>
   );

@@ -1,9 +1,11 @@
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import TableModel from "../models/table.model.js";
 import SessionModel from "../models/session.model.js";
 import OrderModel from "../models/order.model.js";
 import AuditLog from "../models/auditLog.model.js";
+import { auditFunctions } from "../services/auditLog.service.js";
 
 const TOKEN_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
 
@@ -71,6 +73,10 @@ export async function openTableSessionController(req, res) {
       });
 
     const tablePin = generatePin();
+    const tablePinHash = await bcrypt.hash(
+      tablePin,
+      Number(process.env.BCRYPT_SALT_ROUNDS || 10),
+    );
     const rawToken = crypto.randomBytes(32).toString("hex");
 
     const sessionDoc = await SessionModel.create(
@@ -80,6 +86,7 @@ export async function openTableSessionController(req, res) {
           tableId,
           openedByUserId: user._id,
           tablePin,
+          tablePinHash,
           sessionTokenHash: hashToken(rawToken),
           tokenExpiresAt: new Date(Date.now() + TOKEN_TTL_MS),
           status: "OPEN",
@@ -643,6 +650,56 @@ export async function getSessionStatusController(req, res) {
     return res.status(500).json({
       message: "Server error",
       success: false,
+    });
+  }
+}
+
+/* =========================================================
+   9️⃣ LOG WAITER PIN HANDOVER
+   ========================================================= */
+export async function logPinHandoverController(req, res) {
+  try {
+    const { restaurantId, sessionId } = req.params;
+    const user = req.user;
+
+    const sessionDoc = await SessionModel.findOne({
+      _id: sessionId,
+      restaurantId,
+      status: "OPEN",
+    }).lean();
+
+    if (!sessionDoc) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found",
+      });
+    }
+
+    const table = await TableModel.findById(sessionDoc.tableId)
+      .select("tableNumber name")
+      .lean();
+
+    await auditFunctions.logStaffAction(req, {
+      userId: user?._id || null,
+      restaurantId,
+      actionDescription: "PIN_HANDOVER",
+      details: {
+        sessionId: String(sessionId),
+        tableId: String(sessionDoc.tableId),
+        tableNumber: table?.tableNumber || null,
+        tableName: table?.name || null,
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: "PIN handover logged",
+    });
+  } catch (err) {
+    console.error("logPinHandoverController:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
     });
   }
 }

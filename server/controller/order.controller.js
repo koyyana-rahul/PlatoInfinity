@@ -27,9 +27,11 @@ export async function placeOrderController(req, res) {
 
   try {
     const session = req.sessionDoc;
+    const { tablePin, mode, customerLabel } = req.body;
+    const deviceId = req.deviceId || req.body?.deviceId || null;
 
     /**
-     * 1️⃣ SESSION VALIDATION
+     * 1️⃣ SESSION VALIDATION + PIN CHECK
      */
     if (!session || session.status !== "OPEN") {
       return res.status(400).json({
@@ -39,11 +41,49 @@ export async function placeOrderController(req, res) {
       });
     }
 
+    if (!tablePin) {
+      return res.status(400).json({
+        message: "tablePin required",
+        error: true,
+        success: false,
+      });
+    }
+
+    const pinResult = await session.verifyPin(String(tablePin));
+    if (!pinResult.success) {
+      return res.status(401).json({
+        message: pinResult.message,
+        error: true,
+        success: false,
+        isBlocked: pinResult.isBlocked || false,
+        attemptsLeft: pinResult.attemptsLeft || 0,
+      });
+    }
+
     /**
      * 2️⃣ LOAD CART
      */
+    const orderCount = await Order.countDocuments({
+      sessionId: session._id,
+    }).session(mongoSession);
+
+    const requestedMode = mode ? String(mode).toUpperCase() : null;
+    const effectiveMode =
+      orderCount === 0 && requestedMode
+        ? requestedMode
+        : session.mode || "FAMILY";
+
+    if (effectiveMode === "INDIVIDUAL" && !deviceId) {
+      return res.status(400).json({
+        message: "deviceId required for individual mode",
+        error: true,
+        success: false,
+      });
+    }
+
     const cartItems = await CartItem.find({
       sessionId: session._id,
+      ...(effectiveMode === "INDIVIDUAL" ? { deviceId } : {}),
     }).session(mongoSession);
 
     if (!cartItems.length) {
@@ -56,6 +96,7 @@ export async function placeOrderController(req, res) {
 
     let orderItems = [];
     let totalAmount = 0;
+    const hasLargeQty = cartItems.some((item) => item.quantity > 10);
 
     /**
      * 3️⃣ VALIDATE ITEMS + DEDUCT STOCK (ATOMIC)
@@ -91,8 +132,10 @@ export async function placeOrderController(req, res) {
         name: menuItem.name,
         price: menuItem.price,
         quantity: cart.quantity,
-        station: menuItem.station,
+        station: menuItem.station || "MAIN",
         itemStatus: "NEW",
+        selectedModifiers: cart.meta?.selectedModifiers || [],
+        meta: cart.meta || {},
       });
 
       totalAmount += menuItem.price * cart.quantity;
@@ -101,9 +144,12 @@ export async function placeOrderController(req, res) {
     /**
      * 4️⃣ ORDER NUMBER (PER SESSION)
      */
-    const orderCount = await Order.countDocuments({
-      sessionId: session._id,
-    }).session(mongoSession);
+    if (orderCount === 0 && requestedMode) {
+      if (["FAMILY", "INDIVIDUAL"].includes(requestedMode)) {
+        session.mode = requestedMode;
+        await session.save({ session: mongoSession });
+      }
+    }
 
     const table = await Table.findById(session.tableId).session(mongoSession);
     if (!table) {
@@ -123,8 +169,17 @@ export async function placeOrderController(req, res) {
           orderNumber: orderCount + 1,
           items: orderItems,
           totalAmount,
-          orderStatus: "OPEN",
+          orderStatus: hasLargeQty ? "PENDING_APPROVAL" : "OPEN",
+          isSuspicious: hasLargeQty,
+          suspiciousReason: hasLargeQty
+            ? "Quantity over 10 requires manager approval"
+            : null,
           placedBy: req.user ? "WAITER" : "CUSTOMER",
+          meta: {
+            customerLabel: customerLabel || null,
+            deviceId: deviceId || null,
+            customerMode: effectiveMode,
+          },
         },
       ],
       { session: mongoSession },
@@ -134,7 +189,10 @@ export async function placeOrderController(req, res) {
      * 6️⃣ CLEAR CART
      */
     await CartItem.deleteMany(
-      { sessionId: session._id },
+      {
+        sessionId: session._id,
+        ...(effectiveMode === "INDIVIDUAL" ? { deviceId } : {}),
+      },
       { session: mongoSession },
     );
 
@@ -173,28 +231,57 @@ export async function placeOrderController(req, res) {
     /**
      * 9️⃣ 🔥 EMIT REAL-TIME UPDATES TO ALL ROLES
      */
-    await emitOrderPlaced({
-      orderId: order._id,
-      restaurantId: session.restaurantId,
-      sessionId: session._id,
-      tableId: session.tableId,
-      tableName: table.name || table.tableNumber,
-      orderNumber: order.orderNumber,
-      items: order.items,
-      totalAmount: order.totalAmount,
-      placedBy: order.placedBy,
-      placedAt: order.createdAt,
-    });
+    if (!hasLargeQty) {
+      await emitOrderPlaced({
+        orderId: order._id,
+        restaurantId: session.restaurantId,
+        sessionId: session._id,
+        tableId: session.tableId,
+        tableName: table.name || table.tableNumber,
+        orderNumber: order.orderNumber,
+        items: order.items,
+        totalAmount: order.totalAmount,
+        placedBy: order.placedBy,
+        placedAt: order.createdAt,
+      });
+    }
 
     /**
      * 🔟 COMMIT
      */
     await mongoSession.commitTransaction();
 
+    if (hasLargeQty) {
+      const io = req.app.locals.io;
+      io?.to(`restaurant:${session.restaurantId}:managers`).emit(
+        "order:suspicious",
+        {
+          orderId: order._id,
+          tableId: session.tableId,
+          tableName: table.name || table.tableNumber,
+          reason: "Quantity over 10 requires manager approval",
+          totalAmount: order.totalAmount,
+          createdAt: order.createdAt,
+        },
+      );
+      io?.to(`restaurant:${session.restaurantId}:waiters`).emit(
+        "order:suspicious",
+        {
+          orderId: order._id,
+          tableId: session.tableId,
+          tableName: table.name || table.tableNumber,
+          reason: "Quantity over 10 requires manager approval",
+          totalAmount: order.totalAmount,
+          createdAt: order.createdAt,
+        },
+      );
+    }
+
     return res.status(201).json({
       success: true,
       error: false,
       data: order,
+      hold: hasLargeQty,
     });
   } catch (err) {
     await mongoSession.abortTransaction();
@@ -222,7 +309,20 @@ export async function listSessionOrdersController(req, res) {
   // If we have a session from a token, and we are a customer,
   // let's trust the token and ignore the sessionId from the URL.
   if (req.sessionDoc && !req.user) {
-    const orders = await Order.find({ sessionId: req.sessionDoc._id })
+    if (req.sessionDoc.mode === "INDIVIDUAL" && !req.deviceId) {
+      return res.status(400).json({
+        message: "deviceId required for individual mode",
+        error: true,
+        success: false,
+      });
+    }
+
+    const orders = await Order.find({
+      sessionId: req.sessionDoc._id,
+      ...(req.sessionDoc.mode === "INDIVIDUAL"
+        ? { "meta.deviceId": req.deviceId }
+        : {}),
+    })
       .sort({ createdAt: -1 })
       .lean();
     return res.json({

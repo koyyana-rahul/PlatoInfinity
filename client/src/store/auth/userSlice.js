@@ -9,6 +9,7 @@ const initialValue = {
   brandId: "",
   restaurantId: "",
   kitchenStationId: "",
+  station: "",
   isActive: "",
   avatar: "",
   mobile: "",

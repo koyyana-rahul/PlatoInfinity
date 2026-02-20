@@ -60,11 +60,18 @@ const CreateBrand = () => {
 
       navigate("/redirect", { replace: true });
     } catch (err) {
-      toast.error(
-        err?.response?.status === 409
-          ? "Identifier taken"
-          : "Registration failed",
-      );
+      if (err?.response?.status === 409) {
+        toast.error(
+          `"${name.trim()}" is already registered. Please choose a different brand name.`,
+          { duration: 4000 },
+        );
+      } else {
+        const errorMsg =
+          err?.response?.data?.message ||
+          "Registration failed. Please try again.";
+        toast.error(errorMsg, { duration: 3000 });
+      }
+      console.error("Brand creation error:", err);
     } finally {
       setLoading(false);
     }
@@ -110,6 +117,10 @@ const CreateBrand = () => {
                            focus:outline-none focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500/20
                            transition-all duration-300 shadow-inner"
               />
+              <p className="text-[10px] text-slate-400 ml-1 mt-1.5">
+                Choose a unique name for your brand. This will be your identity
+                across the platform.
+              </p>
             </div>
 
             {/* LOGO AREA */}

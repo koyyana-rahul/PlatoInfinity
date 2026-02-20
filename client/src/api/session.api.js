@@ -26,6 +26,11 @@ const sessionApi = {
     method: "POST",
   }),
 
+  logPinHandover: (restaurantId, sessionId) => ({
+    url: `/api/restaurants/${restaurantId}/sessions/${sessionId}/pin-handover`,
+    method: "POST",
+  }),
+
   /* ========== CUSTOMER: PIN VERIFICATION & JOIN ========== */
   joinWithPin: {
     url: "/api/sessions/join",

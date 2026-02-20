@@ -14,6 +14,11 @@ const cartItemSchema = new Schema(
       required: true,
       index: true,
     },
+    deviceId: {
+      type: String,
+      default: null,
+      index: true,
+    },
     branchMenuItemId: {
       type: Schema.Types.ObjectId,
       ref: "BranchMenuItem",
@@ -32,10 +37,13 @@ const cartItemSchema = new Schema(
 
     meta: { type: Schema.Types.Mixed, default: {} },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // prevent duplicate rows
-cartItemSchema.index({ sessionId: 1, branchMenuItemId: 1 }, { unique: true });
+cartItemSchema.index(
+  { sessionId: 1, branchMenuItemId: 1, deviceId: 1 },
+  { unique: true },
+);
 
 export default mongoose.model("CartItem", cartItemSchema);

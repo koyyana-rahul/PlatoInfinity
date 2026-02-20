@@ -1,5 +1,5 @@
 import express from "express";
-import { requireSessionAuth } from "../middleware/requireSessionAuth.js";
+import { resolveCustomerSession } from "../middleware/resolveCustomerSession.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { requireRole } from "../middleware/requireRole.js";
 
@@ -21,12 +21,18 @@ const orderRouter = express.Router();
  */
 
 // PLACE ORDER (FROM CART)
-orderRouter.post("/order/place", requireSessionAuth, placeOrderController);
+orderRouter.post("/order/place", resolveCustomerSession, placeOrderController);
 
 // LIST ORDERS FOR A SESSION (Customer / Waiter view)
 orderRouter.get(
   "/order/session/:sessionId",
-  requireSessionAuth,
+  resolveCustomerSession,
+  listSessionOrdersController,
+);
+
+orderRouter.get(
+  "/order/table/:tableId",
+  resolveCustomerSession,
   listSessionOrdersController,
 );
 

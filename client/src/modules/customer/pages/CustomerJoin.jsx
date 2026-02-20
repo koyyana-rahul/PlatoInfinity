@@ -12,11 +12,8 @@ export default function CustomerJoin() {
 
   const [loading, setLoading] = useState(true);
   const [table, setTable] = useState(null);
-  const [pin, setPin] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
   const base = `/${brandSlug}/${restaurantSlug}/table/${tableId}`;
-  const sessionKey = `plato:customerSession:${tableId}`;
 
   /* ================= LOAD TABLE ================= */
   useEffect(() => {
@@ -33,74 +30,6 @@ export default function CustomerJoin() {
     })();
   }, [tableId]);
 
-  /* ================= JOIN SESSION ================= */
-  const join = async () => {
-    if (pin.length !== 4) {
-      toast.error("Enter 4-digit PIN");
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-
-      const res = await Axios({
-        ...customerApi.joinSession,
-        data: {
-          tableId: table._id, // ✅ ONLY tableId
-          tablePin: pin, // ✅ STRING (important)
-        },
-      });
-
-      console.log("🎯 Join response:", res.data);
-      console.log("📦 Response data:", res.data?.data);
-      console.log("🔑 sessionToken:", res.data?.data?.sessionToken);
-      console.log("🔑 sessionId:", res.data?.data?.sessionId);
-      console.log("⏰ Server timestamp:", res.data?.data?._timestamp);
-
-      // ✅ STORE RAW TOKEN (not sessionId)
-      const sessionToken = res.data?.data?.sessionToken;
-      const sessionId = res.data?.data?.sessionId;
-
-      if (sessionToken && sessionToken.length > 40) {
-        // Token is 64 chars - this is the new code
-        console.log(
-          "✅ CORRECT: Storing session token (length: " +
-            sessionToken.length +
-            "):",
-          sessionToken.substring(0, 20) + "...",
-        );
-        localStorage.setItem(sessionKey, sessionToken);
-      } else if (!sessionToken && sessionId) {
-        // Old code: server returned only sessionId
-        // Use it as the token for now (works with old middleware)
-        console.warn(
-          "⚠️ WARNING: Server sent only sessionId, using it as token",
-        );
-        console.warn(
-          "⚠️ This works with OLD sessions but NOT with new join flow",
-        );
-        console.warn(
-          "⚠️ You should restart the server to get new functionality",
-        );
-        localStorage.setItem(sessionKey, sessionId);
-      } else {
-        // Neither token nor ID - something is wrong
-        console.error("❌ Response missing both sessionToken and sessionId!");
-        console.error("Response keys:", Object.keys(res.data?.data || {}));
-        toast.error("Invalid server response - missing session data");
-        setSubmitting(false);
-        return;
-      }
-
-      toast.success("Joined table successfully");
-      navigate(`${base}/menu`, { replace: true });
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Invalid table or PIN");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   /* ================= UI ================= */
 
   if (loading) {
@@ -113,26 +42,31 @@ export default function CustomerJoin() {
 
   return (
     <div className="max-w-lg mx-auto p-6 bg-white rounded-3xl">
-      <h1 className="text-xl font-bold">Join Table</h1>
+      <h1 className="text-xl font-bold">Welcome</h1>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <Info label="Table" value={table.tableNumber} />
         <Info label="Seats" value={table.seatingCapacity} />
       </div>
 
-      <input
-        value={pin}
-        onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-        className="mt-6 w-full h-14 border rounded-xl text-center text-lg tracking-widest"
-        placeholder="1234"
-      />
+      <div className="mt-6 space-y-3">
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-sm text-emerald-900">
+          ✅ No PIN required to browse or add items.
+        </div>
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 text-sm text-amber-900">
+          🔔 To place your order, call or wave for the waiter. They will give
+          you the Table PIN to submit.
+          <div className="mt-2 text-[12px] text-amber-800">
+            हिंदी: ऑर्डर देने के लिए वेटर को बुलाएँ। वे आपको टेबल PIN बताएँगे।
+          </div>
+        </div>
+      </div>
 
       <button
-        onClick={join}
-        disabled={submitting}
-        className="mt-4 w-full py-3 bg-black text-white rounded-xl"
+        onClick={() => navigate(`${base}/menu`, { replace: true })}
+        className="mt-6 w-full py-3 bg-black text-white rounded-xl"
       >
-        {submitting ? "Joining…" : "Join & View Menu"}
+        View Menu
       </button>
     </div>
   );

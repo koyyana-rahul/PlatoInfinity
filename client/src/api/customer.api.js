@@ -94,6 +94,11 @@ const customerApi = {
       method: "GET",
     }),
 
+    listByTable: (tableId) => ({
+      url: `/api/order/table/${tableId}`,
+      method: "GET",
+    }),
+
     getDetails: (orderId) => ({
       url: `/api/order/${orderId}`,
       method: "GET",

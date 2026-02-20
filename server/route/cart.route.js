@@ -1,5 +1,5 @@
 import express from "express";
-import { requireSessionAuth } from "../middleware/requireSessionAuth.js";
+import { resolveCustomerSession } from "../middleware/resolveCustomerSession.js";
 import {
   addToCartController,
   updateCartItemController,
@@ -15,19 +15,23 @@ const cartRouter = express.Router();
  */
 
 // ➕ Add item to cart
-cartRouter.post("/cart/add", requireSessionAuth, addToCartController);
+cartRouter.post("/cart/add", resolveCustomerSession, addToCartController);
 
 // ✏️ Update quantity
-cartRouter.put("/cart/update", requireSessionAuth, updateCartItemController);
+cartRouter.put(
+  "/cart/update",
+  resolveCustomerSession,
+  updateCartItemController,
+);
 
 // ❌ Remove item
 cartRouter.delete(
   "/cart/item/:cartItemId",
-  requireSessionAuth,
+  resolveCustomerSession,
   removeCartItemController,
 );
 
 // 🛒 Get cart
-cartRouter.get("/cart", requireSessionAuth, getCartController);
+cartRouter.get("/cart", resolveCustomerSession, getCartController);
 
 export default cartRouter;

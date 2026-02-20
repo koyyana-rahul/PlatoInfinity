@@ -63,7 +63,7 @@ app.use(express.urlencoded({ extended: true }));
 ====================================================== */
 
 const allowedOrigins = [
-  // "http://localhost:5173",
+  "http://localhost:5173",
   "https://platoinfinity.xyz",
   "https://www.platoinfinity.xyz",
 ];
@@ -83,6 +83,10 @@ app.use(
       "x-session-token",
       "X-Session-Token",
       "x-customer-session",
+      "x-table-id",
+      "X-Table-Id",
+      "x-device-id",
+      "X-Device-Id",
     ],
   }),
 );

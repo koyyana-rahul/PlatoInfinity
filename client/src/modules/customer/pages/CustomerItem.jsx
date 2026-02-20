@@ -221,7 +221,6 @@ import {
   ChevronLeft,
   Loader2,
   Info,
-  ShoppingBag,
   Plus,
   Minus,
   ShieldCheck,
@@ -244,13 +243,17 @@ export default function CustomerItem() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const sessionKey = `plato:customerSession:${tableId}`;
-  const sessionId = localStorage.getItem(sessionKey);
   const base = `/${brandSlug}/${restaurantSlug}/table/${tableId}`;
 
   const cart = useSelector(selectCart);
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [preferences, setPreferences] = useState({
+    spiceLevel: "Medium",
+    noOnion: false,
+    jain: false,
+    notes: "",
+  });
 
   const existingCartItem = useMemo(
     () => cart?.items?.find((i) => i.branchMenuItemId === itemId),
@@ -258,6 +261,28 @@ export default function CustomerItem() {
   );
 
   const qty = existingCartItem?.quantity || 0;
+
+  const getStationBadge = (station) => {
+    if (!station) return null;
+    const normalized = String(station).toLowerCase();
+    let icon = "🍽️";
+    if (normalized.includes("tandoor") || normalized.includes("grill")) {
+      icon = "🔥";
+    } else if (
+      normalized.includes("bar") ||
+      normalized.includes("beverage") ||
+      normalized.includes("drink")
+    ) {
+      icon = "🍹";
+    } else if (normalized.includes("fry")) {
+      icon = "🍟";
+    } else if (normalized.includes("pizza") || normalized.includes("oven")) {
+      icon = "🍕";
+    } else if (normalized.includes("dessert")) {
+      icon = "🍰";
+    }
+    return { icon, label: station };
+  };
 
   useEffect(() => {
     if (!itemId) return;
@@ -277,11 +302,13 @@ export default function CustomerItem() {
   }, [itemId, navigate, base]);
 
   const handleAddOne = () => {
-    if (!sessionId) {
-      toast.error("Please join the table first");
-      return;
-    }
-    dispatch(addToCart({ branchMenuItemId: item.id, quantity: 1 }));
+    dispatch(
+      addToCart({
+        branchMenuItemId: item?.id || item?._id,
+        quantity: 1,
+        preferences,
+      }),
+    );
     if (window.navigator.vibrate) window.navigator.vibrate(10);
   };
 
@@ -311,8 +338,10 @@ export default function CustomerItem() {
     );
   }
 
+  const stationBadge = getStationBadge(item?.station);
+
   return (
-    <div className="w-full max-w-2xl mx-auto flex flex-col min-h-screen bg-white font-sans antialiased">
+    <div className="w-full max-w-2xl mx-auto flex flex-col min-h-screen bg-slate-50 font-sans antialiased">
       {/* --- HERO SECTION --- */}
       <div className="relative w-full aspect-square sm:aspect-video overflow-hidden">
         <img
@@ -320,71 +349,170 @@ export default function CustomerItem() {
           alt={item?.name}
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-
+        <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
         {/* Top Navigation */}
-        <div className="absolute top-0 left-0 right-0 p-5 flex justify-between items-center">
-          <button
-            onClick={() => navigate(-1)}
-            className="w-11 h-11 flex items-center justify-center bg-white/90 backdrop-blur-md rounded-full shadow-lg text-slate-900 active:scale-90 transition-all"
-          >
-            <ChevronLeft size={20} strokeWidth={2.5} />
-          </button>
-          <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg">
-            <VegNonVegIcon isVeg={item?.isVeg} size={14} />
-          </div>
+        <button
+          onClick={() => navigate(-1)}
+          className="fixed top-[calc(env(safe-area-inset-top)+72px)] sm:top-[calc(env(safe-area-inset-top)+80px)] left-4 z-50 w-11 h-11 flex items-center justify-center bg-white/90 backdrop-blur-md rounded-full shadow-lg text-slate-900 active:scale-90 transition-all"
+        >
+          <ChevronLeft size={20} strokeWidth={2.5} />
+        </button>
+        <div className="absolute top-5 right-5 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg">
+          <VegNonVegIcon isVeg={item?.isVeg} size={14} />
         </div>
+
+        {/* {stationBadge && (
+          <div className="absolute bottom-4 left-5 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg text-[11px] font-semibold text-slate-700">
+            {stationBadge.icon} {stationBadge.label}
+          </div>
+        )} */}
       </div>
 
       {/* --- CONTENT SECTION --- */}
-      <div className="relative -mt-8 bg-white rounded-t-[32px] px-7 pt-10 pb-40 flex-1 border-t border-slate-100">
-        {/* Name & Price Container */}
-        <div className="flex flex-col mb-8">
-          <h1 className="text-[28px] font-black text-slate-900 leading-[1.1] mb-2">
-            {item?.name}
-          </h1>
-          <div className="flex items-center gap-3">
-            <span className="text-2xl font-black text-slate-900 tracking-tight">
+      <div className="relative -mt-10 bg-white rounded-t-[28px] px-6 pt-8 pb-40 flex-1 border-t border-slate-100 shadow-[0_-20px_50px_-40px_rgba(15,23,42,0.45)]">
+        {/* Title + price */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-[22px] sm:text-[26px] font-extrabold text-slate-900 leading-tight">
+              {item?.name}
+            </h1>
+            <div className="mt-1 flex items-center gap-3">
+              <span className="text-[13px] font-bold text-slate-400 uppercase tracking-widest">
+                Bestseller
+              </span>
+              <span className="h-3 w-px bg-slate-200" />
+              <span className="text-[12px] font-semibold text-emerald-600">
+                Highly rated
+              </span>
+            </div>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="text-[11px] font-bold uppercase text-slate-400 tracking-widest">
+              Price
+            </p>
+            <p className="text-[20px] font-extrabold text-slate-900">
               ₹{item?.price}
-            </span>
-            <span className="h-4 w-[1px] bg-slate-200"></span>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-              Standard Portion
-            </span>
+            </p>
           </div>
         </div>
 
         {/* Description */}
         {item?.description && (
-          <p className="text-[15px] leading-[1.6] text-slate-500 font-medium mb-10">
+          <p className="mt-5 text-[14px] leading-[1.6] text-slate-500 font-medium">
             {item?.description}
           </p>
         )}
 
-        {/* Professional Badges */}
-        <div className="grid grid-cols-2 gap-4 mb-10">
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-3">
+        {/* Swiggy/Zomato style info strip */}
+        <div className="mt-7 grid grid-cols-2 gap-3">
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-2">
             <Clock size={18} className="text-slate-900" />
             <p className="text-[11px] font-bold text-slate-900 uppercase tracking-wider">
-              Freshly Made
+              Freshly made
             </p>
             <p className="text-[10px] text-slate-500 leading-normal">
-              Prepared specifically for your order.
+              Prepared on order.
             </p>
           </div>
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-3">
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-2">
             <ShieldCheck size={18} className="text-slate-900" />
             <p className="text-[11px] font-bold text-slate-900 uppercase tracking-wider">
-              Quality Insured
+              Quality assured
             </p>
             <p className="text-[10px] text-slate-500 leading-normal">
-              Best-in-class ingredients used.
+              Fresh ingredients.
+            </p>
+          </div>
+        </div>
+
+        {/* Customizations */}
+        <div className="mt-6 p-5 rounded-2xl border border-slate-100 bg-slate-50 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">
+              Customizations
+            </p>
+            <span className="text-[10px] font-semibold text-slate-400">
+              Optional
+            </span>
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-semibold text-slate-700 mb-2">
+              Spice level
+            </label>
+            <select
+              value={preferences.spiceLevel}
+              onChange={(e) =>
+                setPreferences((prev) => ({
+                  ...prev,
+                  spiceLevel: e.target.value,
+                }))
+              }
+              className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 focus:outline-none focus:border-slate-400"
+            >
+              {["Mild", "Medium", "Hot", "Extra Hot"].map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex items-center gap-2 text-[12px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2">
+              <input
+                type="checkbox"
+                checked={preferences.noOnion}
+                onChange={(e) =>
+                  setPreferences((prev) => ({
+                    ...prev,
+                    noOnion: e.target.checked,
+                  }))
+                }
+                className="h-4 w-4"
+              />
+              No onion
+            </label>
+            <label className="flex items-center gap-2 text-[12px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2">
+              <input
+                type="checkbox"
+                checked={preferences.jain}
+                onChange={(e) =>
+                  setPreferences((prev) => ({
+                    ...prev,
+                    jain: e.target.checked,
+                  }))
+                }
+                className="h-4 w-4"
+              />
+              Jain
+            </label>
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-semibold text-slate-700 mb-2">
+              Notes for kitchen
+            </label>
+            <textarea
+              rows={3}
+              value={preferences.notes}
+              onChange={(e) =>
+                setPreferences((prev) => ({
+                  ...prev,
+                  notes: e.target.value.slice(0, 120),
+                }))
+              }
+              placeholder="e.g., less spicy, extra crispy"
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:border-slate-400"
+            />
+            <p className="mt-2 text-[10px] text-slate-400">
+              Preferences apply to the items you add now.
             </p>
           </div>
         </div>
 
         {/* Footer Meta */}
-        <div className="flex items-center gap-2 py-6 border-t border-slate-50 opacity-60">
+        <div className="mt-6 flex items-center gap-2 py-5 border-t border-slate-100/60">
           <Info size={14} className="text-slate-400" />
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
             Inclusive of all taxes & hygiene charges

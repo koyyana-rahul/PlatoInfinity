@@ -7,12 +7,16 @@
  * - Urgency indication
  * - Station filtering
  * - Notification sounds
+ * - PIN confirmation for marking READY
  */
 
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import useKitchenDisplay from "../../hooks/useKitchenDisplay";
+import ChefPinConfirmationModal from "../components/ChefPinConfirmationModal";
+import Axios from "../../../api/axios";
 
 const STATUS_COLORS = {
   NEW: "bg-red-100 text-red-900 border-red-300",
@@ -32,8 +36,17 @@ const STATUS_ICONS = {
 
 export default function KitchenDisplay() {
   const { restaurantId } = useParams();
-  const [stationFilter, setStationFilter] = useState(null);
+  const user = useSelector((state) => state.user);
+  const chefStation = user?.station;
+
+  // Auto-set to chef's assigned station
+  const [stationFilter, setStationFilter] = useState(chefStation);
   const [stations, setStations] = useState([]);
+
+  // PIN MODAL STATE
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinPendingAction, setPinPendingAction] = useState(null);
+  const [isPinLoading, setIsPinLoading] = useState(false);
 
   const {
     orders,
@@ -43,6 +56,13 @@ export default function KitchenDisplay() {
     fetchKitchenOrders,
     updateItemStatus,
   } = useKitchenDisplay(restaurantId, stationFilter);
+
+  /* ========== SET CHEF'S STATION AUTOMATICALLY ========== */
+  useEffect(() => {
+    if (chefStation && !stationFilter) {
+      setStationFilter(chefStation);
+    }
+  }, [chefStation, stationFilter]);
 
   /* ========== EXTRACT UNIQUE STATIONS ========== */
   useEffect(() => {
@@ -58,10 +78,71 @@ export default function KitchenDisplay() {
   }, [orders]);
 
   /* ========== HANDLE STATUS UPDATE ========== */
-  const handleStatusChange = async (orderId, itemIndex, newStatus) => {
+  const handleStatusChange = async (
+    orderId,
+    itemIndex,
+    newStatus,
+    itemName,
+    tableName,
+  ) => {
+    // If marking as READY, require PIN confirmation first
+    if (newStatus === "READY") {
+      setPinPendingAction({
+        orderId,
+        itemIndex,
+        newStatus,
+        itemName,
+        tableName,
+      });
+      setShowPinModal(true);
+      return;
+    }
+
+    // For other statuses, proceed directly
     const success = await updateItemStatus(orderId, itemIndex, newStatus);
     if (success) {
       toast.success(`Item marked as ${newStatus}`);
+    }
+  };
+
+  const handlePinConfirm = async (pin) => {
+    if (!pinPendingAction) return;
+
+    try {
+      setIsPinLoading(true);
+
+      const { orderId, itemIndex, newStatus } = pinPendingAction;
+      const order = orders.find((o) => o.orderId === orderId);
+      const itemId = order?.items?.[itemIndex]?._id;
+
+      if (!itemId) {
+        toast.error("Item not found");
+        return;
+      }
+
+      // Call API with PIN
+      const res = await Axios({
+        url: `/api/kitchen/order/${orderId}/item/${itemId}/status`,
+        method: "PUT",
+        data: {
+          status: newStatus,
+          staffPin: pin,
+        },
+      });
+
+      if (res.data?.success) {
+        toast.success("✅ Item marked as Ready!");
+        setShowPinModal(false);
+        setPinPendingAction(null);
+        fetchKitchenOrders(); // Refresh orders
+      } else {
+        toast.error(res.data?.message || "Failed to update status");
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Invalid PIN or error";
+      toast.error(msg);
+    } finally {
+      setIsPinLoading(false);
     }
   };
 
@@ -86,7 +167,7 @@ export default function KitchenDisplay() {
           <div>
             <h1 className="text-2xl font-bold text-white">Kitchen Display</h1>
             <p className="text-sm text-slate-400 mt-1">
-              {socketReady ? "🟢 Live" : "🔴 Offline"} • {orders.length} active
+              Station: <span className="text-orange-400 font-semibold">{stationFilter || "Loading..."}</span> • {socketReady ? "🟢 Live" : "🔴 Offline"} • {orders.length} active
               orders
             </p>
           </div>
@@ -98,35 +179,7 @@ export default function KitchenDisplay() {
             🔄 Refresh
           </button>
         </div>
-
-        {/* ========== STATION FILTER ========== */}
-        {stations.length > 0 && (
-          <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-2">
-            <button
-              onClick={() => setStationFilter(null)}
-              className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
-                stationFilter === null
-                  ? "bg-orange-600 text-white"
-                  : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-              }`}
-            >
-              All Stations
-            </button>
-            {stations.map((station) => (
-              <button
-                key={station}
-                onClick={() => setStationFilter(station)}
-                className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
-                  stationFilter === station
-                    ? "bg-orange-600 text-white"
-                    : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                }`}
-              >
-                {station}
-              </button>
-            ))}
-          </div>
-        )}
+      </div>
       </div>
 
       {/* ========== EMPTY STATE ========== */}
@@ -214,6 +267,8 @@ export default function KitchenDisplay() {
                                 order.orderId,
                                 itemIndex,
                                 status,
+                                item.name,
+                                order.tableNumber,
                               )
                             }
                             disabled={
@@ -265,6 +320,21 @@ export default function KitchenDisplay() {
           </>
         )}
       </div>
+
+      {/* PIN CONFIRMATION MODAL */}
+      {pinPendingAction && (
+        <ChefPinConfirmationModal
+          isOpen={showPinModal}
+          itemName={pinPendingAction.itemName}
+          tableName={pinPendingAction.tableName}
+          onClose={() => {
+            setShowPinModal(false);
+            setPinPendingAction(null);
+          }}
+          onConfirm={handlePinConfirm}
+          isLoading={isPinLoading}
+        />
+      )}
     </div>
   );
 }

@@ -6,7 +6,6 @@ import Axios from "../api/axios";
 import customerApi from "../api/customer.api";
 import { setBrandDetails } from "../store/brand/brandSlice";
 import { fetchCustomerOrders } from "../store/customer/orderThunks";
-import MobileBottomNav from "../modules/customer/components/MobileBottomNav";
 
 export default function CustomerLayout() {
   const { tableId } = useParams();
@@ -19,6 +18,9 @@ export default function CustomerLayout() {
   const sessionId = localStorage.getItem(sessionKey);
 
   useEffect(() => {
+    if (tableId) {
+      localStorage.setItem("plato:lastTableId", tableId);
+    }
     if (!tableId || brand?._id) return;
     const hydrateBrand = async () => {
       try {
@@ -38,26 +40,23 @@ export default function CustomerLayout() {
   }, [dispatch, sessionId]);
 
   return (
-    <div className="min-h-screen bg-[#f8f8f7] selection:bg-orange-100 selection:text-orange-900 antialiased font-sans">
-      {/* 1. BRAND HEADER - Desktop/Tablet only */}
-      <div className="hidden md:block w-full bg-transparent pt-5">
-        <div className="max-w-6xl mx-auto px-6">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#f9f9f8] via-white to-[#f6f6f4] selection:bg-orange-100 selection:text-orange-900 antialiased font-sans text-slate-900">
+      {/* 1. BRAND HEADER */}
+      <div className="block w-full bg-transparent pt-3 md:pt-5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <CustomerHeader />
         </div>
       </div>
 
       {/* 2. MAIN CONTENT AREA */}
-      <main className="max-w-6xl mx-auto relative flex-1 px-4 sm:px-6 lg:px-8 pb-36 md:pb-20 pt-2 md:pt-4">
+      <main className="w-full max-w-7xl mx-auto relative flex-1 px-4 sm:px-6 lg:px-8 pb-32 sm:pb-28 md:pb-16 pt-2 md:pt-4">
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
           <Outlet />
         </div>
       </main>
 
-      {/* 3. MOBILE BOTTOM NAV */}
-      <MobileBottomNav />
-
-      {/* 4. FOOTER SPACING */}
-      <footer className="h-24 md:h-12 pointer-events-none" />
+      {/* 3. FOOTER SPACING */}
+      <footer className="h-6 md:h-8 pointer-events-none" />
 
       <style>{`
         :root { scroll-behavior: smooth; }
