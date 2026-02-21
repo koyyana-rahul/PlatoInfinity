@@ -20,12 +20,14 @@ export default function ManagerDashboard() {
 
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
+  const [suspiciousOrders, setSuspiciousOrders] = useState([]);
   const [stats, setStats] = useState({
     totalOrders: 0,
     completedOrders: 0,
     pendingOrders: 0,
     avgTime: 0,
     totalRevenue: 0,
+    fraudAlerts: 0,
   });
 
   const [filters, setFilters] = useState({
@@ -35,6 +37,7 @@ export default function ManagerDashboard() {
   });
 
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("orders"); // orders | fraudAlerts
 
   // 📊 Fetch Orders
   useEffect(() => {
@@ -46,6 +49,13 @@ export default function ManagerDashboard() {
 
         if (res.data?.success) {
           setOrders(res.data.data);
+
+          // Separate suspicious/fraud alert orders
+          const suspicious = res.data.data.filter(
+            (o) => o.orderStatus === "PENDING_APPROVAL",
+          );
+          setSuspiciousOrders(suspicious);
+
           applyFilters(res.data.data, filters);
           calculateStats(res.data.data);
         }
@@ -89,6 +99,7 @@ export default function ManagerDashboard() {
     const pending = orderList.filter(
       (o) => o.orderStatus === "NEW" || o.orderStatus === "IN_PROGRESS",
     );
+    const fraud = orderList.filter((o) => o.orderStatus === "PENDING_APPROVAL");
 
     setStats({
       totalOrders: orderList.length,
@@ -96,6 +107,7 @@ export default function ManagerDashboard() {
       pendingOrders: pending.length,
       avgTime: Math.random() * 30,
       totalRevenue: orderList.reduce((sum, o) => sum + (o.totalAmount || 0), 0),
+      fraudAlerts: fraud.length,
     });
   };
 
@@ -114,16 +126,67 @@ export default function ManagerDashboard() {
       });
     };
 
+    const handleFraudAlert = (fraudData) => {
+      setSuspiciousOrders((prev) => [
+        ...prev.filter((o) => o._id !== fraudData.orderId),
+        fraudData.order,
+      ]);
+      toast.error(
+        `⚠️ Fraud Alert: Order ${fraudData.order.orderNumber} - ${fraudData.reason}`,
+      );
+    };
+
     socket.on("order:placed", handleOrderUpdate);
     socket.on("order:item-status-updated", handleOrderUpdate);
     socket.on("order:served", handleOrderUpdate);
+    socket.on("fraud:alert", handleFraudAlert);
 
     return () => {
       socket.off("order:placed", handleOrderUpdate);
       socket.off("order:item-status-updated", handleOrderUpdate);
       socket.off("order:served", handleOrderUpdate);
+      socket.off("fraud:alert", handleFraudAlert);
     };
   }, [socket, filters]);
+
+  const approveFraudOrder = async (orderId) => {
+    try {
+      const res = await AuthAxios.put(`/api/order/${orderId}/approve`);
+      if (res.data?.success) {
+        toast.success("Order approved ✓");
+        setSuspiciousOrders((prev) => prev.filter((o) => o._id !== orderId));
+        setOrders((prev) =>
+          prev.map((o) =>
+            o._id === orderId ? { ...o, orderStatus: "OPEN" } : o,
+          ),
+        );
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Approval failed");
+    }
+  };
+
+  const rejectFraudOrder = async (orderId) => {
+    try {
+      const reason = prompt("Reason for rejection:");
+      if (!reason) return;
+
+      const res = await AuthAxios.put(`/api/order/${orderId}/reject`, {
+        reason,
+      });
+      if (res.data?.success) {
+        toast.success("Order rejected ✓");
+        setSuspiciousOrders((prev) => prev.filter((o) => o._id !== orderId));
+        setOrders((prev) =>
+          prev.map((o) =>
+            o._id === orderId ? { ...o, orderStatus: "CANCELLED" } : o,
+          ),
+        );
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Rejection failed");
+    }
+  };
 
   const handleFilterChange = (field, value) => {
     const newFilters = { ...filters, [field]: value };
@@ -211,6 +274,35 @@ export default function ManagerDashboard() {
         </button>
       </div>
 
+      {/* Tab Selector */}
+      <div className="flex gap-2 border-b border-slate-200">
+        <button
+          onClick={() => setActiveTab("orders")}
+          className={`px-4 py-3 font-semibold text-sm transition ${
+            activeTab === "orders"
+              ? "text-emerald-600 border-b-2 border-emerald-600"
+              : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          📋 Orders
+        </button>
+        <button
+          onClick={() => setActiveTab("fraudAlerts")}
+          className={`px-4 py-3 font-semibold text-sm transition flex items-center gap-2 ${
+            activeTab === "fraudAlerts"
+              ? "text-red-600 border-b-2 border-red-600"
+              : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          ⚠️ Fraud Alerts
+          {stats.fraudAlerts > 0 && (
+            <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+              {stats.fraudAlerts}
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* Stats Grid */}
       {!loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -240,11 +332,10 @@ export default function ManagerDashboard() {
             color="purple"
           />
           <StatCard
-            title="Total Revenue"
-            value={`₹${stats.totalRevenue?.toLocaleString("en-IN") || "0"}`}
-            icon={FiTrendingUp}
-            color="emerald"
-            trend={12}
+            title="Fraud Alerts"
+            value={stats.fraudAlerts}
+            icon={FiAlertCircle}
+            color="red"
           />
         </div>
       ) : (
@@ -258,102 +349,192 @@ export default function ManagerDashboard() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="bg-white border border-slate-100 rounded-lg p-4 flex flex-wrap gap-4">
-        <div className="flex-1 min-w-[150px]">
-          <label className="block text-xs font-bold text-slate-600 mb-2 uppercase">
-            Status
-          </label>
-          <select
-            value={filters.status}
-            onChange={(e) => handleFilterChange("status", e.target.value)}
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="all">All Orders</option>
-            <option value="NEW">New</option>
-            <option value="IN_PROGRESS">Cooking</option>
-            <option value="READY">Ready</option>
-            <option value="SERVED">Served</option>
-          </select>
-        </div>
+      {/* ORDERS TAB */}
+      {activeTab === "orders" && (
+        <>
+          {/* Filters */}
+          <div className="bg-white border border-slate-100 rounded-lg p-4 flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[150px]">
+              <label className="block text-xs font-bold text-slate-600 mb-2 uppercase">
+                Status
+              </label>
+              <select
+                value={filters.status}
+                onChange={(e) => handleFilterChange("status", e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="all">All Orders</option>
+                <option value="NEW">New</option>
+                <option value="IN_PROGRESS">Cooking</option>
+                <option value="READY">Ready</option>
+                <option value="SERVED">Served</option>
+              </select>
+            </div>
 
-        <div className="flex-1 min-w-[150px]">
-          <label className="block text-xs font-bold text-slate-600 mb-2 uppercase">
-            Time Range
-          </label>
-          <select
-            value={filters.timeRange}
-            onChange={(e) => handleFilterChange("timeRange", e.target.value)}
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-          </select>
-        </div>
+            <div className="flex-1 min-w-[150px]">
+              <label className="block text-xs font-bold text-slate-600 mb-2 uppercase">
+                Time Range
+              </label>
+              <select
+                value={filters.timeRange}
+                onChange={(e) =>
+                  handleFilterChange("timeRange", e.target.value)
+                }
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+              </select>
+            </div>
 
-        <div className="flex-1 min-w-[150px]">
-          <label className="block text-xs font-bold text-slate-600 mb-2 uppercase">
-            Sort By
-          </label>
-          <select
-            value={filters.sortBy}
-            onChange={(e) => handleFilterChange("sortBy", e.target.value)}
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="recent">Most Recent</option>
-            <option value="oldest">Oldest First</option>
-            <option value="amount-high">Highest Amount</option>
-          </select>
-        </div>
-      </div>
+            <div className="flex-1 min-w-[150px]">
+              <label className="block text-xs font-bold text-slate-600 mb-2 uppercase">
+                Sort By
+              </label>
+              <select
+                value={filters.sortBy}
+                onChange={(e) => handleFilterChange("sortBy", e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="recent">Most Recent</option>
+                <option value="oldest">Oldest First</option>
+                <option value="amount-high">Highest Amount</option>
+              </select>
+            </div>
+          </div>
 
-      {/* Orders Table */}
-      <div className="bg-white border border-slate-100 rounded-lg overflow-hidden">
-        {filteredOrders.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-100">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
-                    Order #
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
-                    Table
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
-                    Items
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
-                    Amount
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
-                    Time
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
-                    Progress
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredOrders.map((order) => {
-                  const completedItems =
-                    order.items?.filter(
-                      (i) =>
-                        i.itemStatus === "READY" || i.itemStatus === "SERVED",
-                    ).length || 0;
-                  const totalItems = order.items?.length || 0;
-                  const progress = totalItems
-                    ? (completedItems / totalItems) * 100
-                    : 0;
+          {/* Orders Table */}
+          <div className="bg-white border border-slate-100 rounded-lg overflow-hidden">
+            {filteredOrders.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
+                        Order #
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
+                        Table
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
+                        Items
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
+                        Amount
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
+                        Time
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
+                        Progress
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredOrders.map((order) => {
+                      const completedItems =
+                        order.items?.filter(
+                          (i) =>
+                            i.itemStatus === "READY" ||
+                            i.itemStatus === "SERVED",
+                        ).length || 0;
+                      const totalItems = order.items?.length || 0;
+                      const progress = totalItems
+                        ? (completedItems / totalItems) * 100
+                        : 0;
 
-                  return (
+                      return (
+                        <tr
+                          key={order._id}
+                          className="hover:bg-slate-50 transition-colors"
+                        >
+                          <td className="px-4 py-3 text-sm font-bold text-slate-900">
+                            #{order.orderNumber}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-600">
+                            {order.tableName || "Takeaway"}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-600">
+                            {totalItems} items
+                          </td>
+                          <td className="px-4 py-3 text-sm font-semibold text-emerald-600">
+                            ₹{order.totalAmount?.toLocaleString("en-IN") || "0"}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${getStatusColor(order.orderStatus)}`}
+                            >
+                              {order.orderStatus}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-slate-500">
+                            {order.placedAt
+                              ? new Date(order.placedAt).toLocaleTimeString()
+                              : "-"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-emerald-500 transition-all"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-slate-500 mt-1">
+                              {completedItems}/{totalItems}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-8 text-center text-slate-500">
+                <p>No orders found</p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* FRAUD ALERTS TAB */}
+      {activeTab === "fraudAlerts" && (
+        <div className="bg-white border border-red-200 rounded-lg overflow-hidden">
+          {suspiciousOrders.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-red-50 border-b border-red-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-red-700 uppercase">
+                      Order #
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-red-700 uppercase">
+                      Table
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-red-700 uppercase">
+                      Amount
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-red-700 uppercase">
+                      Fraud Reason
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-red-700 uppercase">
+                      Risk Score
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-red-700 uppercase">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-red-100">
+                  {suspiciousOrders.map((order) => (
                     <tr
                       key={order._id}
-                      className="hover:bg-slate-50 transition-colors"
+                      className="hover:bg-red-50 transition-colors"
                     >
                       <td className="px-4 py-3 text-sm font-bold text-slate-900">
                         #{order.orderNumber}
@@ -361,47 +542,58 @@ export default function ManagerDashboard() {
                       <td className="px-4 py-3 text-sm text-slate-600">
                         {order.tableName || "Takeaway"}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-600">
-                        {totalItems} items
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold text-emerald-600">
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-900">
                         ₹{order.totalAmount?.toLocaleString("en-IN") || "0"}
                       </td>
+                      <td className="px-4 py-3 text-sm text-red-700">
+                        {order.meta?.fraudReason || "Suspicious pattern"}
+                      </td>
                       <td className="px-4 py-3 text-sm">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${getStatusColor(order.orderStatus)}`}
-                        >
-                          {order.orderStatus}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-500">
-                        {order.placedAt
-                          ? new Date(order.placedAt).toLocaleTimeString()
-                          : "-"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-500 transition-all"
-                            style={{ width: `${progress}%` }}
-                          />
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-red-500"
+                              style={{
+                                width: `${Math.min(
+                                  100,
+                                  (order.meta?.fraudScore || 0) * 2,
+                                )}%`,
+                              }}
+                            />
+                          </div>
+                          <span className="text-xs font-bold text-red-600">
+                            {order.meta?.fraudScore || 0}
+                          </span>
                         </div>
-                        <span className="text-xs text-slate-500 mt-1">
-                          {completedItems}/{totalItems}
-                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => approveFraudOrder(order._id)}
+                            className="px-3 py-1 bg-green-500 text-white rounded text-xs font-bold hover:bg-green-600"
+                          >
+                            ✓ Approve
+                          </button>
+                          <button
+                            onClick={() => rejectFraudOrder(order._id)}
+                            className="px-3 py-1 bg-red-500 text-white rounded text-xs font-bold hover:bg-red-600"
+                          >
+                            ✕ Reject
+                          </button>
+                        </div>
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="p-8 text-center text-slate-500">
-            <p>No orders found</p>
-          </div>
-        )}
-      </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-8 text-center text-slate-500">
+              <p>✓ No fraud alerts at the moment</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

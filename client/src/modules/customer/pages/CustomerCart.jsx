@@ -17,6 +17,7 @@ import CallWaiterModal from "../components/CallWaiterModal";
 import CustomerPinInputModal from "../components/CustomerPinInputModal";
 import Axios from "../../../api/axios";
 import customerApi from "../../../api/customer.api";
+import { useCustomerSocket } from "../hooks/useCustomerSocket";
 
 import {
   fetchCart,
@@ -58,6 +59,13 @@ export default function CustomerCart() {
 
   // TABLE INFO
   const [tableNumber, setTableNumber] = useState("Table");
+  const [restaurantId, setRestaurantId] = useState(null);
+
+  useCustomerSocket({
+    sessionId,
+    restaurantId,
+    tableId,
+  });
 
   useEffect(() => {
     if (!sessionId) {
@@ -73,6 +81,9 @@ export default function CustomerCart() {
         const res = await Axios(customerApi.publicTable(tableId));
         if (res.data?.data?.tableNumber) {
           setTableNumber(res.data.data.tableNumber);
+        }
+        if (res.data?.data?.restaurantId) {
+          setRestaurantId(res.data.data.restaurantId);
         }
       } catch (err) {
         console.error(err);
@@ -330,6 +341,8 @@ export default function CustomerCart() {
       <CallWaiterModal
         isOpen={showCallWaiterModal}
         tableNumber={tableNumber}
+        tableId={tableId}
+        restaurantId={restaurantId}
         onClose={() => setShowCallWaiterModal(false)}
         onWaiterConfirmed={handleWaiterConfirmed}
       />

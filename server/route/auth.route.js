@@ -15,7 +15,17 @@ import {
   // setPasswordController,
 } from "../controller/auth.controller.js";
 
+import {
+  staffPinLoginController,
+  staffPinLogoutController,
+  confirmStaffActionController,
+  resetStaffPinController,
+  changeStaffPinController,
+  getStaffMeController,
+} from "../controller/staffPin.controller.js";
+
 import { requireAuth } from "../middleware/requireAuth.js";
+import { requireSessionAuth } from "../middleware/requireSessionAuth.js";
 import upload from "../config/multer.js";
 // import { acceptInviteController } from "../controller/auth.invite.controller.js";
 // import { acceptInviteController } from "../controller/invite.controller.js";
@@ -43,12 +53,27 @@ authRouter.post(
   "/upload-avatar",
   requireAuth,
   upload.single("avatar"),
-  uploadAvatarController
+  uploadAvatarController,
 );
 
 authRouter.put("/update-profile", requireAuth, updateUserDetailsController);
 authRouter.get("/me", requireAuth, userDetailsController);
 // authRouter.post("/accept-invite", acceptInviteController);
 // authRouter.post("/set-password", setPasswordController);
+
+/**
+ * STAFF PIN AUTHENTICATION ROUTES
+ * For kitchen (chef), waiter, and cashier staff
+ */
+authRouter.post("/staff/pin-login", staffPinLoginController);
+authRouter.post("/staff/pin-logout", requireAuth, staffPinLogoutController);
+authRouter.post(
+  "/staff/confirm-action",
+  requireAuth,
+  confirmStaffActionController,
+);
+authRouter.post("/staff/reset-pin", requireAuth, resetStaffPinController);
+authRouter.post("/staff/change-pin", requireAuth, changeStaffPinController);
+authRouter.get("/staff/me", requireAuth, getStaffMeController);
 
 export default authRouter;

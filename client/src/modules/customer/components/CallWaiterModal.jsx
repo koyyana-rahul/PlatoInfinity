@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Phone, Hand, X } from "lucide-react";
 import toast from "react-hot-toast";
+import { emitCustomerSocketEvent } from "../hooks/useCustomerSocket";
 
 /**
  * CallWaiterModal.jsx
@@ -12,13 +13,43 @@ import toast from "react-hot-toast";
 export default function CallWaiterModal({
   isOpen,
   tableNumber,
+  tableId,
+  restaurantId,
   onClose,
   onWaiterConfirmed,
 }) {
   const [isWaiting, setIsWaiting] = useState(false);
 
   const handleCallWaiter = () => {
+    if (!restaurantId || !tableId) {
+      toast.error("Unable to notify waiter. Please try again.");
+      return;
+    }
+
     setIsWaiting(true);
+
+    const notified = emitCustomerSocketEvent(
+      "table:call_waiter",
+      {
+        restaurantId,
+        tableId,
+        tableName: tableNumber,
+        reason: "ORDER",
+      },
+      (response) => {
+        if (response?.ok === false) {
+          toast.error(response?.error || "Failed to notify waiter");
+          setIsWaiting(false);
+        }
+      },
+    );
+
+    if (!notified) {
+      toast.error("Unable to reach waiter right now. Please try again.");
+      setIsWaiting(false);
+      return;
+    }
+
     toast.success("Waiter notified! They will come to your table shortly.", {
       duration: 4,
       icon: "👨‍🍳",

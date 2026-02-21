@@ -857,3 +857,52 @@ export async function emitStationStatusUpdate({
     });
   }
 }
+
+/**
+ * ==============================================
+ * EMIT FRAUD ALERT
+ * ==============================================
+ * Called when an order is flagged as suspicious by fraud detection
+ * Notifies managers to approve/reject the order
+ */
+export async function emitFraudAlert({
+  restaurantId,
+  orderId,
+  orderNumber,
+  tableName,
+  totalAmount,
+  fraudScore,
+  fraudReasons = [],
+}) {
+  if (!ioRef) {
+    console.warn("⚠️ Socket IO not initialized, cannot emit fraud alert");
+    return;
+  }
+
+  console.log(
+    `🚨 FRAUD ALERT - Order #${orderNumber} (Risk: ${fraudScore}%) at ${tableName}`,
+  );
+
+  // Notify all managers in the restaurant
+  ioRef.to(`restaurant:${restaurantId}:managers`).emit("fraud:alert", {
+    orderId,
+    orderNumber,
+    tableName,
+    totalAmount,
+    fraudScore,
+    fraudReasons,
+    timestamp: new Date(),
+  });
+
+  // Also notify brand admins
+  ioRef.to(`brand:managers`).emit("fraud:alert", {
+    orderId,
+    orderNumber,
+    tableName,
+    totalAmount,
+    fraudScore,
+    fraudReasons,
+    restaurantId,
+    timestamp: new Date(),
+  });
+}

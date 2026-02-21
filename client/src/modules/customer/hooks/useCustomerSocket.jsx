@@ -78,3 +78,13 @@ export function useCustomerSocket({
     };
   }, [sessionId, restaurantId, tableId, onCartUpdate, onMenuUpdate]);
 }
+
+export function emitCustomerSocketEvent(event, payload, ack) {
+  if (!socket || !socket.connected) {
+    console.warn("⚠️ Customer socket not connected");
+    return false;
+  }
+
+  socket.emit(event, payload, ack);
+  return true;
+}

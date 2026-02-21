@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import UserModel from "../models/user.model.js";
 import StationQueueEvent from "../models/stationQueueEvent.model.js";
 import Order from "../models/order.model.js";
+import Table from "../models/table.model.js";
 import {
   registerSocket,
   emitStationStatusUpdate,
@@ -130,6 +131,46 @@ export function initSocketServer(httpServer, options = {}) {
         );
       }
     });
+
+    /* ---------- CUSTOMER CALL WAITER ---------- */
+    socket.on(
+      "table:call_waiter",
+      async ({ restaurantId, tableId, tableName, reason }, ack) => {
+        try {
+          if (!restaurantId || !tableId) {
+            ack?.({ ok: false, error: "Missing restaurant or table" });
+            return;
+          }
+
+          let resolvedTableName = tableName;
+
+          if (!resolvedTableName) {
+            const table = await Table.findById(tableId)
+              .select("tableNumber restaurantId")
+              .lean();
+
+            if (!table || String(table.restaurantId) !== String(restaurantId)) {
+              ack?.({ ok: false, error: "Table not found" });
+              return;
+            }
+
+            resolvedTableName = table.tableNumber;
+          }
+
+          io.to(`restaurant:${restaurantId}:waiters`).emit("table:call-bell", {
+            tableId,
+            tableName: resolvedTableName || "Table",
+            reason: reason || "GENERAL",
+            timestamp: new Date(),
+          });
+
+          ack?.({ ok: true });
+        } catch (err) {
+          console.error("table:call_waiter error:", err);
+          ack?.({ ok: false, error: err.message });
+        }
+      },
+    );
 
     /* ---------- KITCHEN JOIN (for chefs to listen to kitchen events) ---------- */
     socket.on("join:kitchen", ({ restaurantId }) => {

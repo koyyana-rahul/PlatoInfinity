@@ -17,6 +17,11 @@ import LandingHome from "../modules/landing/LandingHome";
 /* ================= STAFF AUTH ================= */
 import StaffPinLogin from "../modules/staff/login/StaffPinLogin";
 
+/* ================= STAFF APPS (SIMPLIFIED) ================= */
+import WaiterApp from "../modules/staff/WaiterApp";
+import ChefKitchenApp from "../modules/staff/ChefKitchenApp";
+import CashierApp from "../modules/staff/CashierApp";
+
 /* ================= INVITE ================= */
 import AcceptInvite from "../modules/auth/invite/AcceptInvite";
 import SetPassword from "../modules/auth/invite/SetPassword";
@@ -76,6 +81,7 @@ import CustomerCart from "../modules/customer/pages/CustomerCartWithPin";
 import CustomerOrders from "../modules/customer/pages/CustomerOrders";
 import CustomerBill from "../modules/customer/pages/CustomerBill";
 import CustomerItem from "../modules/customer/pages/CustomerItem";
+import CustomerMenuApp from "../modules/customer/CustomerMenuApp";
 
 /* ================= FALLBACK ================= */
 const NotFound = () => (
@@ -116,6 +122,17 @@ const router = createBrowserRouter([
 
   /* ================= STAFF LOGIN ================= */
   { path: "/staff/login", element: <StaffPinLogin /> },
+
+  /* ================= STAFF APPS (SIMPLIFIED VERSIONS) ================= */
+  { path: "/staff/waiter-app", element: <WaiterApp /> },
+  { path: "/staff/chef-kitchen", element: <ChefKitchenApp /> },
+  { path: "/staff/cashier-counter", element: <CashierApp /> },
+
+  /* ================= CUSTOMER SIMPLIFIED MENU ================= */
+  {
+    path: "/menu/:brandSlug/:restaurantSlug/:tableId",
+    element: <CustomerMenuApp />,
+  },
 
   /* ================= INVITE ================= */
   { path: "/accept-invite", element: <AcceptInvite /> },

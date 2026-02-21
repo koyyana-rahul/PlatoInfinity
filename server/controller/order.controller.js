@@ -12,7 +12,12 @@ import {
   emitOrderServed,
   emitOrderCancelled,
   emitTableStatusChanged,
+  emitFraudAlert,
 } from "../socket/emitter.js";
+import {
+  detectOrderFraud,
+  logSuspiciousOrder,
+} from "../utils/fraudDetection.js";
 
 /**
  * ============================
@@ -142,48 +147,19 @@ export async function placeOrderController(req, res) {
     }
 
     /**
-     * 4️⃣ ORDER NUMBER (PER SESSION)
+     * 4️⃣ FRAUD DETECTION (ML-BASED)
      */
-    if (orderCount === 0 && requestedMode) {
-      if (["FAMILY", "INDIVIDUAL"].includes(requestedMode)) {
-        session.mode = requestedMode;
-        await session.save({ session: mongoSession });
-      }
-    }
-
-    const table = await Table.findById(session.tableId).session(mongoSession);
-    if (!table) {
-      throw new Error("Table not found");
-    }
-
-    /**
-     * 5️⃣ CREATE ORDER
-     */
-    const [order] = await Order.create(
-      [
-        {
-          restaurantId: session.restaurantId,
-          sessionId: session._id,
-          tableId: session.tableId,
-          tableName: table.name || table.tableNumber,
-          orderNumber: orderCount + 1,
-          items: orderItems,
-          totalAmount,
-          orderStatus: hasLargeQty ? "PENDING_APPROVAL" : "OPEN",
-          isSuspicious: hasLargeQty,
-          suspiciousReason: hasLargeQty
-            ? "Quantity over 10 requires manager approval"
-            : null,
-          placedBy: req.user ? "WAITER" : "CUSTOMER",
-          meta: {
-            customerLabel: customerLabel || null,
-            deviceId: deviceId || null,
-            customerMode: effectiveMode,
-          },
-        },
-      ],
-      { session: mongoSession },
+    const fraudResult = await detectOrderFraud(
+      {
+        items: orderItems,
+        totalAmount,
+        sessionId: session._id,
+        restaurantId: session.restaurantId,
+      },
+      { _id: session.restaurantId },
     );
+
+    const orderStatus = fraudResult.isFraudulent ? "PENDING_APPROVAL" : "OPEN";
 
     /**
      * 6️⃣ CLEAR CART
@@ -251,37 +227,39 @@ export async function placeOrderController(req, res) {
      */
     await mongoSession.commitTransaction();
 
-    if (hasLargeQty) {
-      const io = req.app.locals.io;
-      io?.to(`restaurant:${session.restaurantId}:managers`).emit(
-        "order:suspicious",
-        {
-          orderId: order._id,
-          tableId: session.tableId,
-          tableName: table.name || table.tableNumber,
-          reason: "Quantity over 10 requires manager approval",
-          totalAmount: order.totalAmount,
-          createdAt: order.createdAt,
-        },
-      );
-      io?.to(`restaurant:${session.restaurantId}:waiters`).emit(
-        "order:suspicious",
-        {
-          orderId: order._id,
-          tableId: session.tableId,
-          tableName: table.name || table.tableNumber,
-          reason: "Quantity over 10 requires manager approval",
-          totalAmount: order.totalAmount,
-          createdAt: order.createdAt,
-        },
-      );
+    // Emit fraud alert if order is flagged
+    if (fraudResult.isFraudulent) {
+      await emitFraudAlert({
+        restaurantId: session.restaurantId,
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        tableName: table.name || table.tableNumber,
+        totalAmount: order.totalAmount,
+        fraudScore: fraudResult.riskScore || 0,
+        fraudReasons: fraudResult.reasons,
+      });
+    } else {
+      // Only emit to kitchen if order is approved
+      await emitOrderPlaced({
+        orderId: order._id,
+        restaurantId: session.restaurantId,
+        sessionId: session._id,
+        tableId: session.tableId,
+        tableName: table.name || table.tableNumber,
+        orderNumber: order.orderNumber,
+        items: order.items,
+        totalAmount: order.totalAmount,
+        placedBy: order.placedBy,
+        placedAt: order.createdAt,
+      });
     }
 
     return res.status(201).json({
       success: true,
       error: false,
       data: order,
-      hold: hasLargeQty,
+      autoApproved: !fraudResult.isFraudulent,
+      fraudAlerts: fraudResult.isFraudulent ? fraudResult.reasons : [],
     });
   } catch (err) {
     await mongoSession.abortTransaction();
@@ -562,6 +540,214 @@ export async function recentOrdersController(req, res) {
       message: "Server error",
       error: true,
       success: false,
+    });
+  }
+}
+
+/**
+ * ============================
+ * GET ORDER BY ID
+ * ============================
+ * GET /api/order/:orderId
+ * Returns order details with progress metrics
+ */
+export async function getOrderController(req, res) {
+  try {
+    const { orderId } = req.params;
+
+    const order = await Order.findById(orderId)
+      .populate("restaurantId", "name")
+      .populate("sessionId", "tableId tableName")
+      .populate("items.menuItemId", "name price category");
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    // Calculate progress metrics
+    const totalItems = order.items?.length || 0;
+    const readyCount = (order.items || []).filter(
+      (i) => i.itemStatus === "READY" || i.itemStatus === "SERVED",
+    ).length;
+    const servedCount = (order.items || []).filter(
+      (i) => i.itemStatus === "SERVED",
+    ).length;
+
+    return res.json({
+      success: true,
+      data: {
+        ...order.toObject(),
+        progress: {
+          totalItems,
+          readyCount,
+          servedCount,
+          percentage: totalItems
+            ? Math.round((servedCount / totalItems) * 100)
+            : 0,
+        },
+      },
+    });
+  } catch (err) {
+    console.error("getOrderController:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
+/**
+ * ============================
+ * GET SESSION ORDERS
+ * ============================
+ * GET /api/order/session/:sessionId
+ * Returns all orders for a session with progress
+ */
+export async function getSessionOrdersController(req, res) {
+  try {
+    const { sessionId } = req.params;
+
+    const orders = await Order.find({ sessionId })
+      .populate("restaurantId", "name")
+      .populate("items.menuItemId", "name price")
+      .sort({ placedAt: -1 });
+
+    return res.json({
+      success: true,
+      data: orders.map((order) => {
+        const totalItems = order.items?.length || 0;
+        const readyCount = (order.items || []).filter(
+          (i) => i.itemStatus === "READY" || i.itemStatus === "SERVED",
+        ).length;
+
+        return {
+          ...order.toObject(),
+          progress: {
+            totalItems,
+            readyCount,
+            percentage: totalItems
+              ? Math.round((readyCount / totalItems) * 100)
+              : 0,
+          },
+        };
+      }),
+    });
+  } catch (err) {
+    console.error("getSessionOrdersController:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
+/**
+ * ============================
+ * APPROVE SUSPICIOUS ORDER
+ * ============================
+ * PUT /api/order/:orderId/approve
+ * Manager approves a fraudulent/suspicious order to proceed
+ */
+export async function approveOrderController(req, res) {
+  try {
+    const { orderId } = req.params;
+    const manager = req.user;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (order.orderStatus !== "PENDING_APPROVAL") {
+      return res.status(400).json({
+        success: false,
+        message: "Order is not pending approval",
+      });
+    }
+
+    // Update order status and log approval
+    order.orderStatus = "OPEN";
+    order.meta = order.meta || {};
+    order.meta.approvedBy = manager._id;
+    order.meta.approvalTime = new Date();
+
+    await order.save();
+
+    // Emit update to kitchen
+    emitOrderPlaced(order._id, { ...order.toObject(), status: "OPEN" });
+
+    return res.json({
+      success: true,
+      message: "Order approved",
+      data: order,
+    });
+  } catch (err) {
+    console.error("approveOrderController:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
+/**
+ * ============================
+ * REJECT SUSPICIOUS ORDER
+ * ============================
+ * PUT /api/order/:orderId/reject
+ * Manager rejects a fraudulent/suspicious order
+ */
+export async function rejectOrderController(req, res) {
+  try {
+    const { orderId } = req.params;
+    const { reason } = req.body;
+    const manager = req.user;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (order.orderStatus !== "PENDING_APPROVAL") {
+      return res.status(400).json({
+        success: false,
+        message: "Order is not pending approval",
+      });
+    }
+
+    // Update order status and log rejection
+    order.orderStatus = "CANCELLED";
+    order.meta = order.meta || {};
+    order.meta.rejectedBy = manager._id;
+    order.meta.rejectionReason = reason || "Manager rejected";
+    order.meta.rejectionTime = new Date();
+
+    await order.save();
+
+    // Restore cart items if needed
+    await CartItem.deleteMany({
+      orderId: order._id,
+    });
+
+    return res.json({
+      success: true,
+      message: "Order rejected",
+      data: order,
+    });
+  } catch (err) {
+    console.error("rejectOrderController:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
     });
   }
 }

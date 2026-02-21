@@ -10,6 +10,10 @@ import {
   updateOrderItemStatusController,
   completeOrderController,
   recentOrdersController,
+  getOrderController,
+  getSessionOrdersController,
+  approveOrderController,
+  rejectOrderController,
 } from "../controller/order.controller.js";
 
 const orderRouter = express.Router();
@@ -23,11 +27,14 @@ const orderRouter = express.Router();
 // PLACE ORDER (FROM CART)
 orderRouter.post("/order/place", resolveCustomerSession, placeOrderController);
 
+// GET ORDER DETAILS
+orderRouter.get("/order/:orderId", resolveCustomerSession, getOrderController);
+
 // LIST ORDERS FOR A SESSION (Customer / Waiter view)
 orderRouter.get(
   "/order/session/:sessionId",
   resolveCustomerSession,
-  listSessionOrdersController,
+  getSessionOrdersController,
 );
 
 orderRouter.get(
@@ -93,6 +100,28 @@ orderRouter.post(
   requireAuth,
   requireRole("WAITER", "MANAGER", "CASHIER"),
   completeOrderController,
+);
+
+/**
+ * ============================
+ * FRAUD MANAGEMENT
+ * ============================
+ */
+
+// MANAGER APPROVAL OF SUSPICIOUS ORDERS
+orderRouter.put(
+  "/order/:orderId/approve",
+  requireAuth,
+  requireRole("MANAGER"),
+  approveOrderController,
+);
+
+// MANAGER REJECTION OF SUSPICIOUS ORDERS
+orderRouter.put(
+  "/order/:orderId/reject",
+  requireAuth,
+  requireRole("MANAGER"),
+  rejectOrderController,
 );
 
 export default orderRouter;

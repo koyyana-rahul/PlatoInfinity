@@ -1,0 +1,113 @@
+{
+  "name": "Plato Menu - Restaurant Operating System",
+  "short_name": "Plato Menu",
+  "description": "QR-based restaurant ordering system for Indian chains. Menu browsing, instant ordering, live kitchen updates, and payment in one app.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#FF6B35",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/screenshot1.png",
+      "sizes": "540x720",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshots/screenshot2.png",
+      "sizes": "540x720",
+      "form_factor": "narrow"
+    }
+  ],
+  "categories": ["food", "business"],
+  "shortcuts": [
+    {
+      "name": "Customer Menu",
+      "short_name": "Menu",
+      "description": "Browse menu and order",
+      "url": "/menu",
+      "icons": [
+        {
+          "src": "/icons/menu-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Staff Login",
+      "short_name": "Staff",
+      "description": "Staff access portal",
+      "url": "/staff/login",
+      "icons": [
+        {
+          "src": "/icons/staff-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Manager Dashboard",
+      "short_name": "Dashboard",
+      "description": "View restaurant analytics",
+      "url": "/manager/dashboard",
+      "icons": [
+        {
+          "src": "/icons/dashboard-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false
+}
