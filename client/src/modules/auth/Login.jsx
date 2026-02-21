@@ -79,93 +79,148 @@ export default function Login() {
   };
 
   return (
-    <section className="min-h-screen flex items-center justify-center bg-[#F9FBFA] px-4">
-      <form
-        onSubmit={submit}
-        className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8 space-y-5"
-      >
-        {/* HEADER */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col justify-center px-4 py-8 sm:px-6 lg:px-8">
+      {/* Header Section */}
+      <div className="w-full max-w-md mx-auto mb-6 sm:mb-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-[#1A1C1E]">
-            Welcome to Plato
+          <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-gradient-to-br from-indigo-600 to-blue-600 mb-4 sm:mb-6">
+            <span className="text-2xl font-bold text-white">P</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+            Welcome Back
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Sign in to manage your restaurants
+          <p className="text-sm sm:text-base text-gray-600">
+            Sign in to your account to continue
           </p>
         </div>
+      </div>
 
-        {/* EMAIL */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Email
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            placeholder="you@company.com"
-            className="w-full px-4 py-2.5 border rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-[#00684A]/30"
-            required
-          />
-        </div>
+      {/* Form Section */}
+      <div className="w-full max-w-md mx-auto">
+        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 space-y-6">
+          <form className="space-y-5" onSubmit={submit}>
+            {/* Email Input */}
+            <div className="space-y-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-semibold text-gray-800"
+              >
+                Email Address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                required
+                value={form.email}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+              />
+            </div>
 
-        {/* PASSWORD */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Password
-          </label>
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              className="w-full px-4 py-2.5 border rounded-lg
-                focus:outline-none focus:ring-2 focus:ring-[#00684A]/30"
-              required
-            />
+            {/* Password Input */}
+            <div className="space-y-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-semibold text-gray-800"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  required
+                  value={form.password}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  {showPassword ? (
+                    <FaEyeSlash className="h-5 w-5" />
+                  ) : (
+                    <FaEye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Remember & Forgot Password */}
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center space-x-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300 transition-all"
+                />
+                <span className="text-gray-600 group-hover:text-gray-900 transition-colors">
+                  Remember me
+                </span>
+              </label>
+
+              <Link
+                to="/forgot-password"
+                className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+              >
+                Forgot password?
+              </Link>
+            </div>
+
+            {/* Sign In Button */}
             <button
-              type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-3 top-3 text-gray-500"
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 px-4 rounded-lg text-base font-semibold text-white transition-all duration-200 ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 active:scale-95 shadow-md hover:shadow-lg"
+              }`}
             >
-              {showPassword ? <FaEyeSlash /> : <FaEye />}
+              {loading ? (
+                <span className="flex items-center justify-center space-x-2">
+                  <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  <span>Signing in...</span>
+                </span>
+              ) : (
+                "Sign In"
+              )}
             </button>
+          </form>
+
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-3 bg-white text-gray-500">
+                Don't have an account?
+              </span>
+            </div>
           </div>
-        </div>
 
-        {/* SUBMIT */}
-        <button
-          disabled={loading}
-          className={`w-full py-2.5 rounded-xl font-semibold transition
-            ${
-              loading
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-[#00684A] hover:bg-[#00553D] text-white"
-            }`}
-        >
-          {loading ? "Logging in..." : "Login"}
-        </button>
-
-        {/* LINKS */}
-        <div className="flex justify-between text-sm">
-          <Link
-            to="/forgot-password"
-            className="text-[#E65F41] hover:underline"
-          >
-            Forgot password?
-          </Link>
+          {/* Sign Up Link */}
           <Link
             to="/register"
-            className="text-[#00684A] font-medium hover:underline"
+            className="w-full py-3 px-4 rounded-lg text-base font-semibold text-center text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors"
           >
-            Create account
+            Create Account
           </Link>
         </div>
-      </form>
-    </section>
+
+        {/* Footer Text */}
+        <p className="text-center text-xs text-gray-500 mt-6">
+          By signing in, you agree to our Terms & Conditions
+        </p>
+      </div>
+    </div>
   );
 }

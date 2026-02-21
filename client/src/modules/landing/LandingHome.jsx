@@ -1,5 +1,4 @@
-import { useState } from "react";
-import LandingHeader from "./components/LandingHeader";
+import LandingNavbar from "./components/LandingNavbar";
 import LandingHero from "./components/LandingHero";
 import LandingFeatures from "./components/LandingFeatures";
 import LandingHowItWorks from "./components/LandingHowItWorks";
@@ -17,14 +16,16 @@ const LandingHome = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      <LandingHeader scrollToSection={scrollToSection} />
-      <LandingHero scrollToSection={scrollToSection} />
-      <LandingFeatures />
-      <LandingHowItWorks />
-      <LandingAbout />
-      <LandingContact />
-      <LandingCTA />
+    <div className="min-h-screen bg-white text-gray-900">
+      <LandingNavbar scrollToSection={scrollToSection} />
+      <main>
+        <LandingHero scrollToSection={scrollToSection} />
+        <LandingFeatures />
+        <LandingHowItWorks />
+        <LandingAbout />
+        <LandingContact />
+        <LandingCTA />
+      </main>
       <LandingFooter />
     </div>
   );

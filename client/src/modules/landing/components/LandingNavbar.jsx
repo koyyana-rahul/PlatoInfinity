@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 
-const LandingHeader = ({ scrollToSection }) => {
+const LandingNavbar = ({ scrollToSection }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const user = useSelector((state) => state.auth.user);
+  const user = useSelector((state) => state.auth?.user);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
@@ -177,4 +177,4 @@ const LandingHeader = ({ scrollToSection }) => {
   );
 };
 
-export default LandingHeader;
+export default LandingNavbar;

@@ -45,48 +45,100 @@ const ForgotPassword = () => {
   };
 
   return (
-    <section className="min-h-screen bg-[#FFF9F2] flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-[#1A1C1E]">Forgot Password</h1>
-          <p className="text-sm text-gray-600 mt-2">
-            Enter your registered email to receive OTP
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col justify-center px-4 py-8 sm:px-6 lg:px-8">
+      {/* Header Section */}
+      <div className="w-full max-w-md mx-auto mb-6 sm:mb-8">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-gradient-to-br from-indigo-600 to-blue-600 mb-4 sm:mb-6">
+            <span className="text-2xl font-bold text-white">P</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+            Reset Password
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600">
+            Enter your email to receive an OTP
           </p>
         </div>
+      </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 border rounded-lg
-                       focus:outline-none focus:ring-2 focus:ring-[#E65F41]/30"
-          />
+      {/* Form Section */}
+      <div className="w-full max-w-md mx-auto">
+        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 space-y-6">
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            {/* Email Input */}
+            <div className="space-y-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-semibold text-gray-800"
+              >
+                Email Address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+              />
+            </div>
 
-          <button
-            disabled={loading}
-            className="w-full bg-[#E65F41] hover:bg-[#d65339]
-                       text-white py-2.5 rounded-xl font-semibold transition"
-          >
-            {loading ? "Sending OTP..." : "Send OTP"}
-          </button>
-        </form>
+            {/* Info Box */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-gray-700">
+              <p>We'll send a one-time password (OTP) to your email address.</p>
+            </div>
 
-        {/* Footer */}
-        <p className="text-sm text-center mt-5 text-gray-700">
-          Remember your password?{" "}
+            {/* Send OTP Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 px-4 rounded-lg text-base font-semibold text-white transition-all duration-200 ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 active:scale-95 shadow-md hover:shadow-lg"
+              }`}
+            >
+              {loading ? (
+                <span className="flex items-center justify-center space-x-2">
+                  <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  <span>Sending OTP...</span>
+                </span>
+              ) : (
+                "Send OTP"
+              )}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-3 bg-white text-gray-500">
+                Remember your password?
+              </span>
+            </div>
+          </div>
+
+          {/* Sign In Link */}
           <Link
             to="/login"
-            className="font-semibold text-[#E65F41] hover:underline"
+            className="w-full py-3 px-4 rounded-lg text-base font-semibold text-center text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors"
           >
-            Login
+            Back to Login
           </Link>
+        </div>
+
+        {/* Footer Text */}
+        <p className="text-center text-xs text-gray-500 mt-6">
+          Check your spam folder if you don't receive the email
         </p>
       </div>
-    </section>
+    </div>
   );
 };
 

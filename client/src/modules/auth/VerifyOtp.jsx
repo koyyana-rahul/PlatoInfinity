@@ -60,40 +60,97 @@ const VerifyOtp = () => {
   };
 
   return (
-    <section className="min-h-screen bg-[#FFF9F2] flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-[#1A1C1E]">Verify OTP</h1>
-          <p className="text-sm text-gray-600 mt-1">Enter the OTP sent to</p>
-          <p className="text-sm font-semibold text-[#E65F41] break-all">
-            {email}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col justify-center px-4 py-8 sm:px-6 lg:px-8">
+      {/* Header Section */}
+      <div className="w-full max-w-md mx-auto mb-6 sm:mb-8">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-gradient-to-br from-indigo-600 to-blue-600 mb-4 sm:mb-6">
+            <span className="text-2xl font-bold text-white">P</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+            Verify OTP
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600">
+            Enter the code sent to your email
           </p>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* OTP Input */}
-          <input
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
-            value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-            placeholder="Enter 6-digit OTP"
-            className="w-full px-4 py-3 text-center text-lg tracking-widest border rounded-lg
-                       focus:outline-none focus:ring-2 focus:ring-[#E65F41]/30"
-          />
-
-          {/* Submit */}
-          <button
-            disabled={loading}
-            className="w-full bg-[#E65F41] hover:bg-[#d65339] text-white py-2.5 rounded-xl font-semibold transition"
-          >
-            {loading ? "Verifying..." : "Verify OTP"}
-          </button>
-        </form>
       </div>
-    </section>
+
+      {/* Form Section */}
+      <div className="w-full max-w-md mx-auto">
+        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 space-y-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-gray-700 text-center">
+            <p className="mb-1">OTP sent to:</p>
+            <p className="font-semibold text-indigo-600 break-all">{email}</p>
+          </div>
+
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            {/* OTP Input */}
+            <div className="space-y-2">
+              <label
+                htmlFor="otp"
+                className="block text-sm font-semibold text-gray-800"
+              >
+                One-Time Password
+              </label>
+              <input
+                id="otp"
+                name="otp"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="000000"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white text-center text-2xl tracking-widest font-semibold"
+              />
+              <p className="text-xs text-gray-500 text-center">
+                {6 - otp.length} digit{6 - otp.length !== 1 ? "s" : ""}{" "}
+                remaining
+              </p>
+            </div>
+
+            {/* Verify Button */}
+            <button
+              type="submit"
+              disabled={loading || otp.length !== 6}
+              className={`w-full py-3 px-4 rounded-lg text-base font-semibold text-white transition-all duration-200 ${
+                loading || otp.length !== 6
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 active:scale-95 shadow-md hover:shadow-lg"
+              }`}
+            >
+              {loading ? (
+                <span className="flex items-center justify-center space-x-2">
+                  <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  <span>Verifying...</span>
+                </span>
+              ) : (
+                "Verify OTP"
+              )}
+            </button>
+          </form>
+
+          {/* Resend Option */}
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              Didn't receive the code?{" "}
+              <button
+                type="button"
+                className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
+              >
+                Resend OTP
+              </button>
+            </p>
+          </div>
+        </div>
+
+        {/* Footer Text */}
+        <p className="text-center text-xs text-gray-500 mt-6">
+          The OTP will expire in 10 minutes
+        </p>
+      </div>
+    </div>
   );
 };
 

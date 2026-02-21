@@ -35,20 +35,37 @@ export default function VerifyEmail() {
   }, [navigate, params]);
 
   return (
-    <section className="min-h-screen flex items-center justify-center">
-      {status === "loading" && <p>Verifying email…</p>}
-      {status === "success" && (
-        <>
-          <FaCheckCircle size={48} className="text-green-600" />
-          <p>Email verified. Redirecting…</p>
-        </>
-      )}
-      {status === "error" && (
-        <>
-          <FaTimesCircle size={48} className="text-red-500" />
-          <p>Verification failed</p>
-        </>
-      )}
-    </section>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            {status === "loading" && (
+              <>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+                <p className="text-lg font-medium text-gray-700">
+                  Verifying email...
+                </p>
+              </>
+            )}
+            {status === "success" && (
+              <>
+                <FaCheckCircle size={48} className="text-green-600" />
+                <p className="text-lg font-medium text-gray-700">
+                  Email verified successfully. Redirecting to login...
+                </p>
+              </>
+            )}
+            {status === "error" && (
+              <>
+                <FaTimesCircle size={48} className="text-red-500" />
+                <p className="text-lg font-medium text-gray-700">
+                  Verification failed or link has expired.
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

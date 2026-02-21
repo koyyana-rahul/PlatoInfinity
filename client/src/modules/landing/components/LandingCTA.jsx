@@ -1,29 +1,31 @@
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const LandingCTA = () => {
-  const navigate = useNavigate();
-
   return (
-    <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border-y border-slate-800">
-      <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 text-center">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 md:mb-6">
-          Ready to Transform Your Restaurant?
-        </h2>
-        <p className="text-sm sm:text-base md:text-lg lg:text-xl text-slate-300 mb-6 sm:mb-8">
-          Start your free 14-day trial today. No credit card required.
+    <section
+      id="cta"
+      className="py-16 sm:py-20 lg:py-24 bg-gradient-to-r from-indigo-600 to-blue-600"
+    >
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight">
+          Ready to Elevate Your Restaurant?
+        </h3>
+        <p className="mt-6 text-lg sm:text-xl text-indigo-100 max-w-3xl mx-auto leading-relaxed">
+          Join the growing number of restaurants that are delighting their
+          customers and streamlining their operations with Plato Menu.
         </p>
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-          <button
-            onClick={() => navigate("/register")}
-            className="px-6 sm:px-8 py-2.5 sm:py-3 md:py-4 rounded-lg bg-emerald-500 hover:bg-emerald-600 font-semibold transition transform hover:scale-105 text-sm sm:text-base"
+        <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+          <Link
+            to="/register"
+            className="bg-white text-indigo-600 px-8 sm:px-10 py-3 sm:py-4 rounded-lg font-bold hover:bg-indigo-50 transition-all duration-300 shadow-lg hover:shadow-xl active:scale-95 inline-block"
           >
-            Start Free Trial
-          </button>
+            Get Started for Free
+          </Link>
           <button
-            onClick={() => navigate("/login")}
-            className="px-6 sm:px-8 py-2.5 sm:py-3 md:py-4 rounded-lg border border-slate-700 hover:border-emerald-500 hover:bg-slate-800 font-semibold transition text-sm sm:text-base"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white px-8 sm:px-10 py-3 sm:py-4 rounded-lg font-bold transition-all duration-300 border border-white/30 active:scale-95 inline-block"
           >
-            Sign In
+            Learn More
           </button>
         </div>
       </div>

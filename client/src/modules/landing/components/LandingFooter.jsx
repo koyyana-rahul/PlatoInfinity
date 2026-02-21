@@ -1,118 +1,148 @@
-import { FiMenu } from "react-icons/fi";
+import { Link } from "react-router-dom";
 
 const LandingFooter = () => {
   return (
-    <footer className="border-t border-slate-800 bg-slate-900/50 py-8 sm:py-10 md:py-12">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">
-          {/* Brand */}
+    <footer className="bg-slate-900 text-gray-400">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
-            <div className="flex items-center gap-2 font-bold text-base sm:text-lg mb-2 sm:mb-4 bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-              <FiMenu className="w-5 sm:w-6 h-5 sm:h-6 text-emerald-400" />
-              Plato Menu
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">P</span>
+              </div>
+              <h4 className="text-lg font-bold text-white">Plato Menu</h4>
             </div>
-            <p className="text-slate-400 text-xs sm:text-sm">
-              Modern restaurant management system for the digital age.
+            <p className="text-gray-500 leading-relaxed">
+              The complete digital menu solution for modern restaurants.
             </p>
           </div>
-
-          {/* Product */}
           <div>
-            <h4 className="font-semibold mb-2 sm:mb-3 md:mb-4 text-sm md:text-base">
-              Product
-            </h4>
-            <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-slate-400">
+            <h4 className="text-lg font-bold text-white mb-5">Quick Links</h4>
+            <ul className="space-y-3">
               <li>
-                <a href="#features" className="hover:text-white transition">
+                <Link
+                  to="/#features"
+                  className="text-gray-400 hover:text-indigo-400 transition-colors"
+                >
                   Features
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#flow" className="hover:text-white transition">
+                <Link
+                  to="/#how-it-works"
+                  className="text-gray-400 hover:text-indigo-400 transition-colors"
+                >
                   How It Works
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition">
-                  Pricing
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition">
-                  Security
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <h4 className="font-semibold mb-2 sm:mb-3 md:mb-4 text-sm md:text-base">
-              Company
-            </h4>
-            <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-slate-400">
-              <li>
-                <a href="#about" className="hover:text-white transition">
+                <Link
+                  to="/#about"
+                  className="text-gray-400 hover:text-indigo-400 transition-colors"
+                >
                   About
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#contact" className="hover:text-white transition">
+                <Link
+                  to="/#contact"
+                  className="text-gray-400 hover:text-indigo-400 transition-colors"
+                >
                   Contact
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition">
-                  Blog
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition">
-                  Careers
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
-
-          {/* Legal */}
           <div>
-            <h4 className="font-semibold mb-2 sm:mb-3 md:mb-4 text-sm md:text-base">
-              Legal
-            </h4>
-            <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-slate-400">
+            <h4 className="text-lg font-bold text-white mb-5">Legal</h4>
+            <ul className="space-y-3">
               <li>
-                <a href="#" className="hover:text-white transition">
+                <Link
+                  to="/privacy-policy"
+                  className="text-gray-400 hover:text-indigo-400 transition-colors"
+                >
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition">
+                <Link
+                  to="/terms-of-service"
+                  className="text-gray-400 hover:text-indigo-400 transition-colors"
+                >
                   Terms of Service
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition">
-                  Cookie Policy
-                </a>
+                </Link>
               </li>
             </ul>
+          </div>
+          <div>
+            <h4 className="text-lg font-bold text-white mb-5">Follow Us</h4>
+            <div className="flex space-x-4">
+              <a
+                href="https://facebook.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center text-gray-400 hover:bg-indigo-600 hover:text-white transition-all"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5c-.563-.074-2.313-.231-4.401-.231-4.425 0-7.7 2.958-7.7 8.405v2.926z" />
+                </svg>
+              </a>
+              <a
+                href="https://twitter.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center text-gray-400 hover:bg-indigo-600 hover:text-white transition-all"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2s9 5 20 5a9.5 9.5 0 00-9-5.5c4.75 2.25 7-7 7-7a10.6 10.6 0 01-9-5.5z" />
+                </svg>
+              </a>
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center text-gray-400 hover:bg-indigo-600 hover:text-white transition-all"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <rect
+                    x="2"
+                    y="2"
+                    width="20"
+                    height="20"
+                    rx="5"
+                    ry="5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                  <path
+                    d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                  <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" />
+                </svg>
+              </a>
+            </div>
           </div>
         </div>
-
-        {/* Bottom Footer */}
-        <div className="border-t border-slate-800 pt-6 sm:pt-8 flex flex-col sm:flex-row items-center justify-between text-slate-400 text-xs sm:text-sm">
-          <p>&copy; 2026 Plato Menu. All rights reserved.</p>
-          <div className="flex gap-3 sm:gap-4 mt-4 sm:mt-0">
-            <a href="#" className="hover:text-white transition">
-              Twitter
-            </a>
-            <a href="#" className="hover:text-white transition">
-              LinkedIn
-            </a>
-            <a href="#" className="hover:text-white transition">
-              GitHub
-            </a>
-          </div>
+        <div className="mt-12 border-t border-slate-800 pt-8 text-center">
+          <p className="text-gray-500">
+            &copy; 2024 Plato Menu. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

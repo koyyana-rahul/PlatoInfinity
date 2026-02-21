@@ -1,188 +1,163 @@
-import {
-  FiBarChart2,
-  FiUsers,
-  FiZap,
-  FiSmartphone,
-  FiLock,
-  FiTrendingUp,
-} from "react-icons/fi";
-import { FiCheck } from "react-icons/fi";
+const features = [
+  {
+    title: "Contactless Ordering",
+    description:
+      "Guests can scan a QR code to view the menu and place orders from their own devices, minimizing contact and improving hygiene.",
+    icon: (
+      <svg
+        className="w-8 h-8 text-indigo-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+        ></path>
+      </svg>
+    ),
+  },
+  {
+    title: "Real-time Menu Updates",
+    description:
+      "Keep your menu updated in real-time, reflecting availability and price changes instantly. No more reprinting paper menus!",
+    icon: (
+      <svg
+        className="w-8 h-8 text-blue-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M4 4v5h5V4H4zm0 9h5v5H4v-5zm9-9h5v5h-5V4zm0 9h5v5h-5v-5z"
+        ></path>
+      </svg>
+    ),
+  },
+  {
+    title: "Seamless Payments",
+    description:
+      "Allow guests to pay their bills directly from their phones, supporting various payment methods for a smooth and quick checkout process.",
+    icon: (
+      <svg
+        className="w-8 h-8 text-indigo-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+        ></path>
+      </svg>
+    ),
+  },
+  {
+    title: "Insightful Analytics",
+    description:
+      "Gain valuable insights into your sales, popular items, and customer behavior with our powerful analytics dashboard.",
+    icon: (
+      <svg
+        className="w-8 h-8 text-blue-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+        ></path>
+      </svg>
+    ),
+  },
+  {
+    title: "Staff Management",
+    description:
+      "Easily manage your staff, assign roles, and track their performance. Empower your team to provide the best service.",
+    icon: (
+      <svg
+        className="w-8 h-8 text-indigo-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.653-.28-1.25-1.43-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.653.28-1.25 1.43-1.857m0 0A5.002 5.002 0 0112 15a5.002 5.002 0 015.57 2.143M12 15v-3a2.5 2.5 0 00-2.5-2.5h-1A2.5 2.5 0 006 12v3"
+        ></path>
+      </svg>
+    ),
+  },
+  {
+    title: "Kitchen Display System",
+    description:
+      "Streamline your kitchen operations with a digital display that shows incoming orders in real-time, improving accuracy and reducing ticket times.",
+    icon: (
+      <svg
+        className="w-8 h-8 text-blue-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M5 13l4 4L19 7"
+        ></path>
+      </svg>
+    ),
+  },
+];
 
 const LandingFeatures = () => {
   return (
-    <section
-      id="features"
-      className="py-12 sm:py-16 md:py-20 lg:py-32 bg-slate-900/50"
-    >
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
-        <div className="text-center mb-8 sm:mb-12 md:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4">
-            Powerful Features for Every Role
-          </h2>
-          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-slate-400 max-w-2xl mx-auto">
-            Designed specifically for restaurants with dedicated dashboards for
-            admins, managers, staff, and customers
+    <section id="features" className="py-16 sm:py-20 lg:py-24 bg-white">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12 sm:mb-16">
+          <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">
+            Why Choose Plato Menu?
+          </h3>
+          <p className="mt-4 text-lg sm:text-xl text-gray-600">
+            A complete solution to modernize your restaurant.
           </p>
         </div>
-
-        {/* Feature Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-8">
-          {/* Admin Features */}
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-5 md:p-6 lg:p-8 border border-slate-700 hover:border-emerald-500 transition">
-            <div className="mb-3 sm:mb-4">
-              <div className="w-10 sm:w-11 md:w-12 h-10 sm:h-11 md:h-12 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                <FiBarChart2 className="w-5 sm:w-5.5 md:w-6 h-5 sm:h-5.5 md:h-6 text-emerald-400" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          {features.map((feature, index) => (
+            <div
+              key={index}
+              className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 p-8 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+            >
+              <div className="flex items-start mb-5">
+                <div className="flex-shrink-0 bg-gradient-to-br from-indigo-50 to-blue-50 p-3 rounded-xl mr-4">
+                  {feature.icon}
+                </div>
+                <h4 className="text-lg sm:text-xl font-bold text-gray-900">
+                  {feature.title}
+                </h4>
               </div>
-            </div>
-            <h3 className="text-lg sm:text-lg md:text-lg lg:text-xl font-bold mb-2 sm:mb-3">
-              Admin Dashboard
-            </h3>
-            <ul className="space-y-1.5 sm:space-y-2 text-slate-300 text-xs sm:text-sm">
-              <li className="flex gap-2">
-                <FiCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                Real-time analytics & reports
-              </li>
-              <li className="flex gap-2">
-                <FiCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                Multi-restaurant management
-              </li>
-              <li className="flex gap-2">
-                <FiCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                Staff & manager oversight
-              </li>
-              <li className="flex gap-2">
-                <FiCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                Revenue tracking & billing
-              </li>
-            </ul>
-          </div>
-
-          {/* Manager Features */}
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-5 md:p-6 lg:p-8 border border-slate-700 hover:border-cyan-500 transition">
-            <div className="mb-3 sm:mb-4">
-              <div className="w-10 sm:w-11 md:w-12 h-10 sm:h-11 md:h-12 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                <FiUsers className="w-5 sm:w-5.5 md:w-6 h-5 sm:h-5.5 md:h-6 text-cyan-400" />
-              </div>
-            </div>
-            <h3 className="text-lg sm:text-lg md:text-lg lg:text-xl font-bold mb-2 sm:mb-3">
-              Manager Dashboard
-            </h3>
-            <ul className="space-y-1.5 sm:space-y-2 text-slate-300 text-xs sm:text-sm">
-              <li className="flex gap-2">
-                <FiCheck className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
-                Live order monitoring
-              </li>
-              <li className="flex gap-2">
-                <FiCheck className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
-                Advanced filtering & sorting
-              </li>
-              <li className="flex gap-2">
-                <FiCheck className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
-                Staff performance tracking
-              </li>
-              <li className="flex gap-2">
-                <FiCheck className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
-                Report generation & export
-              </li>
-            </ul>
-          </div>
-
-          {/* Staff Features */}
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-5 md:p-6 lg:p-8 border border-slate-700 hover:border-blue-500 transition">
-            <div className="mb-3 sm:mb-4">
-              <div className="w-10 sm:w-11 md:w-12 h-10 sm:h-11 md:h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                <FiZap className="w-5 sm:w-5.5 md:w-6 h-5 sm:h-5.5 md:h-6 text-blue-400" />
-              </div>
-            </div>
-            <h3 className="text-lg sm:text-lg md:text-lg lg:text-xl font-bold mb-2 sm:mb-3">
-              Staff Portal
-            </h3>
-            <ul className="space-y-1.5 sm:space-y-2 text-slate-300 text-xs sm:text-sm">
-              <li className="flex gap-2">
-                <FiCheck className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
-                Chef kitchen queue system
-              </li>
-              <li className="flex gap-2">
-                <FiCheck className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
-                Waiter order management
-              </li>
-              <li className="flex gap-2">
-                <FiCheck className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
-                Cashier invoice system
-              </li>
-              <li className="flex gap-2">
-                <FiCheck className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
-                Real-time alerts
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Additional Features */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-7 md:gap-8 mt-8 sm:mt-10 md:mt-12">
-          <div className="flex gap-3 sm:gap-4">
-            <div className="flex-shrink-0">
-              <div className="w-9 sm:w-10 h-9 sm:h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                <FiSmartphone className="w-4 sm:w-5 h-4 sm:h-5 text-emerald-400" />
-              </div>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">
-                Mobile Friendly
-              </h4>
-              <p className="text-slate-400 text-xs sm:text-sm">
-                Fully responsive design works seamlessly on all devices
+              <p className="text-gray-600 leading-relaxed">
+                {feature.description}
               </p>
             </div>
-          </div>
-
-          <div className="flex gap-3 sm:gap-4">
-            <div className="flex-shrink-0">
-              <div className="w-9 sm:w-10 h-9 sm:h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
-                <FiLock className="w-4 sm:w-5 h-4 sm:h-5 text-cyan-400" />
-              </div>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">
-                Enterprise Security
-              </h4>
-              <p className="text-slate-400 text-xs sm:text-sm">
-                Bank-grade encryption and secure data handling
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-3 sm:gap-4">
-            <div className="flex-shrink-0">
-              <div className="w-9 sm:w-10 h-9 sm:h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                <FiTrendingUp className="w-4 sm:w-5 h-4 sm:h-5 text-purple-400" />
-              </div>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">
-                Analytics & Insights
-              </h4>
-              <p className="text-slate-400 text-xs sm:text-sm">
-                Detailed reports to understand your business better
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-3 sm:gap-4">
-            <div className="flex-shrink-0">
-              <div className="w-9 sm:w-10 h-9 sm:h-10 rounded-lg bg-orange-500/20 flex items-center justify-center flex-shrink-0">
-                <FiZap className="w-4 sm:w-5 h-4 sm:h-5 text-orange-400" />
-              </div>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">
-                Real-time Sync
-              </h4>
-              <p className="text-slate-400 text-xs sm:text-sm">
-                Instant updates across all devices and roles
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>

@@ -60,153 +60,240 @@ export default function Register() {
     }
   };
 
-  /* ======================================================
-     SUCCESS STATE – CHECK EMAIL
-  ====================================================== */
   if (successEmail) {
     return (
-      <section className="min-h-screen flex items-center justify-center bg-[#F9FBFA] px-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center space-y-4">
-          <FaEnvelopeOpenText className="mx-auto text-4xl text-[#00684A]" />
-          <h2 className="text-2xl font-bold text-[#1A1C1E]">
-            Verify your email
-          </h2>
-          <p className="text-sm text-gray-600">
-            We’ve sent a verification link to
-          </p>
-          <p className="font-semibold text-[#00684A]">{successEmail}</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col justify-center px-4 py-8 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md mx-auto">
+          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <div className="h-16 w-16 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center">
+                <FaEnvelopeOpenText className="text-3xl text-white" />
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-center text-gray-900">
+                Verify Your Email
+              </h1>
+              <p className="text-sm text-gray-600 text-center">
+                We've sent a verification link to:
+              </p>
+              <p className="font-semibold text-indigo-600 text-center break-all">
+                {successEmail}
+              </p>
 
-          <p className="text-xs text-gray-500">
-            Please check your inbox and spam folder.
-          </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-gray-700 text-center">
+                Please check your inbox and spam folder for the verification
+                link.
+              </div>
 
-          <Link
-            to="/login"
-            className="inline-block mt-4 text-[#00684A] font-semibold hover:underline"
-          >
-            Go to Login
-          </Link>
+              <Link
+                to="/login"
+                className="mt-6 inline-block px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
+              >
+                Go to Login
+              </Link>
+
+              <p className="text-xs text-gray-500 text-center mt-4">
+                Didn't receive the email? Check your spam folder or contact
+                support.
+              </p>
+            </div>
+          </div>
         </div>
-      </section>
+      </div>
     );
   }
 
-  /* ======================================================
-     REGISTER FORM
-  ====================================================== */
   return (
-    <section className="min-h-screen flex items-center justify-center bg-[#F9FBFA] px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8 space-y-6">
-        {/* HEADER */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col justify-center px-4 py-8 sm:px-6 lg:px-8">
+      {/* Header Section */}
+      <div className="w-full max-w-md mx-auto mb-6 sm:mb-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-[#1A1C1E]">
-            Create your Plato account
+          <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-gradient-to-br from-indigo-600 to-blue-600 mb-4 sm:mb-6">
+            <span className="text-2xl font-bold text-white">P</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+            Create Account
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Start managing your restaurant brand
+          <p className="text-sm sm:text-base text-gray-600">
+            Join us to get started
           </p>
         </div>
+      </div>
 
-        {/* FORM */}
-        <form onSubmit={submit} className="space-y-4">
-          <Input
-            label="Full Name"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            placeholder="Restaurant Owner"
-          />
+      {/* Form Section */}
+      <div className="w-full max-w-md mx-auto">
+        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 space-y-6">
+          <form className="space-y-5" onSubmit={submit}>
+            {/* Name Input */}
+            <div className="space-y-2">
+              <label
+                htmlFor="name"
+                className="block text-sm font-semibold text-gray-800"
+              >
+                Full Name
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                autoComplete="name"
+                placeholder="John Doe"
+                required
+                value={form.name}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+              />
+            </div>
 
-          <Input
-            label="Email"
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            placeholder="owner@restaurant.com"
-          />
+            {/* Email Input */}
+            <div className="space-y-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-semibold text-gray-800"
+              >
+                Email Address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                required
+                value={form.email}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+              />
+            </div>
 
-          <PasswordInput
-            label="Password"
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            show={showPassword}
-            toggle={() => setShowPassword((v) => !v)}
-          />
+            {/* Password Input */}
+            <div className="space-y-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-semibold text-gray-800"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  placeholder="••••••••"
+                  required
+                  value={form.password}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  {showPassword ? (
+                    <FaRegEyeSlash className="h-5 w-5" />
+                  ) : (
+                    <FaRegEye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+            </div>
 
-          <PasswordInput
-            label="Confirm Password"
-            name="confirmPassword"
-            value={form.confirmPassword}
-            onChange={handleChange}
-            show={showConfirm}
-            toggle={() => setShowConfirm((v) => !v)}
-          />
+            {/* Confirm Password Input */}
+            <div className="space-y-2">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-semibold text-gray-800"
+              >
+                Confirm Password
+              </label>
+              <div className="relative">
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirm ? "text" : "password"}
+                  autoComplete="new-password"
+                  placeholder="••••••••"
+                  required
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((v) => !v)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  {showConfirm ? (
+                    <FaRegEyeSlash className="h-5 w-5" />
+                  ) : (
+                    <FaRegEye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+            </div>
 
-          <button
-            disabled={!isValid || loading}
-            className={`w-full py-2.5 rounded-xl font-semibold transition
-              ${
-                isValid
-                  ? "bg-[#00684A] hover:bg-[#00553D] text-white"
-                  : "bg-gray-300 cursor-not-allowed"
+            {/* Password Match Indicator */}
+            {form.password && form.confirmPassword && (
+              <div
+                className={`text-sm px-3 py-2 rounded-lg ${
+                  form.password === form.confirmPassword
+                    ? "bg-green-50 text-green-700 border border-green-200"
+                    : "bg-red-50 text-red-700 border border-red-200"
+                }`}
+              >
+                {form.password === form.confirmPassword
+                  ? "✓ Passwords match"
+                  : "✗ Passwords don't match"}
+              </div>
+            )}
+
+            {/* Create Account Button */}
+            <button
+              type="submit"
+              disabled={!isValid || loading}
+              className={`w-full py-3 px-4 rounded-lg text-base font-semibold text-white transition-all duration-200 ${
+                !isValid || loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 active:scale-95 shadow-md hover:shadow-lg"
               }`}
-          >
-            {loading ? "Creating account..." : "Create Account"}
-          </button>
-        </form>
+            >
+              {loading ? (
+                <span className="flex items-center justify-center space-x-2">
+                  <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  <span>Creating account...</span>
+                </span>
+              ) : (
+                "Create Account"
+              )}
+            </button>
+          </form>
 
-        {/* FOOTER */}
-        <p className="text-sm text-center text-gray-600">
-          Already have an account?{" "}
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-3 bg-white text-gray-500">
+                Already have an account?
+              </span>
+            </div>
+          </div>
+
+          {/* Sign In Link */}
           <Link
             to="/login"
-            className="font-semibold text-[#00684A] hover:underline"
+            className="w-full py-3 px-4 rounded-lg text-base font-semibold text-center text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors"
           >
-            Login
+            Sign In
           </Link>
+        </div>
+
+        {/* Footer Text */}
+        <p className="text-center text-xs text-gray-500 mt-6">
+          By creating an account, you agree to our Terms & Conditions
         </p>
-      </div>
-    </section>
-  );
-}
-
-/* ===========================
-   REUSABLE INPUTS
-=========================== */
-
-function Input({ label, ...props }) {
-  return (
-    <div className="space-y-1">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
-      <input
-        {...props}
-        className="w-full px-4 py-2.5 border rounded-lg
-        focus:outline-none focus:ring-2 focus:ring-[#00684A]/30"
-      />
-    </div>
-  );
-}
-
-function PasswordInput({ label, show, toggle, ...props }) {
-  return (
-    <div className="space-y-1">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
-      <div className="relative">
-        <input
-          {...props}
-          type={show ? "text" : "password"}
-          className="w-full px-4 py-2.5 border rounded-lg
-          focus:outline-none focus:ring-2 focus:ring-[#00684A]/30"
-        />
-        <button
-          type="button"
-          onClick={toggle}
-          className="absolute right-3 top-3 text-gray-500"
-        >
-          {show ? <FaRegEyeSlash /> : <FaRegEye />}
-        </button>
       </div>
     </div>
   );
