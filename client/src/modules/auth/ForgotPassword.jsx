@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { ShieldAlert, Mail, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
 
 import Axios from "../../api/axios";
@@ -45,12 +46,12 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col justify-center px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 flex flex-col justify-center px-4 py-8 sm:px-6 lg:px-8">
       {/* Header Section */}
       <div className="w-full max-w-md mx-auto mb-6 sm:mb-8">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-gradient-to-br from-indigo-600 to-blue-600 mb-4 sm:mb-6">
-            <span className="text-2xl font-bold text-white">P</span>
+          <div className="inline-flex items-center justify-center h-14 w-14 rounded-xl bg-gradient-to-br from-[#FC8019] to-[#FF6B35] mb-4 sm:mb-6 shadow-lg">
+            <ShieldAlert className="h-7 w-7 text-white" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
             Reset Password
@@ -63,7 +64,7 @@ const ForgotPassword = () => {
 
       {/* Form Section */}
       <div className="w-full max-w-md mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 space-y-6">
+        <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-6 sm:p-8 space-y-6">
           <form className="space-y-5" onSubmit={handleSubmit}>
             {/* Email Input */}
             <div className="space-y-2">
@@ -73,21 +74,24 @@ const ForgotPassword = () => {
               >
                 Email Address
               </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="you@example.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
-              />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full h-11 pl-10 pr-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FC8019]/40 focus:border-[#FC8019] transition-all bg-gray-50 focus:bg-white"
+                />
+              </div>
             </div>
 
             {/* Info Box */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-gray-700">
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-sm text-gray-700">
               <p>We'll send a one-time password (OTP) to your email address.</p>
             </div>
 
@@ -95,10 +99,10 @@ const ForgotPassword = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-3 px-4 rounded-lg text-base font-semibold text-white transition-all duration-200 ${
+              className={`w-full h-11 px-4 rounded-xl text-base font-semibold text-white transition-all duration-200 ${
                 loading
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 active:scale-95 shadow-md hover:shadow-lg"
+                  : "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] hover:shadow-xl active:scale-[0.98] shadow-lg"
               }`}
             >
               {loading ? (
@@ -107,13 +111,16 @@ const ForgotPassword = () => {
                   <span>Sending OTP...</span>
                 </span>
               ) : (
-                "Send OTP"
+                <span className="flex items-center justify-center space-x-2">
+                  <span>Send OTP</span>
+                  <ArrowRight className="h-4 w-4" />
+                </span>
               )}
             </button>
           </form>
 
           {/* Divider */}
-          <div className="relative">
+          <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-200"></div>
             </div>
@@ -127,14 +134,14 @@ const ForgotPassword = () => {
           {/* Sign In Link */}
           <Link
             to="/login"
-            className="w-full py-3 px-4 rounded-lg text-base font-semibold text-center text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+            className="w-full h-11 flex items-center justify-center rounded-xl text-base font-semibold text-[#FC8019] bg-orange-50 hover:bg-orange-100 transition-colors border border-orange-200"
           >
             Back to Login
           </Link>
         </div>
 
         {/* Footer Text */}
-        <p className="text-center text-xs text-gray-500 mt-6">
+        <p className="text-center text-xs text-gray-500 mt-8">
           Check your spam folder if you don't receive the email
         </p>
       </div>

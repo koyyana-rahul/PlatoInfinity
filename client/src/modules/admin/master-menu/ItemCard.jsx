@@ -47,10 +47,10 @@ export default function ItemCard({ item, onDelete, refresh }) {
 
   return (
     <>
-      <div className="group relative bg-white rounded-[24px] p-2 startup-shadow hover:scale-[1.02] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]">
+      <div className="group relative bg-white rounded-xl p-2 shadow-sm border border-gray-200 hover:shadow-md transition-all hover:scale-[1.02]">
         {/* IMAGE CONTAINER */}
         <div
-          className="relative aspect-square rounded-[18px] overflow-hidden bg-[#F2F2F7]"
+          className="relative aspect-square rounded-lg overflow-hidden bg-gray-100"
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
@@ -59,39 +59,39 @@ export default function ItemCard({ item, onDelete, refresh }) {
               key={images[index]}
               src={images[index]}
               alt={item.name}
-              className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform group-hover:scale-105"
               draggable={false}
               onError={(e) => {
                 e.target.src = "https://placehold.co/400?text=Image+Error";
               }}
             />
           ) : (
-            <div className="flex items-center justify-center h-full text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+            <div className="flex items-center justify-center h-full text-xs font-medium text-gray-400">
               No Image
             </div>
           )}
 
-          {/* STANDARD FOOD INDICATOR (Using your VegNonVegIcon) */}
-          <div className="absolute top-2 left-2 z-30">
-            <div className="backdrop-blur-md bg-white/80 p-1 rounded-md startup-shadow flex items-center justify-center">
+          {/* VEG/NON-VEG INDICATOR */}
+          <div className="absolute top-2 left-2 z-10">
+            <div className="backdrop-blur-sm bg-white/90 p-1 rounded-md shadow-sm flex items-center justify-center">
               <VegNonVegIcon isVeg={item.isVeg} size={8} />
             </div>
           </div>
 
           {/* SLIDER CONTROLS */}
           {images.length > 1 && (
-            <div className="absolute inset-0 flex items-center justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="absolute inset-0 flex items-center justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-40">
               <button
                 onClick={prev}
-                className="h-7 w-7 rounded-full bg-white/80 backdrop-blur-md text-black flex items-center justify-center startup-shadow pointer-events-auto active:scale-95 transition-transform"
+                className="h-7 w-7 rounded-full bg-white/95 backdrop-blur-sm text-gray-900 flex items-center justify-center shadow-lg pointer-events-auto active:scale-95 transition-transform hover:bg-white hover:scale-105"
               >
-                <ChevronLeft size={14} strokeWidth={3} />
+                <ChevronLeft size={14} strokeWidth={2.5} />
               </button>
               <button
                 onClick={next}
-                className="h-7 w-7 rounded-full bg-white/80 backdrop-blur-md text-black flex items-center justify-center startup-shadow pointer-events-auto active:scale-95 transition-transform"
+                className="h-7 w-7 rounded-full bg-white/95 backdrop-blur-sm text-gray-900 flex items-center justify-center shadow-lg pointer-events-auto active:scale-95 transition-transform hover:bg-white hover:scale-105"
               >
-                <ChevronRight size={14} strokeWidth={3} />
+                <ChevronRight size={14} strokeWidth={2.5} />
               </button>
             </div>
           )}
@@ -103,38 +103,22 @@ export default function ItemCard({ item, onDelete, refresh }) {
                 <div
                   key={i}
                   className={clsx(
-                    "h-1 rounded-full transition-all duration-300",
+                    "h-1 rounded-full transition-all",
                     i === index ? "w-3 bg-white" : "w-1 bg-white/40",
                   )}
                 />
               ))}
             </div>
           )}
-
-          {/* DESKTOP ACTIONS */}
-          <div className="absolute inset-0 bg-black/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500 hidden lg:flex items-center justify-center gap-3 z-30">
-            <button
-              onClick={() => setEditOpen(true)}
-              className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-lg startup-shadow flex items-center justify-center text-slate-700 hover:text-[#F35C2B] hover:scale-110 transition-all active:scale-95"
-            >
-              <Pencil size={16} strokeWidth={2.5} />
-            </button>
-            <button
-              onClick={onDelete}
-              className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-lg startup-shadow flex items-center justify-center text-slate-700 hover:text-red-500 hover:scale-110 transition-all active:scale-95"
-            >
-              <Trash2 size={16} strokeWidth={2.5} />
-            </button>
-          </div>
         </div>
 
         {/* INFO SECTION */}
-        <div className="px-1 pt-2.5 pb-1 space-y-0.5">
-          <h4 className="font-bold text-[13px] text-slate-900 leading-tight truncate tracking-tight">
+        <div className="px-1 pt-2.5 pb-1 space-y-2">
+          <h4 className="font-semibold text-sm text-gray-900 leading-tight truncate">
             {item.name}
           </h4>
           <div className="flex items-center justify-between">
-            <span className="text-[12px] font-[900] text-[#F35C2B] tracking-tight">
+            <span className="text-sm font-bold text-[#FC8019]">
               ₹{Number(price).toFixed(2)}
             </span>
 
@@ -142,17 +126,35 @@ export default function ItemCard({ item, onDelete, refresh }) {
             <div className="lg:hidden flex gap-1">
               <button
                 onClick={() => setEditOpen(true)}
-                className="p-1.5 text-slate-400 active:text-emerald-500 active:bg-emerald-50 rounded-lg transition-colors"
+                className="p-1.5 text-gray-400 active:text-green-600 active:bg-green-50 rounded-lg transition-colors"
               >
                 <Pencil size={14} />
               </button>
               <button
                 onClick={onDelete}
-                className="p-1.5 text-slate-400 active:text-red-500 active:bg-red-50 rounded-lg transition-colors"
+                className="p-1.5 text-gray-400 active:text-red-600 active:bg-red-50 rounded-lg transition-colors"
               >
                 <Trash2 size={14} />
               </button>
             </div>
+          </div>
+
+          {/* DESKTOP ACTIONS */}
+          <div className="hidden lg:flex gap-2">
+            <button
+              onClick={() => setEditOpen(true)}
+              className="flex-1 h-8 rounded-lg bg-green-600 text-white text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-green-700 active:scale-[0.98] transition-all shadow-sm"
+            >
+              <Pencil size={13} strokeWidth={2.5} />
+              Edit
+            </button>
+            <button
+              onClick={onDelete}
+              className="flex-1 h-8 rounded-lg bg-red-600 text-white text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-red-700 active:scale-[0.98] transition-all shadow-sm"
+            >
+              <Trash2 size={13} strokeWidth={2.5} />
+              Delete
+            </button>
           </div>
         </div>
       </div>

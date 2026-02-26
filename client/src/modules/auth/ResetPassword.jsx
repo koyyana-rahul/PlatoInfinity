@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import {
+  Eye,
+  EyeOff,
+  ShieldAlert,
+  ArrowRight,
+  CheckCircle,
+} from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -74,12 +80,12 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col justify-center px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 flex flex-col justify-center px-4 py-8 sm:px-6 lg:px-8">
       {/* Header Section */}
       <div className="w-full max-w-md mx-auto mb-6 sm:mb-8">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-gradient-to-br from-indigo-600 to-blue-600 mb-4 sm:mb-6">
-            <span className="text-2xl font-bold text-white">P</span>
+          <div className="inline-flex items-center justify-center h-14 w-14 rounded-xl bg-gradient-to-br from-[#FC8019] to-[#FF6B35] mb-4 sm:mb-6 shadow-lg">
+            <ShieldAlert className="h-7 w-7 text-white" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
             Reset Password
@@ -92,7 +98,7 @@ const ResetPassword = () => {
 
       {/* Form Section */}
       <div className="w-full max-w-md mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 space-y-6">
+        <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-6 sm:p-8 space-y-6">
           <form className="space-y-5" onSubmit={handleSubmit}>
             {/* Email Display (Read-only) */}
             <div className="space-y-2">
@@ -110,7 +116,7 @@ const ResetPassword = () => {
                 required
                 value={email}
                 disabled
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl bg-gray-100 text-gray-600 cursor-not-allowed"
               />
             </div>
 
@@ -132,17 +138,17 @@ const ResetPassword = () => {
                   required
                   value={form.newPassword}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                  className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FC8019]/40 focus:border-[#FC8019] transition-all bg-gray-50 focus:bg-white pr-12"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPwd(!showPwd)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-gray-700 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-[#FC8019] transition-colors"
                 >
                   {showPwd ? (
-                    <FaEyeSlash className="h-5 w-5" />
+                    <EyeOff className="h-5 w-5" />
                   ) : (
-                    <FaEye className="h-5 w-5" />
+                    <Eye className="h-5 w-5" />
                   )}
                 </button>
               </div>
@@ -166,17 +172,17 @@ const ResetPassword = () => {
                   required
                   value={form.confirmPassword}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                  className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FC8019]/40 focus:border-[#FC8019] transition-all bg-gray-50 focus:bg-white pr-12"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPwd(!showConfirmPwd)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-gray-700 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-[#FC8019] transition-colors"
                 >
                   {showConfirmPwd ? (
-                    <FaEyeSlash className="h-5 w-5" />
+                    <EyeOff className="h-5 w-5" />
                   ) : (
-                    <FaEye className="h-5 w-5" />
+                    <Eye className="h-5 w-5" />
                   )}
                 </button>
               </div>
@@ -185,15 +191,23 @@ const ResetPassword = () => {
             {/* Password Match Indicator */}
             {form.newPassword && form.confirmPassword && (
               <div
-                className={`text-sm px-3 py-2 rounded-lg ${
+                className={`text-sm px-3 py-2 rounded-xl flex items-center space-x-2 ${
                   form.newPassword === form.confirmPassword
                     ? "bg-green-50 text-green-700 border border-green-200"
                     : "bg-red-50 text-red-700 border border-red-200"
                 }`}
               >
-                {form.newPassword === form.confirmPassword
-                  ? "✓ Passwords match"
-                  : "✗ Passwords don't match"}
+                {form.newPassword === form.confirmPassword ? (
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Passwords match</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-lg leading-none">✗</span>
+                    <span>Passwords don't match</span>
+                  </>
+                )}
               </div>
             )}
 
@@ -205,12 +219,12 @@ const ResetPassword = () => {
                 form.newPassword !== form.confirmPassword ||
                 !form.newPassword
               }
-              className={`w-full py-3 px-4 rounded-lg text-base font-semibold text-white transition-all duration-200 ${
+              className={`w-full h-11 px-4 rounded-xl text-base font-semibold text-white transition-all duration-200 ${
                 loading ||
                 form.newPassword !== form.confirmPassword ||
                 !form.newPassword
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 active:scale-95 shadow-md hover:shadow-lg"
+                  : "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] hover:shadow-xl active:scale-[0.98] shadow-lg"
               }`}
             >
               {loading ? (
@@ -219,14 +233,17 @@ const ResetPassword = () => {
                   <span>Resetting password...</span>
                 </span>
               ) : (
-                "Reset Password"
+                <span className="flex items-center justify-center space-x-2">
+                  <span>Reset Password</span>
+                  <ArrowRight className="h-4 w-4" />
+                </span>
               )}
             </button>
           </form>
         </div>
 
         {/* Footer Text */}
-        <p className="text-center text-xs text-gray-500 mt-6">
+        <p className="text-center text-xs text-gray-500 mt-8">
           Password must be at least 8 characters long
         </p>
       </div>

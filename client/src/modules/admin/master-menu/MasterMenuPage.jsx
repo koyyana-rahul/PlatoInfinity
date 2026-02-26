@@ -58,7 +58,7 @@ export default function MasterMenuPage() {
     } finally {
       setLoading(false);
     }
-  };;
+  };
 
   useEffect(() => {
     loadMenu();
@@ -104,26 +104,24 @@ export default function MasterMenuPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-white flex flex-col selection:bg-indigo-100 font-sans tracking-tight">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* ================= STATIONARY TOP REGION ================= */}
-      <div className="sticky top-0 z-30 w-full">
+      <div className="sticky top-0 z-30 w-full bg-white shadow-md">
         {/* LAYER 1: MAIN HEADER */}
-        <header className="bg-white border-b border-gray-200 w-full shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 shrink-0">
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight leading-none">
-                📋 Master Menu Management
+        <header className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-900 whitespace-nowrap">
+                Master Menu
               </h1>
-              <div className="hidden xs:flex items-center gap-1.5 px-2 py-1 bg-indigo-50 rounded-full border border-indigo-200">
-                <div className="h-1.5 w-1.5 rounded-full bg-indigo-600 animate-pulse" />
-                <p className="text-[8px] font-bold text-indigo-600 uppercase tracking-widest">
-                  Live
-                </p>
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-green-50 rounded-lg border border-green-200">
+                <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                <p className="text-xs font-medium text-green-700">Live</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex bg-gray-100 rounded-lg p-1 shrink-0 border border-gray-200">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex bg-gray-100 rounded-lg p-1.5 border border-gray-200 gap-1 flex-wrap sm:flex-nowrap">
                 {[
                   { id: "all", label: "All" },
                   { id: "veg", label: "Veg", isVeg: true },
@@ -133,14 +131,14 @@ export default function MasterMenuPage() {
                     key={v.id}
                     onClick={() => setVegFilter(v.id)}
                     className={clsx(
-                      "px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 flex items-center gap-1 active:scale-95",
+                      "px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-md transition-all active:scale-[0.98] flex items-center gap-1.5 whitespace-nowrap",
                       vegFilter === v.id
-                        ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-500/30"
-                        : "text-gray-700 hover:text-gray-900",
+                        ? "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white shadow-md"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-200",
                     )}
                   >
                     {v.isVeg !== undefined && (
-                      <VegNonVegIcon isVeg={v.isVeg} size={6} />
+                      <VegNonVegIcon isVeg={v.isVeg} size={7} />
                     )}
                     <span>{v.label}</span>
                   </button>
@@ -149,16 +147,19 @@ export default function MasterMenuPage() {
 
               <button
                 onClick={() => setModal({ type: "category" })}
-                className="bg-[#F35C2B] text-white p-2.5 sm:px-4 sm:py-2 rounded-full startup-shadow hover:brightness-105 transition-all active:scale-95 shrink-0"
+                className="bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg shadow-md hover:shadow-lg transition-all active:scale-[0.98] flex items-center gap-1.5 whitespace-nowrap"
               >
-                <Plus size={18} strokeWidth={3} />
+                <Plus size={18} strokeWidth={2.5} />
+                <span className="hidden sm:inline text-sm font-semibold">
+                  Add
+                </span>
               </button>
             </div>
           </div>
         </header>
 
         {/* LAYER 2: CATEGORY NAVIGATION */}
-        <div className="bg-white/95 backdrop-blur-xl w-full startup-shadow">
+        <div className="bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto">
             <CategoryBar
               categories={menu}
@@ -170,8 +171,9 @@ export default function MasterMenuPage() {
               onEdit={(cat) => setModal({ type: "editCategory", data: cat })}
               onDelete={(id) =>
                 confirmAndDelete({
-                  title: "Delete?",
-                  description: "Permanent removal.",
+                  title: "Delete Category?",
+                  description:
+                    "This will permanently remove the category and all its items.",
                   action: () => Axios(masterMenuApi.deleteCategory(id)),
                 })
               }
@@ -181,13 +183,13 @@ export default function MasterMenuPage() {
       </div>
 
       {/* ================= SCROLLABLE CONTENT REGION ================= */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-3 py-6 sm:py-8 space-y-8 sm:space-y-10">
-        {/* SECTION NAVIGATION (Scrolls with the grid) */}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 space-y-5 sm:space-y-6">
+        {/* SECTION NAVIGATION */}
         {activeCategory && (
-          <div className="space-y-3 animate-in fade-in duration-300">
-            <div className="flex items-center gap-1.5 px-1">
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                <Layout size={10} className="text-[#F35C2B]" />
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <Layout size={14} className="text-[#FC8019]" />
+              <p className="text-xs font-medium text-gray-600">
                 {activeCategory.name} Sections
               </p>
             </div>
@@ -202,7 +204,8 @@ export default function MasterMenuPage() {
               onDelete={(id) =>
                 confirmAndDelete({
                   title: "Remove Section?",
-                  description: "Deletes group.",
+                  description:
+                    "This will permanently delete this section and all its items.",
                   action: () => Axios(masterMenuApi.deleteSubcategory(id)),
                 })
               }
@@ -210,43 +213,44 @@ export default function MasterMenuPage() {
           </div>
         )}
 
-        {/* ITEMS REGISTRY (Scrolls with the grid) */}
-        <div className="animate-in fade-in slide-in-from-bottom-1 duration-500 pb-16">
-          <div className="flex items-center justify-between mb-5 px-1">
-            <h3 className="text-base font-extrabold text-black tracking-tight flex items-center gap-2">
-              <div className="w-1 h-3 bg-[#F35C2B] rounded-full" />
-              {activeSubcategoryId === null
-                ? "General List"
-                : activeSubcategory?.name}
-              <span className="text-[9px] font-bold text-slate-300 ml-1">
-                {visibleItems.length} items
+        {/* ITEMS REGISTRY */}
+        <div className="pb-8">
+          <div className="flex items-center justify-between mb-4 px-1">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-4 bg-[#FC8019] rounded-full" />
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                {activeSubcategoryId === null
+                  ? "All Items"
+                  : activeSubcategory?.name}
+              </h3>
+              <span className="text-xs font-medium text-gray-500">
+                ({visibleItems.length})
               </span>
-            </h3>
+            </div>
           </div>
 
-          <div className="rounded-3xl overflow-hidden">
-            <ItemGrid
-              items={visibleItems}
-              isAllSection={activeSubcategoryId === null}
-              onAddItem={() =>
-                setModal({
-                  type: "item",
-                  data: {
-                    categoryId: activeCategory?.id,
-                    subcategoryId: activeSubcategoryId,
-                  },
-                })
-              }
-              onDeleteItem={(id) =>
-                confirmAndDelete({
-                  title: "Delete Item?",
-                  description: "Permanent removal.",
-                  action: () => Axios(masterMenuApi.deleteItem(id)),
-                })
-              }
-              refresh={loadMenu}
-            />
-          </div>
+          <ItemGrid
+            items={visibleItems}
+            isAllSection={activeSubcategoryId === null}
+            onAddItem={() =>
+              setModal({
+                type: "item",
+                data: {
+                  categoryId: activeCategory?.id,
+                  subcategoryId: activeSubcategoryId,
+                },
+              })
+            }
+            onDeleteItem={(id) =>
+              confirmAndDelete({
+                title: "Delete Item?",
+                description:
+                  "This item will be permanently removed from the menu.",
+                action: () => Axios(masterMenuApi.deleteItem(id)),
+              })
+            }
+            refresh={loadMenu}
+          />
         </div>
       </main>
 

@@ -11,8 +11,9 @@ import {
   Store,
   X,
   Plus,
-  Star,
+  Save,
 } from "lucide-react";
+import clsx from "clsx";
 
 const MAX_IMAGES = 5;
 const MAX_SIZE_MB = 5;
@@ -105,11 +106,11 @@ export default function EditItemModal({ item, onClose, onSuccess }) {
       <div className="space-y-8">
         {/* ================= IMAGES ================= */}
         <section>
-          <div className="flex justify-between items-center mb-3 px-1">
-            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest text-gray-700">
+          <div className="flex justify-between items-center mb-3">
+            <label className="text-sm font-semibold text-gray-700">
               Item Images
             </label>
-            <span className="text-[10px] font-bold text-gray-400">
+            <span className="text-xs font-medium text-gray-500">
               {images.length}/{MAX_IMAGES}
             </span>
           </div>
@@ -118,7 +119,7 @@ export default function EditItemModal({ item, onClose, onSuccess }) {
             {images.map((img, i) => (
               <div
                 key={i}
-                className="relative flex-shrink-0 w-28 h-28 rounded-[22px] overflow-hidden border bg-gray-50 group snap-center"
+                className="relative flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 group snap-center"
               >
                 <img
                   src={img.url || img.preview}
@@ -126,27 +127,27 @@ export default function EditItemModal({ item, onClose, onSuccess }) {
                   alt=""
                 />
                 {i === 0 && (
-                  <span className="absolute top-2 left-2 bg-black/70 text-white text-[8px] font-bold px-2 py-0.5 rounded-full backdrop-blur-md">
+                  <span className="absolute top-2 left-2 bg-[#FC8019] text-white text-[8px] font-bold px-2 py-1 rounded-md">
                     Primary
                   </span>
                 )}
                 <button
                   onClick={() => removeImage(img, i)}
-                  className="absolute top-1.5 right-1.5 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center text-red-500 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <X size={12} strokeWidth={3} />
+                  <X size={14} strokeWidth={2} />
                 </button>
                 <button
                   onClick={() => reorder(i, 0)}
-                  className="absolute bottom-1.5 left-1.5 right-1.5 py-1 bg-white/80 backdrop-blur-md rounded-lg text-[8px] font-bold uppercase text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                  className="absolute bottom-1.5 left-1.5 right-1.5 py-1 bg-[#FC8019] rounded-md text-[8px] font-semibold text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
                 >
                   Set Cover
                 </button>
               </div>
             ))}
             {images.length < MAX_IMAGES && (
-              <label className="flex-shrink-0 w-28 h-28 border-2 border-dashed rounded-[22px] flex flex-col items-center justify-center cursor-pointer text-gray-300 hover:text-emerald-500 hover:bg-emerald-50 transition-all">
-                <Plus size={24} />
+              <label className="flex-shrink-0 w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer text-gray-400 hover:text-[#FC8019] hover:bg-orange-50 hover:border-[#FC8019] transition-all">
+                <Plus size={20} />
                 <input
                   hidden
                   type="file"
@@ -161,28 +162,28 @@ export default function EditItemModal({ item, onClose, onSuccess }) {
 
         {/* ================= FORM ================= */}
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-700">
               Item Name
             </label>
             <input
-              className="w-full bg-gray-100 rounded-[18px] px-4 py-3 text-sm font-bold border-none outline-none focus:bg-white focus:ring-2 focus:ring-black/5 transition-all"
+              className="w-full h-11 bg-gray-50 rounded-lg px-4 text-sm font-medium border border-gray-200 outline-none focus:bg-white focus:ring-2 focus:ring-[#FC8019]/40 focus:border-[#FC8019] transition-all"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-700">
               Base Price
             </label>
-            <div className="flex bg-gray-100 rounded-[18px] overflow-hidden focus-within:bg-white focus-within:ring-2 focus-within:ring-black/5 transition-all">
+            <div className="flex bg-gray-50 rounded-lg overflow-hidden border border-gray-200 focus-within:ring-2 focus-within:ring-[#FC8019]/40 focus-within:border-[#FC8019] transition-all">
               <div className="w-10 flex items-center justify-center text-gray-400">
                 <IndianRupee size={14} />
               </div>
               <input
                 type="number"
-                className="flex-1 bg-transparent px-2 py-3 text-sm font-bold outline-none"
+                className="flex-1 bg-transparent px-3 py-2 text-sm font-medium outline-none"
                 value={form.basePrice}
                 onChange={(e) =>
                   setForm({ ...form, basePrice: e.target.value })
@@ -191,16 +192,16 @@ export default function EditItemModal({ item, onClose, onSuccess }) {
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-700">
               Kitchen Station
             </label>
-            <div className="flex bg-gray-100 rounded-[18px] overflow-hidden focus-within:bg-white focus-within:ring-2 focus-within:ring-black/5 transition-all">
+            <div className="flex bg-gray-50 rounded-lg overflow-hidden border border-gray-200 focus-within:ring-2 focus-within:ring-[#FC8019]/40 focus-within:border-[#FC8019] transition-all">
               <div className="w-10 flex items-center justify-center text-gray-400">
                 <Store size={14} />
               </div>
               <input
-                className="flex-1 bg-transparent px-2 py-3 text-sm font-bold outline-none"
+                className="flex-1 bg-transparent px-3 py-2 text-sm font-medium outline-none"
                 value={form.defaultStation}
                 onChange={(e) =>
                   setForm({ ...form, defaultStation: e.target.value })
@@ -209,56 +210,74 @@ export default function EditItemModal({ item, onClose, onSuccess }) {
             </div>
           </div>
 
-          <div className="space-y-1 text-center">
-            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-700">
               Dietary Type
             </label>
-            <div className="flex bg-gray-100 p-1 rounded-[18px]">
+            <div className="flex bg-gray-100 p-1 rounded-lg gap-1">
               <button
                 onClick={() => setForm({ ...form, isVeg: true })}
-                className={`flex-1 py-2 rounded-[14px] text-[10px] font-black uppercase transition-all ${form.isVeg ? "bg-white text-emerald-600 shadow-sm" : "text-gray-400"}`}
+                className={clsx(
+                  "flex-1 py-2 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-1",
+                  form.isVeg
+                    ? "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white shadow-sm"
+                    : "text-gray-600 hover:text-gray-900",
+                )}
               >
-                <Leaf size={12} className="inline mr-1" /> Veg
+                <Leaf size={14} /> Veg
               </button>
               <button
                 onClick={() => setForm({ ...form, isVeg: false })}
-                className={`flex-1 py-2 rounded-[14px] text-[10px] font-black uppercase transition-all ${!form.isVeg ? "bg-white text-red-600 shadow-sm" : "text-gray-400"}`}
+                className={clsx(
+                  "flex-1 py-2 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-1",
+                  !form.isVeg
+                    ? "bg-red-500 text-white shadow-sm"
+                    : "text-gray-600 hover:text-gray-900",
+                )}
               >
-                <Flame size={12} className="inline mr-1" /> Non-Veg
+                <Flame size={14} /> Non-Veg
               </button>
             </div>
           </div>
         </section>
 
-        <div className="space-y-1">
-          <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-700">
             Description
           </label>
           <textarea
             rows={2}
-            className="w-full bg-gray-100 rounded-[18px] px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-black/5 transition-all resize-none"
+            className="w-full h-20 bg-gray-50 rounded-lg px-4 py-2 text-sm font-medium border border-gray-200 outline-none focus:bg-white focus:ring-2 focus:ring-[#FC8019]/40 focus:border-[#FC8019] transition-all resize-none"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
         </div>
 
         {/* ================= ACTION BAR ================= */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-3 pt-4 border-t border-gray-200">
           <button
             onClick={onClose}
-            className="flex-1 rounded-[20px] py-4 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-all"
+            className="flex-1 h-11 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all active:scale-[0.98]"
           >
             Cancel
           </button>
           <button
             onClick={submit}
             disabled={loading}
-            className="flex-[2] bg-black text-white rounded-[20px] py-4 text-xs font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center"
+            className={clsx(
+              "flex-1 h-11 rounded-lg text-sm font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2",
+              loading
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white hover:shadow-md",
+            )}
           >
             {loading ? (
-              <Loader2 className="animate-spin" size={18} />
+              <Loader2 className="animate-spin" size={16} />
             ) : (
-              "Save Changes"
+              <>
+                <Save size={16} />
+                Save Changes
+              </>
             )}
           </button>
         </div>

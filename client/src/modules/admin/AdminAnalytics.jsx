@@ -3,23 +3,21 @@ import { useNavigate } from "react-router-dom";
 import Axios from "../../api/axios";
 import toast from "react-hot-toast";
 import {
-  FiArrowLeft,
-  FiTrendingUp,
-  FiUsers,
-  FiShoppingCart,
-  FiBarChart2,
-  FiRefreshCw,
-} from "react-icons/fi";
+  TrendingUp,
+  Users,
+  ShoppingCart,
+  BarChart3,
+  RefreshCw,
+  Loader2,
+} from "lucide-react";
+import clsx from "clsx";
 
-/**
- * Admin Analytics Page
- * Displays KPIs and performance metrics
- */
 export default function AdminAnalytics() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState(null);
   const [timeRange, setTimeRange] = useState("today");
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchAnalytics();
@@ -27,7 +25,7 @@ export default function AdminAnalytics() {
 
   const fetchAnalytics = async () => {
     try {
-      setLoading(true);
+      setRefreshing(true);
       const response = await Axios.get(`/api/dashboard/kpi?range=${timeRange}`);
 
       if (response.data?.data) {
@@ -37,74 +35,87 @@ export default function AdminAnalytics() {
       console.error("Failed to fetch analytics:", err);
       toast.error("Failed to load analytics");
     } finally {
+      setRefreshing(false);
       setLoading(false);
     }
   };
 
   const StatCard = ({ icon: Icon, label, value, unit, trend }) => (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg hover:shadow-gray-200/50 transition-all duration-300">
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-3 bg-gradient-to-br from-indigo-100 to-blue-50 rounded-lg">
-          <Icon size={24} className="text-indigo-600" />
+    <div className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-all">
+      <div className="flex items-start justify-between mb-3">
+        <div className="p-2 bg-orange-50 rounded-lg">
+          <Icon size={20} className="text-[#FC8019]" />
         </div>
         {trend !== undefined && (
           <span
-            className={`text-xs font-bold px-3 py-1 rounded-full ${
+            className={clsx(
+              "text-xs font-semibold px-2.5 py-0.5 rounded-full",
               trend >= 0
                 ? "bg-green-100 text-green-700"
-                : "bg-red-100 text-red-700"
-            }`}
+                : "bg-red-100 text-red-700",
+            )}
           >
             {trend >= 0 ? "↑" : "↓"} {Math.abs(trend)}%
           </span>
         )}
       </div>
-      <p className="text-gray-600 text-sm font-semibold mb-2">{label}</p>
-      <div className="flex items-baseline gap-2">
-        <p className="text-3xl font-bold text-gray-900">{value}</p>
-        {unit && <p className="text-gray-500 text-xs font-medium">{unit}</p>}
+      <p className="text-gray-600 text-sm font-medium mb-1">{label}</p>
+      <div className="flex items-baseline gap-1.5">
+        <p className="text-2xl font-bold text-gray-900">{value}</p>
+        {unit && <p className="text-gray-500 text-xs">{unit}</p>}
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-white p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-gray-200">
-          <div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900">
-              📊 Analytics & Performance
-            </h1>
-            <p className="text-sm sm:text-base text-gray-600 mt-2">
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-[#FC8019] to-[#FF6B35] rounded-lg">
+                <BarChart3 className="text-white" size={24} />
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
+            </div>
+            <p className="text-gray-600 text-sm">
               Track your business metrics and KPIs in real-time
             </p>
           </div>
           <button
             onClick={fetchAnalytics}
-            className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:shadow-lg hover:shadow-indigo-500/30 transition-all font-semibold w-full sm:w-auto justify-center sm:justify-start"
+            disabled={refreshing}
+            className={clsx(
+              "flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold text-sm transition-all active:scale-[0.98]",
+              refreshing
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white hover:shadow-md",
+            )}
           >
-            <FiRefreshCw size={18} />
-            Refresh Data
+            {refreshing ? (
+              <Loader2 className="animate-spin" size={16} />
+            ) : (
+              <RefreshCw size={16} />
+            )}
+            Refresh
           </button>
         </div>
 
         {/* Time Range Filter */}
-        <div className="flex flex-wrap gap-2 sm:gap-3 bg-gray-50 rounded-xl p-4 sm:p-6 border border-gray-200">
+        <div className="flex flex-wrap gap-2 bg-white rounded-lg p-4 border border-gray-200">
           {["today", "week", "month"].map((range) => (
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold text-sm transition-all capitalize ${
+              className={clsx(
+                "px-4 py-2 rounded-lg font-semibold text-sm transition-all",
                 timeRange === range
-                  ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-500/30"
-                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
-              }`}
+                  ? "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200",
+              )}
             >
-              {range === "today" && "📅"}
-              {range === "week" && "📆"}
-              {range === "month" && "📋"}
-              {" " + range.charAt(0).toUpperCase() + range.slice(1)}
+              {range.charAt(0).toUpperCase() + range.slice(1)}
             </button>
           ))}
         </div>
@@ -113,25 +124,22 @@ export default function AdminAnalytics() {
         {loading ? (
           <div className="flex items-center justify-center h-80">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 border-t-indigo-500 mx-auto mb-4"></div>
-              <p className="text-slate-600 font-medium">Loading analytics...</p>
+              <Loader2 className="animate-spin h-12 w-12 text-[#FC8019] mx-auto mb-3" />
+              <p className="text-gray-600 font-medium">Loading analytics...</p>
             </div>
           </div>
         ) : !metrics ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-8 sm:p-12 text-center shadow-sm">
-            <p className="text-slate-500 text-lg">
+          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+            <p className="text-gray-500 text-lg">
               Failed to load analytics data
-            </p>
-            <p className="text-slate-400 text-sm mt-2">
-              Try refreshing the page or contact support
             </p>
           </div>
         ) : (
           <>
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard
-                icon={FiTrendingUp}
+                icon={TrendingUp}
                 label="Total Sales"
                 value={`₹${
                   typeof metrics.totalSales === "number"
@@ -142,14 +150,14 @@ export default function AdminAnalytics() {
                 trend={metrics.revenueTrend}
               />
               <StatCard
-                icon={FiShoppingCart}
+                icon={ShoppingCart}
                 label="Total Orders"
                 value={metrics.ordersToday || 0}
                 unit="Orders"
                 trend={metrics.ordersTrend}
               />
               <StatCard
-                icon={FiBarChart2}
+                icon={BarChart3}
                 label="Completion Rate"
                 value={`${
                   typeof metrics.completionRate === "number"
@@ -160,7 +168,7 @@ export default function AdminAnalytics() {
                 trend={metrics.completionTrend}
               />
               <StatCard
-                icon={FiUsers}
+                icon={Users}
                 label="Active Tables"
                 value={metrics.activeTables || 0}
                 unit="Occupied"
@@ -168,35 +176,34 @@ export default function AdminAnalytics() {
               />
             </div>
 
-            {/* Detailed Metrics Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            {/* Detailed Metrics */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               {/* Orders Overview */}
-              <div className="lg:col-span-1 bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all">
-                <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                  🛒 Orders Overview
+              <div className="bg-white rounded-lg border border-gray-200 p-5">
+                <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <ShoppingCart size={18} className="text-[#FC8019]" />
+                  Orders Overview
                 </h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center pb-4 border-b border-slate-200">
-                    <span className="text-slate-600 font-medium">
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm pb-3 border-b border-gray-200">
+                    <span className="text-gray-600 font-medium">
                       Total Orders
                     </span>
-                    <span className="text-2xl font-bold text-blue-600">
+                    <span className="font-bold text-[#FC8019]">
                       {metrics.ordersToday || 0}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center pb-4 border-b border-slate-200">
-                    <span className="text-slate-600 font-medium">
-                      Completion Rate
+                  <div className="flex justify-between text-sm pb-3 border-b border-gray-200">
+                    <span className="text-gray-600 font-medium">
+                      Completion
                     </span>
-                    <span className="text-2xl font-bold text-emerald-600">
+                    <span className="font-bold text-green-600">
                       {metrics.completionRate || 0}%
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-600 font-medium">
-                      Avg Value
-                    </span>
-                    <span className="text-2xl font-bold text-slate-900">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 font-medium">Avg Value</span>
+                    <span className="font-bold text-gray-900">
                       ₹
                       {typeof metrics.averageOrderValue === "number"
                         ? metrics.averageOrderValue.toFixed(0)
@@ -207,32 +214,33 @@ export default function AdminAnalytics() {
               </div>
 
               {/* Tables Overview */}
-              <div className="lg:col-span-1 bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all">
-                <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                  🪑 Tables Overview
+              <div className="bg-white rounded-lg border border-gray-200 p-5">
+                <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Users size={18} className="text-[#FC8019]" />
+                  Tables Overview
                 </h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center pb-4 border-b border-slate-200">
-                    <span className="text-slate-600 font-medium">
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm pb-3 border-b border-gray-200">
+                    <span className="text-gray-600 font-medium">
                       Active Tables
                     </span>
-                    <span className="text-2xl font-bold text-purple-600">
+                    <span className="font-bold text-[#FC8019]">
                       {metrics.activeTables || 0}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center pb-4 border-b border-slate-200">
-                    <span className="text-slate-600 font-medium">
+                  <div className="flex justify-between text-sm pb-3 border-b border-gray-200">
+                    <span className="text-gray-600 font-medium">
                       Active Users
                     </span>
-                    <span className="text-2xl font-bold text-emerald-600">
+                    <span className="font-bold text-green-600">
                       {metrics.activeUsers || 0}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-600 font-medium">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 font-medium">
                       Revenue Trend
                     </span>
-                    <span className="text-2xl font-bold text-slate-900">
+                    <span className="font-bold text-gray-900">
                       {metrics.revenueTrend >= 0 ? "+" : ""}
                       {metrics.revenueTrend || 0}%
                     </span>
@@ -241,25 +249,25 @@ export default function AdminAnalytics() {
               </div>
 
               {/* Quick Stats */}
-              <div className="lg:col-span-1 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
-                <h3 className="text-lg font-bold mb-6">💡 Quick Stats</h3>
-                <div className="space-y-4">
-                  <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-                    <p className="text-indigo-100 text-sm font-medium">
+              <div className="bg-gradient-to-br from-[#FC8019] to-[#FF6B35] rounded-lg p-5 text-white">
+                <h3 className="text-sm font-semibold mb-4">Quick Stats</h3>
+                <div className="space-y-3">
+                  <div className="bg-white/15 rounded-lg p-3 backdrop-blur-sm">
+                    <p className="text-white/80 text-xs font-medium">
                       Revenue/Order
                     </p>
-                    <p className="text-3xl font-bold text-white mt-2">
+                    <p className="text-2xl font-bold text-white mt-1">
                       ₹
                       {metrics.averageOrderValue
                         ? Math.round(metrics.averageOrderValue)
                         : 0}
                     </p>
                   </div>
-                  <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-                    <p className="text-indigo-100 text-sm font-medium">
-                      Completion
+                  <div className="bg-white/15 rounded-lg p-3 backdrop-blur-sm">
+                    <p className="text-white/80 text-xs font-medium">
+                      Completion Rate
                     </p>
-                    <p className="text-3xl font-bold text-white mt-2">
+                    <p className="text-2xl font-bold text-white mt-1">
                       {Math.round(metrics.completionRate || 0)}%
                     </p>
                   </div>
@@ -268,46 +276,45 @@ export default function AdminAnalytics() {
             </div>
 
             {/* Sales Breakdown */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 shadow-sm hover:shadow-lg transition-all">
-              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                💰 Sales Breakdown
+            <div className="bg-white rounded-lg border border-gray-200 p-5">
+              <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <TrendingUp size={18} className="text-[#FC8019]" />
+                Sales Breakdown
               </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 sm:p-6 border border-blue-200">
-                  <p className="text-slate-600 text-xs sm:text-sm font-semibold">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                  <p className="text-gray-600 text-xs font-semibold">
                     Total Sales
                   </p>
-                  <p className="text-2xl sm:text-3xl font-bold text-blue-600 mt-2">
+                  <p className="text-xl font-bold text-[#FC8019] mt-2">
                     ₹
                     {typeof metrics.totalSales === "number"
                       ? Math.round(metrics.totalSales)
                       : metrics.totalSales}
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg p-4 sm:p-6 border border-emerald-200">
-                  <p className="text-slate-600 text-xs sm:text-sm font-semibold">
-                    Orders
-                  </p>
-                  <p className="text-2xl sm:text-3xl font-bold text-emerald-600 mt-2">
+                <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                  <p className="text-gray-600 text-xs font-semibold">Orders</p>
+                  <p className="text-xl font-bold text-green-600 mt-2">
                     {metrics.ordersToday || 0}
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 sm:p-6 border border-purple-200">
-                  <p className="text-slate-600 text-xs sm:text-sm font-semibold">
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <p className="text-gray-600 text-xs font-semibold">
                     Avg/Order
                   </p>
-                  <p className="text-2xl sm:text-3xl font-bold text-purple-600 mt-2">
+                  <p className="text-xl font-bold text-blue-600 mt-2">
                     ₹
                     {typeof metrics.averageOrderValue === "number"
                       ? Math.round(metrics.averageOrderValue)
                       : metrics.averageOrderValue}
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 sm:p-6 border border-orange-200">
-                  <p className="text-slate-600 text-xs sm:text-sm font-semibold">
-                    Success
+                <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                  <p className="text-gray-600 text-xs font-semibold">
+                    Success Rate
                   </p>
-                  <p className="text-2xl sm:text-3xl font-bold text-orange-600 mt-2">
+                  <p className="text-xl font-bold text-purple-600 mt-2">
                     {Math.round(metrics.completionRate || 0)}%
                   </p>
                 </div>

@@ -10,57 +10,38 @@ export default function Modal({ title, children, onClose }) {
   }, []);
 
   return (
-    /* HIGHEST Z-INDEX: Ensures we are above Admin Header (usually z-40 or z-50).
-       FIXED INSET-0: Forces the blur to cover 100% of the browser window.
-    */
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
-      {/* ================= BACKDROP (The Blur Layer) ================= */}
+      {/* BACKDROP */}
       <div
-        className="
-          fixed inset-0 
-          bg-slate-900/60 
-          backdrop-blur-[12px] 
-          animate-in fade-in 
-          duration-500
-        "
+        className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* ================= MODAL SHEET ================= */}
+      {/* MODAL SHEET */}
       <div
         className={clsx(
-          "relative bg-white/95 w-full max-w-xl max-h-[85vh] rounded-[32px] flex flex-col",
-          "shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)]",
-          "border border-white/40 overflow-hidden",
-          "animate-in fade-in zoom-in-95 slide-in-from-bottom-10 duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          "relative bg-white w-full max-w-xl max-h-[85vh] rounded-2xl flex flex-col",
+          "shadow-2xl border border-gray-200 overflow-hidden",
         )}
       >
-        {/* HEADER: High-Contrast Glassmorphism */}
-        <div className="flex justify-between items-center px-6 py-5 border-b border-black/[0.03] bg-white/40 backdrop-blur-xl sticky top-0 z-20">
-          <div className="space-y-1">
-            <h3 className="text-[12px] font-[900] text-black tracking-[0.2em] leading-none uppercase">
-              {title}
-            </h3>
-            <div className="h-1 w-8 bg-emerald-500 rounded-full" />
-          </div>
+        {/* HEADER */}
+        <div className="flex justify-between items-center px-5 sm:px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-[#FC8019] to-[#FF6B35]">
+          <h3 className="text-base sm:text-lg font-semibold text-white">
+            {title}
+          </h3>
 
           <button
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-white hover:text-black hover:shadow-sm transition-all active:scale-75"
+            className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-all active:scale-95"
           >
-            <X size={18} strokeWidth={3} />
+            <X size={18} strokeWidth={2.5} />
           </button>
         </div>
 
         {/* CONTENT AREA */}
-        <div className="p-8 overflow-y-auto scrollbar-hide">
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100 fill-mode-both">
-            {children}
-          </div>
+        <div className="p-5 sm:p-6 overflow-y-auto scrollbar-hide">
+          {children}
         </div>
-
-        {/* FOOTER ACCENT */}
-        <div className="h-4 w-full bg-gradient-to-t from-slate-50/80 to-transparent pointer-events-none" />
       </div>
     </div>
   );

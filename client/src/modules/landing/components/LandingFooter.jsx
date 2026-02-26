@@ -1,148 +1,212 @@
-import { Link } from "react-router-dom";
+import {
+  Facebook,
+  Twitter,
+  Instagram,
+  Linkedin,
+  ShieldAlert,
+} from "lucide-react";
 
-const LandingFooter = () => {
+/**
+ * LandingFooter Component
+ *
+ * Explanation:
+ * - Dark background (bg-gray-900) provides contrast with orange branding above
+ * - Four-column layout: Brand story, Product links, Company links, Social media
+ * - Brand column includes logo and brief description establishing credibility
+ * - Product/Company links organize navigation for easy access
+ * - Social icons use Lucide React with hover effects changing to orange
+ * - Dynamic copyright year ensures freshness
+ * - Scroll-to-section links for quick navigation back to key sections
+ * - Professional footer structure matches Swiggy/Zomato patterns
+ */
+const LandingFooter = ({ scrollToSection }) => {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="bg-slate-900 text-gray-400">
+    <footer className="bg-gray-900 text-gray-300 border-t border-gray-800">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        {/* Main Footer Content: 4 columns with organized information */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+          {/* Brand Column: Establishes identity and credibility */}
           <div>
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">P</span>
+            {/* Logo and Brand Name */}
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-11 h-11 bg-gradient-to-br from-[#FC8019] to-[#FF6B35] rounded-lg flex items-center justify-center shadow-md hover:shadow-lg transition-shadow">
+                <ShieldAlert
+                  className="text-white"
+                  size={24}
+                  strokeWidth={2.5}
+                />
               </div>
-              <h4 className="text-lg font-bold text-white">Plato Menu</h4>
+              <div>
+                <h4 className="text-lg font-bold bg-gradient-to-r from-[#FC8019] to-[#FF6B35] bg-clip-text text-transparent">
+                  Plato OS
+                </h4>
+                <p className="text-xs text-gray-500 font-semibold">
+                  Restaurant OS
+                </p>
+              </div>
             </div>
-            <p className="text-gray-500 leading-relaxed">
-              The complete digital menu solution for modern restaurants.
+            {/* Brand Description */}
+            <p className="text-gray-400 leading-relaxed text-sm">
+              The complete operating system that replaces kitchen chaos with
+              control, fraud with security, and blame with accountability for
+              Indian restaurants.
             </p>
           </div>
+
+          {/* Product Links Column */}
           <div>
-            <h4 className="text-lg font-bold text-white mb-5">Quick Links</h4>
+            <h4 className="text-lg font-bold text-white mb-5">Product</h4>
             <ul className="space-y-3">
               <li>
-                <Link
-                  to="/#features"
-                  className="text-gray-400 hover:text-indigo-400 transition-colors"
+                <button
+                  onClick={() => scrollToSection("features")}
+                  className="text-gray-400 hover:text-[#FC8019] transition-colors duration-200 text-sm font-medium text-left"
                 >
                   Features
-                </Link>
+                </button>
               </li>
               <li>
-                <Link
-                  to="/#how-it-works"
-                  className="text-gray-400 hover:text-indigo-400 transition-colors"
+                <button
+                  onClick={() => scrollToSection("how-it-works")}
+                  className="text-gray-400 hover:text-[#FC8019] transition-colors duration-200 text-sm font-medium text-left"
                 >
                   How It Works
-                </Link>
+                </button>
               </li>
               <li>
-                <Link
-                  to="/#about"
-                  className="text-gray-400 hover:text-indigo-400 transition-colors"
+                <button
+                  onClick={() => scrollToSection("about")}
+                  className="text-gray-400 hover:text-[#FC8019] transition-colors duration-200 text-sm font-medium text-left"
                 >
-                  About
-                </Link>
+                  About Us
+                </button>
               </li>
               <li>
-                <Link
-                  to="/#contact"
-                  className="text-gray-400 hover:text-indigo-400 transition-colors"
+                <button
+                  onClick={() => scrollToSection("contact")}
+                  className="text-gray-400 hover:text-[#FC8019] transition-colors duration-200 text-sm font-medium text-left"
                 >
                   Contact
-                </Link>
+                </button>
               </li>
             </ul>
           </div>
+
+          {/* Company Links Column */}
           <div>
-            <h4 className="text-lg font-bold text-white mb-5">Legal</h4>
+            <h4 className="text-lg font-bold text-white mb-5">Company</h4>
             <ul className="space-y-3">
               <li>
-                <Link
-                  to="/privacy-policy"
-                  className="text-gray-400 hover:text-indigo-400 transition-colors"
+                <a
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  className="text-gray-400 hover:text-[#FC8019] transition-colors duration-200 text-sm font-medium cursor-not-allowed opacity-50"
+                  title="Coming Soon"
                 >
-                  Privacy Policy
-                </Link>
+                  Blog
+                </a>
               </li>
               <li>
-                <Link
-                  to="/terms-of-service"
-                  className="text-gray-400 hover:text-indigo-400 transition-colors"
+                <a
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  className="text-gray-400 hover:text-[#FC8019] transition-colors duration-200 text-sm font-medium cursor-not-allowed opacity-50"
+                  title="Coming Soon"
                 >
-                  Terms of Service
-                </Link>
+                  Careers
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  className="text-gray-400 hover:text-[#FC8019] transition-colors duration-200 text-sm font-medium cursor-not-allowed opacity-50"
+                  title="Coming Soon"
+                >
+                  Privacy
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  className="text-gray-400 hover:text-[#FC8019] transition-colors duration-200 text-sm font-medium cursor-not-allowed opacity-50"
+                  title="Coming Soon"
+                >
+                  Terms
+                </a>
               </li>
             </ul>
           </div>
+
+          {/* Social Links Column */}
           <div>
             <h4 className="text-lg font-bold text-white mb-5">Follow Us</h4>
-            <div className="flex space-x-4">
+            <div className="flex gap-4">
               <a
                 href="https://facebook.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center text-gray-400 hover:bg-indigo-600 hover:text-white transition-all"
+                className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-gray-400 hover:text-[#FC8019] hover:bg-gray-700 transition-all duration-300"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5c-.563-.074-2.313-.231-4.401-.231-4.425 0-7.7 2.958-7.7 8.405v2.926z" />
-                </svg>
+                <Facebook size={20} />
               </a>
               <a
                 href="https://twitter.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center text-gray-400 hover:bg-indigo-600 hover:text-white transition-all"
+                className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-gray-400 hover:text-[#FC8019] hover:bg-gray-700 transition-all duration-300"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2s9 5 20 5a9.5 9.5 0 00-9-5.5c4.75 2.25 7-7 7-7a10.6 10.6 0 01-9-5.5z" />
-                </svg>
+                <Twitter size={20} />
               </a>
               <a
                 href="https://instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center text-gray-400 hover:bg-indigo-600 hover:text-white transition-all"
+                className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-gray-400 hover:text-[#FC8019] hover:bg-gray-700 transition-all duration-300"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <rect
-                    x="2"
-                    y="2"
-                    width="20"
-                    height="20"
-                    rx="5"
-                    ry="5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  />
-                  <path
-                    d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  />
-                  <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" />
-                </svg>
+                <Instagram size={20} />
+              </a>
+              <a
+                href="https://linkedin.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-gray-400 hover:text-[#FC8019] hover:bg-gray-700 transition-all duration-300"
+              >
+                <Linkedin size={20} />
               </a>
             </div>
           </div>
         </div>
-        <div className="mt-12 border-t border-slate-800 pt-8 text-center">
-          <p className="text-gray-500">
-            &copy; 2024 Plato Menu. All rights reserved.
+
+        {/* Divider */}
+        <div className="border-t border-gray-800"></div>
+
+        {/* Bottom Bar: Copyright and additional links */}
+        <div className="mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-gray-500 text-sm font-medium">
+            © {currentYear} Plato OS. All rights reserved.
           </p>
+          <div className="flex gap-4">
+            <a
+              href="#"
+              onClick={(e) => e.preventDefault()}
+              className="text-gray-500 hover:text-[#FC8019] text-sm transition-colors cursor-not-allowed opacity-50"
+              title="Coming Soon"
+            >
+              Status
+            </a>
+            <a
+              href="#"
+              onClick={(e) => e.preventDefault()}
+              className="text-gray-500 hover:text-[#FC8019] text-sm transition-colors cursor-not-allowed opacity-50"
+              title="Coming Soon"
+            >
+              Support
+            </a>
+          </div>
         </div>
       </div>
     </footer>

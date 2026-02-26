@@ -356,7 +356,10 @@ import {
   Loader2,
   Image as ImageIcon,
   X,
+  Plus,
+  Save,
 } from "lucide-react";
+import clsx from "clsx";
 
 import Modal from "../../../../components/ui/Modal";
 import Axios from "../../../../api/axios";
@@ -427,6 +430,7 @@ export default function CreateItemModal({
     if (loading) return;
     if (!categoryId) return toast.error("Category not selected");
     if (!form.name.trim()) return toast.error("Item name is required");
+    if (!images.length) return toast.error("Add at least one image");
     if (form.basePrice === "" || Number(form.basePrice) < 0) {
       return toast.error("Enter a valid price");
     }
@@ -447,16 +451,12 @@ export default function CreateItemModal({
       };
 
       const fd = new FormData();
-      // Most backends expect the object under a 'data' key when using FormData
       fd.append("data", JSON.stringify(payload));
-
-      // Append each image to the 'images' field
       images.forEach((img) => fd.append("images", img));
 
       await Axios({
         ...masterMenuApi.createItem,
         data: fd,
-        // Ensure multipart headers are set
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -472,46 +472,51 @@ export default function CreateItemModal({
   };
 
   return (
-    <Modal title="Add Menu Item" onClose={onClose}>
-      <div className="space-y-7">
+    <Modal title="Create Menu Item" onClose={onClose}>
+      <div className="space-y-5 max-h-[75vh] overflow-y-auto">
+        {/* ================= IMAGES ================= */}
         <section className="space-y-2">
-          <label className="text-sm font-semibold text-gray-700">
+          <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <ImageIcon size={16} className="text-[#FC8019]" />
             Item Images
           </label>
           <div
             onClick={() =>
               document.getElementById("create-item-images-input").click()
             }
-            className="border-2 border-dashed rounded-xl p-4 cursor-pointer hover:bg-gray-50 transition"
+            className="border-2 border-dashed border-gray-300 rounded-lg p-4 cursor-pointer hover:border-[#FC8019] hover:bg-orange-50 transition"
           >
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-2">
               {previews.map((src, i) => (
                 <div
                   key={i}
-                  className="relative rounded-xl overflow-hidden group"
+                  className="relative rounded-lg overflow-hidden group aspect-square"
                 >
                   <img
                     src={src}
-                    className="w-full h-20 object-cover"
+                    className="w-full h-full object-cover"
                     alt="Preview"
                   />
-                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition" />
+                  {i === 0 && (
+                    <span className="absolute top-1 left-1 bg-[#FC8019] text-white text-[8px] font-bold px-1.5 py-0.5 rounded">
+                      Primary
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       removeImage(i);
                     }}
-                    className="absolute top-1 right-1 h-7 w-7 rounded-full bg-white/90 text-red-600 flex items-center justify-center shadow"
+                    className="absolute top-1 right-1 h-6 w-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    <X size={14} />
+                    <X size={12} strokeWidth={2.5} />
                   </button>
                 </div>
               ))}
               {previews.length < MAX_IMAGES && (
-                <div className="h-20 rounded-xl bg-gray-100 flex flex-col items-center justify-center text-gray-400">
-                  <ImageIcon size={18} />
-                  <span className="text-[11px]">Add</span>
+                <div className="rounded-lg bg-gray-100 flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:bg-orange-50 hover:text-[#FC8019] transition aspect-square">
+                  <Plus size={20} />
                 </div>
               )}
             </div>
@@ -524,48 +529,53 @@ export default function CreateItemModal({
             multiple
             onChange={(e) => handleImageSelect(e.target.files)}
           />
-          <p className="text-[11px] text-gray-400">
+          <p className="text-xs text-gray-500">
             Up to {MAX_IMAGES} images • First image shown to customers
           </p>
         </section>
 
-        <section className="space-y-5">
-          <div className="space-y-1">
+        {/* ================= FORM ================= */}
+        <section className="space-y-4">
+          {/* ITEM NAME */}
+          <div className="space-y-2">
             <label className="text-sm font-semibold text-gray-700">
               Item Name
             </label>
             <input
-              className="w-full border rounded-xl px-4 py-3 text-sm"
+              className="w-full h-11 border border-gray-200 rounded-lg px-4 text-sm font-medium bg-gray-50 outline-none focus:bg-white focus:ring-2 focus:ring-[#FC8019]/40 focus:border-[#FC8019] transition-all"
               placeholder="e.g. Butter Chicken"
               value={form.name}
               onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
             />
           </div>
-          <div className="space-y-1">
+
+          {/* DESCRIPTION */}
+          <div className="space-y-2">
             <label className="text-sm font-semibold text-gray-700">
               Description
             </label>
             <textarea
               rows={3}
-              className="w-full border rounded-xl px-4 py-3 text-sm resize-none"
-              placeholder="Short description shown to customers"
+              className="w-full h-24 border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium resize-none bg-gray-50 outline-none focus:bg-white focus:ring-2 focus:ring-[#FC8019]/40 focus:border-[#FC8019] transition-all"
+              placeholder="Short description for customers"
               value={form.description}
               onChange={(e) =>
                 setForm((p) => ({ ...p, description: e.target.value }))
               }
             />
           </div>
-          <div className="space-y-1">
-            <label className="text-sm font-semibold text-gray-700">
-              Base Price
-            </label>
-            <div className="flex border rounded-xl overflow-hidden">
-              <div className="w-11 flex items-center justify-center border-r text-gray-400">
-                <IndianRupee size={16} />
-              </div>
+
+          {/* PRICE & STATION - TWO COLUMN */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* PRICE */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <IndianRupee size={14} className="text-[#FC8019]" />
+                Price
+              </label>
               <input
                 type="number"
-                className="flex-1 px-3 py-3 text-sm outline-none"
+                className="w-full h-11 border border-gray-200 rounded-lg px-4 text-sm font-medium bg-gray-50 outline-none focus:bg-white focus:ring-2 focus:ring-[#FC8019]/40 focus:border-[#FC8019] transition-all"
                 placeholder="199"
                 value={form.basePrice}
                 onChange={(e) =>
@@ -573,17 +583,15 @@ export default function CreateItemModal({
                 }
               />
             </div>
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-semibold text-gray-700">
-              Kitchen Station
-            </label>
-            <div className="flex border rounded-xl overflow-hidden">
-              <div className="w-11 flex items-center justify-center border-r text-gray-400">
-                <Store size={16} />
-              </div>
+
+            {/* KITCHEN STATION */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Store size={14} className="text-[#FC8019]" />
+                Station
+              </label>
               <input
-                className="flex-1 px-3 py-3 text-sm outline-none"
+                className="w-full h-11 border border-gray-200 rounded-lg px-4 text-sm font-medium bg-gray-50 outline-none focus:bg-white focus:ring-2 focus:ring-[#FC8019]/40 focus:border-[#FC8019] transition-all"
                 placeholder="Tandoor / Fryer"
                 value={form.defaultStation}
                 onChange={(e) =>
@@ -594,49 +602,67 @@ export default function CreateItemModal({
           </div>
         </section>
 
+        {/* ================= DIETARY TYPE ================= */}
         <section className="space-y-2">
           <label className="text-sm font-semibold text-gray-700">
             Dietary Type
           </label>
-          <div className="grid grid-cols-2 border rounded-xl overflow-hidden">
+          <div className="flex gap-2 bg-gray-100 p-1.5 rounded-lg">
             <button
               type="button"
               onClick={() => setForm((p) => ({ ...p, isVeg: true }))}
-              className={`h-12 font-semibold flex items-center justify-center gap-2 ${
+              className={clsx(
+                "flex-1 h-10 rounded-md text-sm font-semibold transition-all flex items-center justify-center gap-2",
                 form.isVeg
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-50 text-gray-600"
-              }`}
+                  ? "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white shadow-md"
+                  : "bg-transparent text-gray-600 hover:text-gray-900",
+              )}
             >
               <Leaf size={16} /> Veg
             </button>
             <button
               type="button"
               onClick={() => setForm((p) => ({ ...p, isVeg: false }))}
-              className={`h-12 font-semibold flex items-center justify-center gap-2 ${
+              className={clsx(
+                "flex-1 h-10 rounded-md text-sm font-semibold transition-all flex items-center justify-center gap-2",
                 !form.isVeg
-                  ? "bg-red-600 text-white"
-                  : "bg-gray-50 text-gray-600"
-              }`}
+                  ? "bg-red-500 text-white shadow-md"
+                  : "bg-transparent text-gray-600 hover:text-gray-900",
+              )}
             >
               <Flame size={16} /> Non-Veg
             </button>
           </div>
         </section>
 
-        <button
-          onClick={submit}
-          disabled={loading}
-          className="w-full h-12 rounded-xl bg-black text-white font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="animate-spin" size={18} /> Creating…
-            </>
-          ) : (
-            "Create Menu Item"
-          )}
-        </button>
+        {/* ================= ACTION BAR ================= */}
+        <div className="flex gap-3 pt-4 border-t border-gray-200">
+          <button
+            onClick={onClose}
+            className="flex-1 h-11 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all active:scale-[0.98]"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={submit}
+            disabled={loading || !form.name.trim() || !images.length}
+            className={clsx(
+              "flex-1 h-11 rounded-lg text-sm font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2",
+              loading || !form.name.trim() || !images.length
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white hover:shadow-md",
+            )}
+          >
+            {loading ? (
+              <Loader2 className="animate-spin" size={16} />
+            ) : (
+              <>
+                <Save size={16} />
+                Create Item
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </Modal>
   );

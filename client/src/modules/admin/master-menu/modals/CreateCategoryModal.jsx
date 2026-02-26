@@ -47,42 +47,30 @@ export default function CreateCategoryModal({ onClose, onSuccess }) {
 
   return (
     <Modal title="Add Category" onClose={onClose}>
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* INFO TEXT */}
-        <p className="text-xs text-gray-400 leading-relaxed">
+        <p className="text-sm text-gray-600 leading-relaxed">
           Categories appear at the top of the master menu and help customers
           quickly browse food sections (e.g. Starters, Main Course, Desserts).
         </p>
 
         {/* INPUT */}
-        <div className="space-y-1">
-          <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-gray-700">
             Category Name
           </label>
 
           <div className="relative">
             <LayoutGrid
-              size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"
+              size={16}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
             />
             <input
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Starters"
-              className="
-                w-full
-                pl-12 pr-4 py-4
-                rounded-2xl
-                bg-gray-50
-                border-2 border-transparent
-                font-bold
-                text-sm
-                outline-none
-                transition
-                focus:bg-white
-                focus:border-red-500
-              "
+              className="w-full pl-10 pr-4 py-3 rounded-lg bg-white border border-gray-300 font-medium text-sm outline-none transition focus:bg-white focus:border-[#FC8019] focus:ring-2 focus:ring-orange-100"
               onKeyDown={(e) => {
                 if (e.key === "Enter") submit();
               }}
@@ -91,22 +79,11 @@ export default function CreateCategoryModal({ onClose, onSuccess }) {
         </div>
 
         {/* ACTIONS */}
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button
             onClick={onClose}
             disabled={loading}
-            className="
-              w-full sm:w-1/2
-              py-3
-              rounded-xl
-              text-[10px]
-              font-black
-              uppercase
-              tracking-widest
-              text-gray-400
-              hover:text-gray-600
-              transition
-            "
+            className="w-full sm:w-1/2 py-3 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition"
           >
             Cancel
           </button>
@@ -114,20 +91,7 @@ export default function CreateCategoryModal({ onClose, onSuccess }) {
           <button
             onClick={submit}
             disabled={loading}
-            className="
-              w-full sm:w-1/2
-              py-3
-              rounded-xl
-              bg-black
-              text-white
-              font-black
-              uppercase
-              tracking-widest
-              flex items-center justify-center gap-2
-              transition
-              hover:bg-red-600
-              disabled:opacity-60
-            "
+            className="w-full sm:w-1/2 py-3 rounded-lg bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white font-semibold text-sm flex items-center justify-center gap-2 transition hover:shadow-lg active:scale-[0.98] disabled:opacity-60 shadow-md"
           >
             {loading ? (
               <>

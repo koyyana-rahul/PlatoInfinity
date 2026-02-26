@@ -3,7 +3,7 @@ import Modal from "../../../../components/ui/Modal";
 import Axios from "../../../../api/axios";
 import masterMenuApi from "../../../../api/masterMenu.api";
 import toast from "react-hot-toast";
-import { Loader2, Type, ArrowRight, X } from "lucide-react";
+import { Loader2, Type, ArrowRight, X, Save } from "lucide-react";
 import clsx from "clsx";
 
 export default function EditSubcategoryModal({
@@ -48,97 +48,89 @@ export default function EditSubcategoryModal({
   }, [name, loading]);
 
   return (
-    <Modal title="Rename Section" onClose={onClose}>
-      <div className="space-y-7 px-1 py-1 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
-        {/* VISUAL HIERARCHY - THE "CHANGE" TRACKER */}
-        <div className="flex items-center justify-between p-4 rounded-[26px] bg-[#FBFBFC] border border-black/[0.04]">
-          <div className="space-y-1">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              Original
+    <Modal title="Edit Section" onClose={onClose}>
+      <div className="space-y-5 max-w-xl mx-auto max-h-[75vh] overflow-y-auto">
+        {/* VISUAL CHANGE TRACKER */}
+        <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-200">
+          <div className="text-xs">
+            <span className="font-semibold text-gray-500 block mb-1">
+              Current
             </span>
-            <p className="text-[13px] font-bold text-slate-400 truncate max-w-[120px]">
+            <p className="font-medium text-gray-700 truncate max-w-[100px]">
               {subcategory?.name}
             </p>
           </div>
-          <div className="h-8 w-8 rounded-full bg-white shadow-sm flex items-center justify-center">
+          <div className="h-7 w-7 rounded-full bg-white flex items-center justify-center flex-shrink-0">
             <ArrowRight
               size={14}
-              className="text-emerald-500"
-              strokeWidth={3}
+              className="text-[#FC8019]"
+              strokeWidth={2.5}
             />
           </div>
-          <div className="space-y-1 text-right">
-            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
-              New
-            </span>
-            <p className="text-[13px] font-bold text-slate-900 truncate max-w-[120px]">
+          <div className="text-xs text-right">
+            <span className="font-semibold text-[#FC8019] block mb-1">New</span>
+            <p className="font-medium text-gray-900 truncate max-w-[100px]">
               {name || "..."}
             </p>
           </div>
         </div>
 
-        {/* ELEGANT INPUT - "Floating Glass" Look */}
-        <div className="space-y-3">
-          <div className="flex justify-between items-end px-1">
-            <label className="text-[11px] font-[800] text-slate-500 uppercase tracking-widest">
-              Section Identity
-            </label>
+        {/* SECTION NAME INPUT */}
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <Type size={16} className="text-[#FC8019]" />
+            New Name
+          </label>
+          <input
+            autoFocus
+            maxLength={40}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+            className="w-full h-11 px-4 rounded-lg bg-gray-50 border border-gray-200 outline-none focus:bg-white focus:ring-2 focus:ring-[#FC8019]/40 focus:border-[#FC8019] transition-all text-sm font-medium text-gray-900 placeholder:text-gray-400"
+            placeholder="Enter new name..."
+          />
+          <div className="flex justify-between">
+            <p className="text-xs text-gray-500"></p>
             <span
               className={clsx(
-                "text-[9px] font-bold transition-colors",
-                name.length >= 35 ? "text-orange-500" : "text-slate-300",
+                "text-xs font-medium",
+                name.length >= 35 ? "text-orange-500" : "text-gray-400",
               )}
             >
               {name.length}/40
             </span>
           </div>
-
-          <div className="relative group">
-            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors">
-              <Type size={18} strokeWidth={2.5} />
-            </div>
-            <input
-              autoFocus
-              maxLength={40}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={clsx(
-                "w-full h-16 pl-14 pr-6 rounded-[24px] bg-white border border-black/[0.06] transition-all duration-300 outline-none",
-                "text-[16px] font-bold text-black placeholder:text-slate-200 shadow-sm",
-                "focus:border-emerald-500/20 focus:ring-[6px] focus:ring-emerald-500/5 focus:shadow-md",
-              )}
-              placeholder="Enter new name..."
-            />
-          </div>
         </div>
 
-        {/* APPLE ACTIONS - "Bottom Heavy" layout */}
-        <div className="flex flex-col gap-3">
+        {/* ACTION BAR */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-gray-200">
+          <button
+            onClick={onClose}
+            className="w-full sm:flex-1 h-11 rounded-lg flex items-center justify-center gap-2 bg-gray-100 text-gray-700 font-medium text-sm hover:bg-gray-200 transition-all active:scale-[0.98]"
+          >
+            <X size={16} />
+            Cancel
+          </button>
+
           <button
             onClick={submit}
             disabled={loading || isUnchanged}
             className={clsx(
-              "w-full h-16 rounded-[24px] font-[900] text-[14px] transition-all duration-500 flex items-center justify-center gap-2",
-              "shadow-[0_20px_40px_-12px_rgba(0,0,0,0.2)]",
-              loading
-                ? "bg-slate-100 text-slate-400"
-                : isUnchanged
-                  ? "bg-slate-50 text-slate-200 opacity-50 cursor-not-allowed shadow-none"
-                  : "bg-black text-white hover:scale-[1.02] active:scale-95 active:bg-slate-900",
+              "w-full sm:flex-[1.5] h-11 rounded-lg flex items-center justify-center gap-2 font-semibold text-sm transition-all active:scale-[0.98]",
+              loading || isUnchanged
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white hover:shadow-md",
             )}
           >
             {loading ? (
-              <Loader2 className="animate-spin" size={20} strokeWidth={3} />
+              <Loader2 className="animate-spin" size={16} />
             ) : (
-              "Confirm & Update"
+              <>
+                <Save size={16} />
+                Update
+              </>
             )}
-          </button>
-
-          <button
-            onClick={onClose}
-            className="w-full h-12 flex items-center justify-center gap-2 text-[12px] font-bold text-slate-400 hover:text-black transition-all"
-          >
-            Cancel
           </button>
         </div>
       </div>

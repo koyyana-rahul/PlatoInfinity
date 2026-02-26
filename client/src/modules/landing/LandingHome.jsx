@@ -26,7 +26,7 @@ const LandingHome = () => {
         <LandingContact />
         <LandingCTA />
       </main>
-      <LandingFooter />
+      <LandingFooter scrollToSection={scrollToSection} />
     </div>
   );
 };
