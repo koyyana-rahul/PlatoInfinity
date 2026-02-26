@@ -56,21 +56,21 @@ export default function AdminStaffStatus() {
     filter === "all" ? staffList : staffList.filter((s) => s.role === filter);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50 to-slate-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-white p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-gray-200">
           <div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900">
-              👥 Team Status
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900">
+              👥 Team Status & Performance
             </h1>
-            <p className="text-sm sm:text-base text-slate-600 mt-2">
-              Monitor all staff members and their performance metrics
+            <p className="text-sm sm:text-base text-gray-600 mt-2">
+              Monitor all staff members and their live performance metrics
             </p>
           </div>
           <button
             onClick={fetchStaffStatus}
-            className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:shadow-lg hover:shadow-emerald-500/30 transition-all font-semibold w-full sm:w-auto justify-center sm:justify-start"
+            className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:shadow-lg hover:shadow-indigo-500/30 transition-all font-semibold w-full sm:w-auto justify-center sm:justify-start"
           >
             <FiRefreshCw size={18} />
             Refresh Data

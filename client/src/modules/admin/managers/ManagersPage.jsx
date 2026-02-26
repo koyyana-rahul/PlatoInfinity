@@ -110,51 +110,49 @@ export default function ManagersPage() {
   const invitedCount = managers.length - activeCount;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-4 md:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-5 sm:space-y-6">
         {/* ================= HEADER ================= */}
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-3 sm:space-y-4">
           {/* Back Button */}
           <button
             onClick={() => navigate(`/${brandSlug}/admin/restaurants`)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg transition"
+            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition font-medium text-sm"
           >
-            <FiArrowLeft size={18} />
-            <span className="text-sm font-semibold">Back</span>
+            <FiArrowLeft size={16} />
+            Back to Restaurants
           </button>
 
           {/* Main Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
-                👥 Manager Access
+              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-1">
+                Manager Access Control
               </h1>
-              <p className="text-slate-600 mt-2">
+              <p className="text-sm text-gray-600">
                 {restaurant?.name || "Restaurant"} • Manage administrative
                 access
               </p>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3">
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white hover:bg-gray-50 text-gray-700 rounded-lg transition font-medium text-sm border border-gray-200 shadow-sm disabled:opacity-50"
               >
                 <FiRefreshCw
-                  size={18}
+                  size={16}
                   className={refreshing ? "animate-spin" : ""}
                 />
-                <span className="hidden sm:inline text-sm font-semibold">
-                  Refresh
-                </span>
+                <span className="hidden sm:inline">Refresh</span>
               </button>
 
               <button
                 onClick={() => setOpenInvite(true)}
-                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 sm:px-6 py-3 rounded-lg font-bold text-sm sm:text-base transition shadow-lg hover:shadow-xl"
+                className="flex items-center gap-2 bg-gradient-to-r from-[#FC8019] to-[#FF6B35] hover:shadow-lg text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg font-semibold text-sm transition-all shadow-md active:scale-[0.98]"
               >
-                <FiPlus size={20} />
+                <FiPlus size={18} strokeWidth={2.5} />
                 <span className="hidden sm:inline">Invite Manager</span>
                 <span className="sm:hidden">Add</span>
               </button>
@@ -164,27 +162,30 @@ export default function ManagersPage() {
 
         {/* ================= STATISTICS ================= */}
         {!loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <StatCard
               icon={FiUsers}
               label="Total Managers"
               value={managers.length}
-              bgColor="bg-blue-50"
+              bgColor="bg-gradient-to-br from-blue-50 to-blue-100/50"
               textColor="text-blue-600"
+              borderColor="border-blue-200"
             />
             <StatCard
               icon={FiUserCheck}
               label="Active Managers"
               value={activeCount}
-              bgColor="bg-emerald-50"
-              textColor="text-emerald-600"
+              bgColor="bg-gradient-to-br from-green-50 to-green-100/50"
+              textColor="text-green-600"
+              borderColor="border-green-200"
             />
             <StatCard
               icon={FiClock}
               label="Pending Invites"
               value={invitedCount}
-              bgColor="bg-orange-50"
-              textColor="text-orange-600"
+              bgColor="bg-gradient-to-br from-orange-50 to-orange-100/50"
+              textColor="text-[#FC8019]"
+              borderColor="border-orange-200"
             />
           </div>
         )}
@@ -196,13 +197,11 @@ export default function ManagersPage() {
           ) : managers.length === 0 ? (
             <EmptyState onInvite={() => setOpenInvite(true)} />
           ) : (
-            <div className="animate-in slide-in-from-bottom-3 duration-500">
-              <ManagerTable
-                managers={managers}
-                onResend={handleResend}
-                onRemove={(m) => setRemoveTarget(m)}
-              />
-            </div>
+            <ManagerTable
+              managers={managers}
+              onResend={handleResend}
+              onRemove={(m) => setRemoveTarget(m)}
+            />
           )}
         </div>
       </div>
@@ -231,24 +230,27 @@ export default function ManagersPage() {
 /**
  * Statistic Card Component
  */
-function StatCard({ icon: Icon, label, value, bgColor, textColor }) {
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  bgColor,
+  textColor,
+  borderColor,
+}) {
   return (
     <div
-      className={`${bgColor} rounded-xl border border-slate-200 p-4 sm:p-6 hover:shadow-lg transition group`}
+      className={`${bgColor} rounded-xl p-4 sm:p-5 border ${borderColor} shadow-sm transition-all hover:shadow-md`}
     >
-      <div className="flex items-center gap-3 sm:gap-4">
-        <div
-          className={`${textColor} p-3 rounded-lg group-hover:scale-110 transition`}
-        >
-          <Icon size={24} />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex-1">
+          <p className="text-xs font-medium text-gray-600 mb-1">{label}</p>
+          <p className="text-2xl sm:text-3xl font-bold">
+            <span className={textColor}>{value}</span>
+          </p>
         </div>
-        <div>
-          <p className="text-xs sm:text-sm font-semibold text-slate-600">
-            {label}
-          </p>
-          <p className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">
-            {value}
-          </p>
+        <div className={`p-3 rounded-lg ${textColor} opacity-60`}>
+          <Icon size={24} />
         </div>
       </div>
     </div>
@@ -260,11 +262,11 @@ function StatCard({ icon: Icon, label, value, bgColor, textColor }) {
  */
 function LoadingState() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
       {[...Array(6)].map((_, i) => (
         <div
           key={i}
-          className="h-48 bg-white rounded-xl border border-slate-200 animate-pulse"
+          className="h-48 bg-white rounded-xl border border-gray-200 animate-pulse"
         />
       ))}
     </div>
@@ -276,21 +278,21 @@ function LoadingState() {
  */
 function EmptyState({ onInvite }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 text-center">
-      <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-        <FiUsers size={32} className="text-slate-300" />
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 sm:p-12 text-center max-w-md mx-auto">
+      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gray-50 text-gray-300 flex items-center justify-center mx-auto mb-4 sm:mb-5 border-2 border-gray-200">
+        <FiUsers size={32} />
       </div>
-      <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
+      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
         No managers yet
       </h3>
-      <p className="text-slate-600 max-w-sm mx-auto mb-6">
+      <p className="text-sm text-gray-600 max-w-sm mx-auto mb-6">
         Invite your first manager to manage this restaurant and its operations
       </p>
       <button
         onClick={onInvite}
-        className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-bold transition"
+        className="inline-flex items-center gap-2 bg-gradient-to-r from-[#FC8019] to-[#FF6B35] hover:shadow-lg text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold text-sm transition-all shadow-md active:scale-[0.98]"
       >
-        <FiPlus size={20} />
+        <FiPlus size={18} strokeWidth={2.5} />
         Invite Manager
       </button>
     </div>

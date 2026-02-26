@@ -49,66 +49,75 @@ export default function InviteManagerModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-3 sm:p-4">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
       {/* BACKDROP */}
       <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-500"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* CENTERED MODAL CARD */}
-      <div className="relative bg-white w-full max-w-md rounded-[32px] sm:rounded-[40px] shadow-[0_40px_100px_-20px_rgba(15,23,42,0.3)] overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[92vh] border border-slate-100">
-        {/* HEADER - Tightened for Mobile */}
-        <div className="px-5 py-4 sm:px-8 sm:py-6 border-b border-slate-50 flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-900 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shrink-0">
-              <FiUserPlus size={18} className="sm:w-5 sm:h-5" />
+      <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-gray-200">
+        {/* HEADER */}
+        <div className="px-5 sm:px-6 py-4 border-b border-gray-200 flex justify-between items-center shrink-0 bg-white">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#FC8019] to-[#FF6B35] rounded-xl flex items-center justify-center shadow-md">
+              <FiUserPlus size={18} className="text-white" />
             </div>
             <div>
-              <h2 className="text-base sm:text-xl font-black text-slate-900 tracking-tight uppercase leading-none">
-                Invite
+              <h2 className="text-lg font-semibold text-gray-900">
+                Invite Manager
               </h2>
-              <p className="text-[9px] sm:text-[10px] font-black text-emerald-600 uppercase tracking-[0.15em] mt-1">
-                Authorization
+              <p className="text-xs text-gray-500 mt-0.5">
+                Send invitation email
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-slate-300 hover:text-slate-900 transition-all active:scale-90"
+            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all"
           >
             <FiX size={20} />
           </button>
         </div>
 
-        {/* CONTENT - Reduced Spacing */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-8 space-y-5 sm:space-y-8">
-          {/* INFO BOX - Condensed for Mobile */}
-          <div className="rounded-2xl sm:rounded-3xl bg-emerald-50/50 border border-emerald-100/50 p-4 sm:p-5 space-y-3">
-            <p className="text-[9px] sm:text-[10px] font-black text-emerald-700 uppercase tracking-widest flex items-center gap-2">
-              <FiCheckCircle size={12} /> Protocol
+        {/* CONTENT */}
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
+          {/* INFO BOX */}
+          <div className="rounded-xl bg-green-50 border border-green-200 p-4 space-y-2">
+            <p className="text-xs font-semibold text-green-700 flex items-center gap-2">
+              <FiCheckCircle size={14} /> Invitation Process
             </p>
-            <div className="space-y-2">
-              <ProtocolStep num="01" text="Email dispatch" />
-              <ProtocolStep num="02" text="Secure setup" />
-              <ProtocolStep num="03" text="Live activation" />
+            <div className="space-y-1.5 text-xs text-green-800">
+              <div className="flex items-center gap-2">
+                <span className="text-green-600 font-bold">1.</span>
+                <span>Email dispatch to manager</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-green-600 font-bold">2.</span>
+                <span>Secure account setup</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-green-600 font-bold">3.</span>
+                <span>Live activation</span>
+              </div>
             </div>
           </div>
 
           {/* FORM FIELDS */}
-          <div className="space-y-4 sm:space-y-5">
-            <div className="space-y-1.5 group">
-              <label className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 group-focus-within:text-emerald-600 transition-colors">
-                Manager Name
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-700 ml-1">
+                Manager Name *
               </label>
               <div className="relative">
                 <FiUser
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={16}
                 />
                 <input
                   autoFocus
-                  className="w-full h-11 sm:h-14 rounded-xl sm:rounded-2xl border border-slate-100 bg-slate-50/50 px-10 sm:px-12 text-sm font-bold text-slate-900 focus:ring-4 sm:focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500 focus:bg-white outline-none transition-all placeholder:text-slate-300 shadow-sm"
+                  className="w-full h-11 rounded-lg border border-gray-300 bg-white pl-10 pr-3.5 text-sm text-gray-900 focus:ring-2 focus:ring-[#FC8019] focus:border-[#FC8019] outline-none transition-all placeholder:text-gray-400"
                   placeholder="e.g. Rahul Sharma"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -116,18 +125,18 @@ export default function InviteManagerModal({
               </div>
             </div>
 
-            <div className="space-y-1.5 group">
-              <label className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 group-focus-within:text-emerald-600 transition-colors">
-                Manager Email
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-700 ml-1">
+                Manager Email *
               </label>
               <div className="relative">
                 <FiMail
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={16}
                 />
                 <input
                   type="email"
-                  className="w-full h-11 sm:h-14 rounded-xl sm:rounded-2xl border border-slate-100 bg-slate-50/50 px-10 sm:px-12 text-sm font-bold text-slate-900 focus:ring-4 sm:focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500 focus:bg-white outline-none transition-all placeholder:text-slate-300 shadow-sm"
+                  className="w-full h-11 rounded-lg border border-gray-300 bg-white pl-10 pr-3.5 text-sm text-gray-900 focus:ring-2 focus:ring-[#FC8019] focus:border-[#FC8019] outline-none transition-all placeholder:text-gray-400"
                   placeholder="manager@company.com"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -137,11 +146,11 @@ export default function InviteManagerModal({
           </div>
         </div>
 
-        {/* FOOTER ACTIONS - Compact and centered on mobile */}
-        <div className="px-5 py-4 sm:px-8 sm:py-6 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between shrink-0 gap-4">
+        {/* FOOTER ACTIONS */}
+        <div className="px-5 sm:px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between shrink-0">
           <button
             onClick={onClose}
-            className="text-[10px] sm:text-[11px] font-black text-slate-400 hover:text-slate-900 uppercase tracking-widest transition-colors"
+            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
           >
             Cancel
           </button>
@@ -150,18 +159,23 @@ export default function InviteManagerModal({
             onClick={submit}
             disabled={loading}
             className={clsx(
-              "h-11 sm:h-14 px-6 sm:px-10 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 sm:gap-3",
+              "flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed",
               loading
-                ? "bg-slate-200 text-slate-500"
-                : "bg-emerald-600 text-white shadow-emerald-200/50 hover:bg-emerald-700",
+                ? "bg-gray-300 text-gray-600"
+                : "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] hover:shadow-lg text-white",
             )}
           >
             {loading ? (
-              <FiLoader className="animate-spin" size={14} />
+              <>
+                <FiLoader className="animate-spin" size={16} />
+                <span>Sending...</span>
+              </>
             ) : (
-              <FiSend size={14} />
+              <>
+                <FiSend size={16} />
+                <span>Send Invite</span>
+              </>
             )}
-            <span>{loading ? "..." : "Send Invite"}</span>
           </button>
         </div>
       </div>

@@ -1,5 +1,6 @@
 // src/controllers/restaurant.controller.js
 import RestaurantModel from "../models/restaurant.model.js";
+import User from "../models/user.model.js";
 import AuditLog from "../models/auditLog.model.js"; // optional
 import axios from "axios";
 
@@ -76,11 +77,27 @@ export async function listRestaurantsController(req, res) {
       brandId: admin.brandId,
       isArchived: false,
     }).lean();
+
+    // Add manager count for each restaurant
+    const restaurantsWithManagerCount = await Promise.all(
+      restaurants.map(async (restaurant) => {
+        const managerCount = await User.countDocuments({
+          restaurantId: restaurant._id,
+          role: "MANAGER",
+          isActive: true,
+        });
+        return {
+          ...restaurant,
+          managerCount,
+        };
+      }),
+    );
+
     return res.json({
       message: "restaurants",
       error: false,
       success: true,
-      data: restaurants,
+      data: restaurantsWithManagerCount,
     });
   } catch (err) {
     console.error("listRestaurantsController error:", err);
@@ -109,9 +126,19 @@ export async function getRestaurantByIdController(req, res) {
       });
     }
 
+    // Add manager count
+    const managerCount = await User.countDocuments({
+      restaurantId: restaurant._id,
+      role: "MANAGER",
+      isActive: true,
+    });
+
     return res.json({
       success: true,
-      data: restaurant,
+      data: {
+        ...restaurant,
+        managerCount,
+      },
     });
   } catch (err) {
     console.error("getRestaurantByIdController:", err);

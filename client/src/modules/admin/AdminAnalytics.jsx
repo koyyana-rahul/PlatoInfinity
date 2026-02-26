@@ -42,10 +42,10 @@ export default function AdminAnalytics() {
   };
 
   const StatCard = ({ icon: Icon, label, value, unit, trend }) => (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg hover:shadow-slate-300/30 transition-all duration-300">
+    <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg hover:shadow-gray-200/50 transition-all duration-300">
       <div className="flex items-start justify-between mb-4">
-        <div className="p-3 bg-gradient-to-br from-blue-100 to-blue-50 rounded-lg">
-          <Icon size={24} className="text-blue-600" />
+        <div className="p-3 bg-gradient-to-br from-indigo-100 to-blue-50 rounded-lg">
+          <Icon size={24} className="text-indigo-600" />
         </div>
         {trend !== undefined && (
           <span
@@ -59,30 +59,30 @@ export default function AdminAnalytics() {
           </span>
         )}
       </div>
-      <p className="text-slate-600 text-sm font-semibold mb-2">{label}</p>
+      <p className="text-gray-600 text-sm font-semibold mb-2">{label}</p>
       <div className="flex items-baseline gap-2">
-        <p className="text-3xl font-bold text-slate-900">{value}</p>
-        {unit && <p className="text-slate-500 text-xs font-medium">{unit}</p>}
+        <p className="text-3xl font-bold text-gray-900">{value}</p>
+        {unit && <p className="text-gray-500 text-xs font-medium">{unit}</p>}
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-white p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-gray-200">
           <div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900">
-              📊 Analytics
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900">
+              📊 Analytics & Performance
             </h1>
-            <p className="text-sm sm:text-base text-slate-600 mt-2">
-              Monitor your business performance and key metrics
+            <p className="text-sm sm:text-base text-gray-600 mt-2">
+              Track your business metrics and KPIs in real-time
             </p>
           </div>
           <button
             onClick={fetchAnalytics}
-            className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg hover:shadow-lg hover:shadow-indigo-500/30 transition-all font-semibold w-full sm:w-auto justify-center sm:justify-start"
+            className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:shadow-lg hover:shadow-indigo-500/30 transition-all font-semibold w-full sm:w-auto justify-center sm:justify-start"
           >
             <FiRefreshCw size={18} />
             Refresh Data
@@ -90,15 +90,15 @@ export default function AdminAnalytics() {
         </div>
 
         {/* Time Range Filter */}
-        <div className="flex flex-wrap gap-2 sm:gap-3 bg-white rounded-lg p-4 sm:p-6 border border-slate-200 shadow-sm">
+        <div className="flex flex-wrap gap-2 sm:gap-3 bg-gray-50 rounded-xl p-4 sm:p-6 border border-gray-200">
           {["today", "week", "month"].map((range) => (
             <button
               key={range}
               onClick={() => setTimeRange(range)}
               className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold text-sm transition-all capitalize ${
                 timeRange === range
-                  ? "bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg shadow-indigo-500/30"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-500/30"
+                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
               }`}
             >
               {range === "today" && "📅"}

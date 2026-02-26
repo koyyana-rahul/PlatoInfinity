@@ -16,9 +16,9 @@ import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import { LogOut, Lock, Clock, CheckCircle, Flame, Heart } from "lucide-react";
 
-import Axios from "../api/axios";
-import { setUserDetails, logout } from "../store/auth/userSlice";
-import socket from "../socket/socket";
+import Axios from "../../api/axios";
+import { setUserDetails, logout } from "../../store/auth/userSlice";
+import { socketService } from "../../api/socket.service";
 
 export function ChefKitchenApp() {
   const dispatch = useDispatch();
@@ -66,7 +66,7 @@ export function ChefKitchenApp() {
         );
 
         // Join socket room for this station
-        socket.emit("join-room", {
+        socketService.emit("join-room", {
           room: `restaurant:${response.data.data.restaurantId}:kitchen`,
           stationId: response.data.data.kitchenStationId,
         });
@@ -169,7 +169,7 @@ export function ChefKitchenApp() {
   useEffect(() => {
     if (!user) return;
 
-    socket.on("order:placed", (data) => {
+    socketService.on("order:placed", (data) => {
       // Check if any items are for this station
       const itemsForStation = data.items?.filter(
         (item) => item.stationType === user?.kitchenStationId?.stationType,
@@ -195,7 +195,7 @@ export function ChefKitchenApp() {
     });
 
     return () => {
-      socket.off("order:placed");
+      socketService.off("order:placed");
     };
   }, [user]);
 

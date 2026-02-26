@@ -76,71 +76,70 @@ export default function CreateRestaurantModal({ onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6">
-      {/* 1. BLURRED BACKDROP - Higher blur for focus */}
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      {/* BACKDROP */}
       <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-500"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* 2. CENTERED MODAL CARD - Mobile Friendly Geometry */}
-      <div className="relative bg-white w-full max-w-2xl rounded-[32px] sm:rounded-[40px] shadow-[0_40px_100px_-20px_rgba(15,23,42,0.3)] overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[85vh] sm:max-h-[90vh] border border-slate-100">
-        {/* HEADER: EXECUTIVE STYLE */}
-        <div className="px-6 py-5 sm:px-8 sm:py-6 border-b border-slate-50 flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-900 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-slate-200">
-              <FiLayers size={20} className="sm:w-6 sm:h-6" />
+      {/* MODAL CARD */}
+      <div className="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-gray-200">
+        {/* HEADER */}
+        <div className="px-5 sm:px-6 py-4 border-b border-gray-200 flex justify-between items-center shrink-0 bg-white">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#FC8019] to-[#FF6B35] rounded-xl flex items-center justify-center shadow-md">
+              <FiLayers size={20} className="text-white" />
             </div>
             <div>
-              <h2 className="text-base sm:text-xl font-black text-slate-900 tracking-tight leading-none uppercase">
-                Establish Unit
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                Add New Restaurant
               </h2>
-              <p className="text-[9px] sm:text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mt-1.5 flex items-center gap-1 leading-none">
-                <FiActivity size={10} className="animate-pulse" /> Live
-                Registration
+              <p className="text-xs text-gray-500 mt-0.5">
+                Create a new restaurant location
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl hover:bg-slate-50 text-slate-300 hover:text-slate-900 transition-all active:scale-90"
+            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all"
           >
-            <FiX size={20} className="sm:w-6 sm:h-6" />
+            <FiX size={20} />
           </button>
         </div>
 
         {/* SCROLLABLE CONTENT */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8 space-y-8 sm:space-y-10">
-          {/* IDENTITY SUB-SECTION */}
-          <div className="space-y-5 sm:space-y-6">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+          {/* IDENTITY SECTION */}
+          <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <FiInfo className="text-slate-300" size={12} />
-              <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                Entity Identity
+              <FiInfo className="text-[#FC8019]" size={16} />
+              <p className="text-sm font-semibold text-gray-700">
+                Restaurant Details
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-              <div className="space-y-2 group">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 group-focus-within:text-emerald-600 transition-colors">
-                  Display Name
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-gray-700 ml-1">
+                  Restaurant Name *
                 </label>
                 <input
                   autoFocus
-                  className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl border border-slate-100 bg-slate-50/50 px-4 sm:px-6 text-sm font-bold text-slate-900 focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500 focus:bg-white outline-none transition-all placeholder:text-slate-300 shadow-sm"
-                  placeholder="Official Unit Name"
+                  className="w-full h-11 rounded-lg border border-gray-300 bg-white px-3.5 text-sm text-gray-900 focus:ring-2 focus:ring-[#FC8019] focus:border-[#FC8019] outline-none transition-all placeholder:text-gray-400"
+                  placeholder="Enter restaurant name"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
               </div>
-              <div className="space-y-2 group">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 group-focus-within:text-emerald-600 transition-colors">
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-gray-700 ml-1">
                   Contact Phone
                 </label>
                 <input
                   type="tel"
-                  className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl border border-slate-100 bg-slate-50/50 px-4 sm:px-6 text-sm font-bold text-slate-900 focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500 focus:bg-white outline-none transition-all placeholder:text-slate-300 shadow-sm"
-                  placeholder="Primary Contact"
+                  className="w-full h-11 rounded-lg border border-gray-300 bg-white px-3.5 text-sm text-gray-900 focus:ring-2 focus:ring-[#FC8019] focus:border-[#FC8019] outline-none transition-all placeholder:text-gray-400"
+                  placeholder="Phone number"
                   value={form.phone}
                   onChange={(e) =>
                     setForm({
@@ -153,16 +152,16 @@ export default function CreateRestaurantModal({ onClose, onSuccess }) {
             </div>
           </div>
 
-          {/* GEOGRAPHY SUB-SECTION */}
-          <div className="space-y-5 sm:space-y-6">
+          {/* ADDRESS SECTION */}
+          <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <FiMapPin className="text-slate-300" size={12} />
-              <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                Regional Assignment
+              <FiMapPin className="text-[#FC8019]" size={16} />
+              <p className="text-sm font-semibold text-gray-700">
+                Location Information
               </p>
             </div>
 
-            <div className="bg-slate-50/30 p-5 sm:p-8 rounded-[24px] sm:rounded-[32px] border border-slate-100/50 shadow-inner">
+            <div className="bg-white p-4 sm:p-5 rounded-xl border border-gray-200">
               <IndiaAddressForm
                 value={form.address}
                 onChange={handleAddressChange}
@@ -171,36 +170,36 @@ export default function CreateRestaurantModal({ onClose, onSuccess }) {
           </div>
         </div>
 
-        {/* FOOTER ACTIONS - Fixed at bottom */}
-        <div className="px-6 py-5 sm:px-8 sm:py-6 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between shrink-0">
+        {/* FOOTER ACTIONS */}
+        <div className="px-5 sm:px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between shrink-0">
           <button
             onClick={onClose}
-            className="text-[10px] sm:text-[11px] font-black text-slate-400 hover:text-slate-900 uppercase tracking-widest transition-colors py-2"
+            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
           >
-            Abort
+            Cancel
           </button>
 
           <button
             onClick={submit}
             disabled={loading}
             className={clsx(
-              "h-12 sm:h-14 px-6 sm:px-10 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-xl active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 sm:gap-3",
+              "flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed",
               loading
-                ? "bg-slate-200 text-slate-500"
-                : "bg-emerald-600 text-white shadow-emerald-200/50 hover:bg-emerald-700 hover:shadow-emerald-300/40",
+                ? "bg-gray-300 text-gray-600"
+                : "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] hover:shadow-lg text-white",
             )}
           >
             {loading ? (
-              <FiLoader className="animate-spin" size={14} />
+              <>
+                <FiLoader className="animate-spin" size={16} />
+                <span>Creating...</span>
+              </>
             ) : (
-              <FiPlus size={16} strokeWidth={3} />
+              <>
+                <FiPlus size={16} strokeWidth={2.5} />
+                <span>Create Restaurant</span>
+              </>
             )}
-            <span className="hidden xs:inline">
-              {loading ? "Establishing..." : "Commit Unit"}
-            </span>
-            <span className="xs:hidden">
-              {loading ? "Wait..." : "Establish"}
-            </span>
           </button>
         </div>
       </div>

@@ -23,9 +23,9 @@ import {
   Eye,
 } from "lucide-react";
 
-import Axios from "../api/axios";
-import { setUserDetails, logout } from "../store/auth/userSlice";
-import socket from "../socket/socket";
+import Axios from "../../api/axios";
+import { setUserDetails, logout } from "../../store/auth/userSlice";
+import { socketService } from "../../api/socket.service";
 
 export function CashierApp() {
   const dispatch = useDispatch();
@@ -73,7 +73,7 @@ export function CashierApp() {
         toast.success(`Welcome, ${response.data.data.name}!`);
 
         // Join socket room
-        socket.emit("join-room", {
+        socketService.emit("join-room", {
           room: `restaurant:${response.data.data.restaurantId}:cashier`,
         });
 

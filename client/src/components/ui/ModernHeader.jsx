@@ -5,8 +5,8 @@ import Button from "../ui/Button";
 
 /**
  * ModernHeader Component
- * 2026 "Savory Modern" Design System
- * Responsive header with mobile-first navigation
+ * 2026 Professional Design - Swiggy/Zomato Style
+ * Fully responsive header with mobile-first navigation
  */
 export default function ModernHeader({
   logo = null,
@@ -24,68 +24,47 @@ export default function ModernHeader({
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const bgClass =
-    variant === "dark" ? "bg-text-primary text-white" : "bg-bg-secondary";
-  const borderClass =
-    variant === "dark" ? "border-gray-700" : "border-gray-100";
-  const logoCircleClass =
-    variant === "dark"
-      ? "bg-brand-cta text-white ring-gray-700"
-      : "bg-brand-cta text-white ring-gray-200";
+  const bgClass = variant === "dark" ? "bg-gray-900 text-white" : "bg-white";
+  const shadowClass = "shadow-[0_2px_8px_rgba(0,0,0,0.08)]";
 
   return (
     <>
-      {/* Desktop Header */}
+      {/* Header */}
       <header
         className={clsx(
-          "header transition-all duration-300",
+          "h-14 sm:h-16 transition-all duration-200",
           bgClass,
-          "border-b",
-          borderClass,
+          shadowClass,
+          "backdrop-blur-md",
           sticky && "sticky top-0",
           "z-40",
         )}
       >
-        <div className="container-safe">
-          <div className="flex items-center justify-between gap-4 py-4 sm:py-3 md:py-4">
+        <div className="h-full w-full px-3 sm:px-4 md:px-6 lg:px-8">
+          <div className="h-full flex items-center justify-between gap-3 sm:gap-4">
             {/* Logo & Title */}
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               {logo ? (
-                <div
-                  className={clsx(
-                    "w-10 h-10 sm:w-12 sm:h-12 rounded-full ring-2 ring-offset-2 overflow-hidden flex-shrink-0",
-                    logoCircleClass,
-                  )}
-                >
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg overflow-hidden bg-white border border-gray-100 shadow-sm flex-shrink-0">
                   <img
                     src={logo}
                     alt="Logo"
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain p-0.5"
                     loading="lazy"
                   />
                 </div>
               ) : (
-                <div
-                  className={clsx(
-                    "w-10 h-10 sm:w-12 sm:h-12 rounded-full ring-2 ring-offset-2 flex items-center justify-center font-bold text-sm sm:text-base flex-shrink-0",
-                    logoCircleClass,
-                  )}
-                >
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-br from-[#FC8019] to-[#FF6B35] text-white flex items-center justify-center font-semibold text-xs sm:text-sm shadow-md flex-shrink-0">
                   {title.charAt(0).toUpperCase()}
                 </div>
               )}
 
-              <div className="flex-shrink-0 min-w-0">
-                <p className="text-sm sm:text-base font-bold truncate">
+              <div className="min-w-0">
+                <p className="text-sm sm:text-base font-semibold text-gray-900 truncate leading-tight">
                   {title}
                 </p>
                 {subtitle && (
-                  <p
-                    className={clsx(
-                      "text-xs hidden sm:block truncate",
-                      variant === "dark" ? "text-gray-300" : "text-gray-500",
-                    )}
-                  >
+                  <p className="text-[10px] sm:text-xs text-gray-500 truncate hidden sm:block">
                     {subtitle}
                   </p>
                 )}
@@ -94,23 +73,23 @@ export default function ModernHeader({
 
             {/* Search Bar (Desktop Only) */}
             {showSearch && (
-              <div className="hidden md:flex flex-1 max-w-sm mx-4">
+              <div className="hidden lg:flex flex-1 max-w-md">
                 <input
                   type="search"
                   placeholder="Search dishes..."
                   onChange={(e) => onSearch?.(e.target.value)}
-                  className="w-full px-4 py-2 rounded-full border border-gray-200 text-sm focus:ring-2 focus:ring-brand-cta focus:border-transparent"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-[#FC8019] focus:border-transparent transition-all"
                 />
               </div>
             )}
 
             {/* Desktop Actions & Navigation */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-1 sm:gap-2 flex-shrink-0">
               {navItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={item.onClick}
-                  className="px-4 py-2 text-sm font-medium transition-colors hover:text-brand-cta"
+                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-[#FC8019] hover:bg-orange-50 rounded-lg transition-colors"
                 >
                   {item.label}
                 </button>
@@ -119,18 +98,17 @@ export default function ModernHeader({
               {/* Cart Button */}
               {onCartClick && (
                 <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="md"
+                  <button
                     onClick={onCartClick}
-                    Icon={ShoppingCart}
+                    className="p-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors relative"
                   >
+                    <ShoppingCart size={20} />
                     {cartCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-brand-cta text-white text-xs font-bold rounded-full flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md">
                         {cartCount > 9 ? "9+" : cartCount}
                       </span>
                     )}
-                  </Button>
+                  </button>
                 </div>
               )}
 
@@ -139,7 +117,7 @@ export default function ModernHeader({
                 <Button
                   key={action.id}
                   variant={action.variant || "secondary"}
-                  size="md"
+                  size="sm"
                   onClick={action.onClick}
                   Icon={action.icon}
                 >
@@ -152,31 +130,30 @@ export default function ModernHeader({
             <div className="flex md:hidden items-center gap-2 flex-shrink-0">
               {onCartClick && (
                 <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
                     onClick={onCartClick}
-                    Icon={ShoppingCart}
-                    className="p-2"
-                  />
-                  {cartCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-brand-cta text-white text-xs font-bold rounded-full flex items-center justify-center">
-                      {cartCount > 9 ? "9+" : cartCount}
-                    </span>
-                  )}
+                    className="p-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors relative flex-shrink-0"
+                  >
+                    <ShoppingCart size={18} />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-md">
+                        {cartCount > 9 ? "9+" : cartCount}
+                      </span>
+                    )}
+                  </button>
                 </div>
               )}
 
               {/* Mobile Menu Toggle */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="btn-icon p-2 active:scale-95 transition"
+                className="p-2 text-gray-700 hover:bg-gray-50 active:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
                 aria-label="Toggle menu"
               >
                 {isMobileMenuOpen ? (
-                  <X className="w-5 h-5" />
+                  <X size={20} strokeWidth={2.5} />
                 ) : (
-                  <Menu className="w-5 h-5" />
+                  <Menu size={20} strokeWidth={2.5} />
                 )}
               </button>
             </div>
@@ -184,12 +161,12 @@ export default function ModernHeader({
 
           {/* Mobile Search */}
           {showSearch && (
-            <div className="md:hidden pb-3">
+            <div className="lg:hidden pb-3">
               <input
                 type="search"
                 placeholder="Search dishes..."
                 onChange={(e) => onSearch?.(e.target.value)}
-                className="w-full px-4 py-2 rounded-full border border-gray-200 text-sm focus:ring-2 focus:ring-brand-cta focus:border-transparent"
+                className="w-full px-4 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-[#FC8019] focus:border-transparent transition-all"
               />
             </div>
           )}
@@ -199,10 +176,7 @@ export default function ModernHeader({
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div
-          className={clsx(
-            "fixed inset-0 z-30 mt-0",
-            variant === "dark" ? "bg-black/50" : "bg-black/30",
-          )}
+          className="fixed inset-0 z-30 bg-black/30 backdrop-blur-sm"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
@@ -211,14 +185,13 @@ export default function ModernHeader({
       {isMobileMenuOpen && (
         <nav
           className={clsx(
-            "fixed top-16 left-0 right-0 z-30 max-h-[calc(100vh-64px)] overflow-y-auto",
+            "fixed top-14 sm:top-16 left-0 right-0 z-40 max-h-[calc(100vh-56px)] sm:max-h-[calc(100vh-64px)] overflow-y-auto",
             bgClass,
-            "border-b",
-            borderClass,
+            "shadow-lg",
             "md:hidden",
           )}
         >
-          <div className="container-safe py-4 space-y-2">
+          <div className="px-3 sm:px-4 py-3 space-y-1">
             {navItems.map((item) => (
               <button
                 key={item.id}
@@ -226,7 +199,7 @@ export default function ModernHeader({
                   item.onClick();
                   setIsMobileMenuOpen(false);
                 }}
-                className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors font-medium text-sm"
+                className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm text-gray-700"
               >
                 {item.label}
               </button>
@@ -243,9 +216,11 @@ export default function ModernHeader({
                   action.onClick();
                   setIsMobileMenuOpen(false);
                 }}
-                className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors font-medium text-sm flex items-center gap-2"
+                className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm text-gray-700 flex items-center gap-3"
               >
-                {action.icon && <action.icon className="w-4 h-4" />}
+                {action.icon && (
+                  <action.icon className="w-5 h-5 text-[#FC8019]" />
+                )}
                 {action.label}
               </button>
             ))}

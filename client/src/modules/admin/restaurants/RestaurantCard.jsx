@@ -1,11 +1,5 @@
 import clsx from "clsx";
-import {
-  FiMapPin,
-  FiPhone,
-  FiUsers,
-  FiTrash2,
-  FiEye,
-} from "react-icons/fi";
+import { FiMapPin, FiPhone, FiUsers, FiTrash2, FiEye } from "react-icons/fi";
 
 /**
  * Restaurant Card Component - Professional design with responsive actions
@@ -19,10 +13,10 @@ export default function RestaurantCard({
   // Loading skeleton
   if (!data) {
     return (
-      <div className="bg-white rounded-3xl p-5 animate-pulse space-y-3 shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.05)]">
-        <div className="h-6 w-32 bg-slate-200 rounded-lg" />
-        <div className="h-4 w-24 bg-slate-100 rounded" />
-        <div className="h-4 w-28 bg-slate-100 rounded" />
+      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 animate-pulse space-y-3 shadow-sm">
+        <div className="h-5 w-32 bg-gray-200 rounded" />
+        <div className="h-4 w-24 bg-gray-100 rounded" />
+        <div className="h-4 w-28 bg-gray-100 rounded" />
       </div>
     );
   }
@@ -32,63 +26,55 @@ export default function RestaurantCard({
   return (
     <div
       className={clsx(
-        "group relative animate-in fade-in zoom-in-95 duration-500",
-        "bg-white rounded-3xl transition-all duration-300 overflow-hidden shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.05)] hover:scale-[1.02]",
+        "group relative bg-white rounded-xl border transition-all duration-200 overflow-hidden hover:shadow-md active:scale-[0.99]",
         isActive
-          ? ""
-          : "opacity-75",
+          ? "border-gray-200 shadow-sm hover:border-[#FC8019]/30"
+          : "border-gray-200 opacity-60",
       )}
     >
       {/* HEADER SECTION */}
-      <div
-        className={`px-4 sm:px-5 py-3 sm:py-4 border-b transition-colors ${
-          isActive
-            ? "bg-[#F35C2B]/[0.06] border-[#F35C2B]/20"
-            : "bg-slate-50/60 border-slate-100"
-        }`}
-      >
+      <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100">
         <div className="flex items-start gap-3 justify-between">
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate line-clamp-2 group-hover:text-[#F35C2B] transition">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1.5 group-hover:text-[#FC8019] transition-colors break-words line-clamp-2">
               {data.name}
             </h3>
-            <div className="flex items-center gap-2 mt-1.5">
+            <div className="flex items-center gap-2">
               <span
                 className={clsx(
-                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-bold whitespace-nowrap",
+                  "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium",
                   isActive
-                    ? "bg-[#F35C2B]/15 text-[#F35C2B]"
-                    : "bg-red-100 text-red-700",
+                    ? "bg-green-50 text-green-700 border border-green-200"
+                    : "bg-red-50 text-red-700 border border-red-200",
                 )}
               >
                 <span
-                  className={`w-1 h-1 rounded-full ${isActive ? "bg-[#F35C2B]" : "bg-red-600"}`}
+                  className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-green-500" : "bg-red-500"}`}
                 />
                 {isActive ? "Active" : "Inactive"}
               </span>
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl shrink-0">🏪</div>
+          <div className="text-2xl shrink-0">🏪</div>
         </div>
       </div>
 
       {/* CONTENT SECTION */}
-      <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-2.5">
+      <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-3">
         {/* Address */}
         {data.addressText && (
-          <div className="flex gap-2 text-xs sm:text-sm">
+          <div className="flex gap-2.5 text-sm">
             <FiMapPin
-              className="flex-shrink-0 text-[#F35C2B] mt-0.5"
-              size={14}
-              strokeWidth={2.5}
+              className="flex-shrink-0 text-gray-400 mt-0.5"
+              size={16}
             />
             <div className="flex-1 min-w-0">
-              <p className="text-slate-700 font-medium line-clamp-2">
+              <p className="text-gray-700 leading-relaxed break-words line-clamp-3">
                 {data.addressText}
               </p>
               {data.meta?.address?.pincode && (
-                <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 font-semibold">
-                  📮 {data.meta.address.pincode}
+                <p className="text-xs text-gray-500 mt-1 font-medium">
+                  PIN: {data.meta.address.pincode}
                 </p>
               )}
             </div>
@@ -97,15 +83,11 @@ export default function RestaurantCard({
 
         {/* Phone */}
         {data.phone && (
-          <div className="flex gap-2 items-center text-xs sm:text-sm">
-            <FiPhone
-              className="text-blue-600 flex-shrink-0 sm:w-4 sm:h-4"
-              size={14}
-              strokeWidth={2.5}
-            />
+          <div className="flex gap-2.5 items-center text-sm">
+            <FiPhone className="text-gray-400 flex-shrink-0" size={16} />
             <a
               href={`tel:${data.phone}`}
-              className="text-slate-700 hover:text-blue-600 transition font-semibold truncate"
+              className="text-gray-700 hover:text-[#FC8019] transition-colors font-medium break-all"
             >
               {data.phone}
             </a>
@@ -114,38 +96,34 @@ export default function RestaurantCard({
       </div>
 
       {/* ACTION BUTTONS */}
-      <div
-        className={`px-4 sm:px-5 py-3 sm:py-4 border-t transition-colors ${
-          isActive
-            ? "bg-slate-50/50 border-[#F35C2B]/15"
-            : "bg-slate-50/30 border-slate-100"
-        } flex items-center gap-2 sm:gap-3 flex-wrap`}
-      >
-        <button
-          onClick={onView}
-          className="flex-1 min-w-[80px] flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-semibold text-[11px] sm:text-xs transition-all active:scale-95"
-          title="View details"
-        >
-          <FiEye size={12} className="sm:w-4 sm:h-4" strokeWidth={2.5} />
-          <span className="hidden sm:inline">View</span>
-        </button>
+      <div className="px-4 sm:px-5 py-3 sm:py-3.5 bg-gray-50 border-t border-gray-100">
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <button
+            onClick={onView}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-xs transition-all border border-gray-200 active:scale-[0.98]"
+            title="View details"
+          >
+            <FiEye size={14} />
+            <span>View</span>
+          </button>
 
-        <button
-          onClick={onManageManagers}
-          className="flex-1 min-w-[80px] flex items-center justify-center gap-1 px-3 py-2 bg-[#F35C2B] hover:brightness-95 text-white rounded-2xl font-semibold text-[11px] sm:text-xs transition-all active:scale-95"
-          title="Manage managers"
-        >
-          <FiUsers size={12} className="sm:w-4 sm:h-4" strokeWidth={2.5} />
-          <span className="hidden sm:inline">Managers</span>
-        </button>
+          <button
+            onClick={onManageManagers}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-[#FC8019] to-[#FF6B35] hover:shadow-md text-white rounded-lg font-semibold text-xs transition-all active:scale-[0.98]"
+            title="Manage managers"
+          >
+            <FiUsers size={14} />
+            <span>Managers</span>
+          </button>
+        </div>
 
         <button
           onClick={onDelete}
-          className="flex-1 min-w-[80px] flex items-center justify-center gap-1 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-2xl font-semibold text-[11px] sm:text-xs transition-all active:scale-95"
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-red-50 text-red-600 rounded-lg font-medium text-xs transition-all border border-red-200 active:scale-[0.98]"
           title="Delete restaurant"
         >
-          <FiTrash2 size={12} className="sm:w-4 sm:h-4" strokeWidth={2.5} />
-          <span className="hidden sm:inline">Delete</span>
+          <FiTrash2 size={14} />
+          <span>Delete</span>
         </button>
       </div>
     </div>

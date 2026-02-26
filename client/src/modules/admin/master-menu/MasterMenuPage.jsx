@@ -58,7 +58,7 @@ export default function MasterMenuPage() {
     } finally {
       setLoading(false);
     }
-  };
+  };;
 
   useEffect(() => {
     loadMenu();
@@ -104,39 +104,39 @@ export default function MasterMenuPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#F2F2F7] flex flex-col selection:bg-orange-100 font-sans tracking-tight">
+    <div className="relative min-h-screen bg-white flex flex-col selection:bg-indigo-100 font-sans tracking-tight">
       {/* ================= STATIONARY TOP REGION ================= */}
       <div className="sticky top-0 z-30 w-full">
         {/* LAYER 1: MAIN HEADER */}
-        <header className="bg-white/95 backdrop-blur-xl w-full startup-shadow">
+        <header className="bg-white border-b border-gray-200 w-full shadow-sm">
           <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 shrink-0">
-              <h1 className="text-lg sm:text-xl font-[800] text-black tracking-tight leading-none">
-                Menu Setup
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight leading-none">
+                📋 Master Menu Management
               </h1>
-              <div className="hidden xs:flex items-center gap-1.5 px-2 py-1 bg-orange-50 rounded-full startup-shadow">
-                <div className="h-1.5 w-1.5 rounded-full bg-[#F35C2B] animate-pulse" />
-                <p className="text-[8px] font-bold text-[#F35C2B] uppercase tracking-widest">
+              <div className="hidden xs:flex items-center gap-1.5 px-2 py-1 bg-indigo-50 rounded-full border border-indigo-200">
+                <div className="h-1.5 w-1.5 rounded-full bg-indigo-600 animate-pulse" />
+                <p className="text-[8px] font-bold text-indigo-600 uppercase tracking-widest">
                   Live
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="flex bg-slate-100 rounded-full p-1 shrink-0 startup-shadow">
+              <div className="flex bg-gray-100 rounded-lg p-1 shrink-0 border border-gray-200">
                 {[
                   { id: "all", label: "All" },
                   { id: "veg", label: "Veg", isVeg: true },
-                  { id: "nonveg", label: "Non", isVeg: false },
+                  { id: "nonveg", label: "Non-Veg", isVeg: false },
                 ].map((v) => (
                   <button
                     key={v.id}
                     onClick={() => setVegFilter(v.id)}
                     className={clsx(
-                      "px-3 py-1.5 text-[10px] font-bold rounded-full transition-all duration-200 flex items-center gap-1 active:scale-95",
+                      "px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 flex items-center gap-1 active:scale-95",
                       vegFilter === v.id
-                        ? "bg-[#F35C2B] text-white startup-shadow"
-                        : "text-slate-500 hover:text-black",
+                        ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-500/30"
+                        : "text-gray-700 hover:text-gray-900",
                     )}
                   >
                     {v.isVeg !== undefined && (

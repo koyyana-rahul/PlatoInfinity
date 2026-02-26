@@ -16,9 +16,9 @@ import { useSelector, useDispatch } from "react-redux";
 import toast from "react-hot-toast";
 import { MessageCircle, ShoppingCart, Plus, Minus, X } from "lucide-react";
 
-import Axios from "../api/axios";
-import { setSessionToken } from "../store/sessionSlice";
-import socket from "../socket/socket";
+import Axios from "../../api/axios";
+import { setSessionToken } from "../../store/sessionSlice";
+import { socketService } from "../../api/socket.service";
 
 export function CustomerMenuApp() {
   const navigate = useNavigate();

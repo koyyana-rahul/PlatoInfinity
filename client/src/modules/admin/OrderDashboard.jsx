@@ -182,100 +182,112 @@ const OrderDashboard = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-50">
-      <h1 className="text-3xl font-bold mb-6">📊 Order Dashboard</h1>
+    <div className="min-h-screen bg-white p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500">
+        {/* Header */}
+        <div className="pb-6 border-b border-gray-200">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900">
+            📊 Live Order Dashboard
+          </h1>
+          <p className="text-gray-600 mt-2 text-sm sm:text-base">
+            Real-time order tracking and management
+          </p>
+        </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {["all", "NEW", "IN_PROGRESS", "READY", "SERVED"].map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilter(status)}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
-              filter === status
-                ? "bg-blue-600 text-white"
-                : "bg-white text-gray-700 border hover:bg-gray-100"
-            }`}
-          >
-            {status.replace("_", " ")}
-          </button>
-        ))}
-      </div>
-
-      {/* Orders Grid */}
-      {orders.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {orders.map((order) => (
-            <div
-              key={order._id}
-              className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition border-l-4 border-blue-500"
+        {/* Filter Tabs */}
+        <div className="flex gap-2 flex-wrap">
+          {["all", "NEW", "IN_PROGRESS", "READY", "SERVED"].map((status) => (
+            <button
+              key={status}
+              onClick={() => setFilter(status)}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition ${
+                filter === status
+                  ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-500/30"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
+              }`}
             >
-              {/* Header */}
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="text-lg font-bold">
-                    Order #{order.orderNumber}
-                  </h3>
-                  <p className="text-sm text-gray-600">📍 {order.tableName}</p>
-                </div>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}
-                >
-                  {order.status}
-                </span>
-              </div>
-
-              {/* Details */}
-              <div className="space-y-2 mb-3 text-sm text-gray-700">
-                <p>
-                  <strong>Items:</strong> {order.itemCount}
-                </p>
-                <p>
-                  <strong>Total:</strong> ₹{order.totalAmount.toFixed(2)}
-                </p>
-                <p>
-                  <strong>Time:</strong>{" "}
-                  {new Date(order.placedAt).toLocaleTimeString()}
-                </p>
-              </div>
-
-              {/* Items Status */}
-              {order.items?.length > 0 && (
-                <div className="mb-3 bg-gray-50 p-3 rounded">
-                  <h4 className="font-semibold text-xs mb-2">Items:</h4>
-                  <div className="space-y-1">
-                    {order.items.slice(0, 3).map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="text-xs flex justify-between items-center"
-                      >
-                        <span>{item.name}</span>
-                        <span>
-                          {getItemStatusIcon(item.itemStatus)} {item.itemStatus}
-                        </span>
-                      </div>
-                    ))}
-                    {order.items.length > 3 && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        +{order.items.length - 3} more items
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Action Button */}
-              <button className="w-full bg-blue-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition">
-                View Details
-              </button>
-            </div>
+              {status.replace("_", " ")}
+            </button>
           ))}
         </div>
-      ) : (
-        <div className="bg-white rounded-lg p-12 text-center">
-          <p className="text-gray-500 text-lg">No orders found</p>
-        </div>
-      )}
+
+        {/* Orders Grid */}
+        {orders.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {orders.map((order) => (
+              <div
+                key={order._id}
+                className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg hover:shadow-gray-200/50 transition-all"
+                style={{ borderLeft: "4px solid #4f46e5" }}
+              >
+                {/* Header */}
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">
+                      Order #{order.orderNumber}
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">📍 {order.tableName}</p>
+                  </div>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}
+                  >
+                    {order.status}
+                  </span>
+                </div>
+
+                {/* Details */}
+                <div className="space-y-2 mb-4 text-sm text-gray-700 pb-4 border-b border-gray-100">
+                  <p>
+                    <strong>Items:</strong> {order.itemCount}
+                  </p>
+                  <p>
+                    <strong>Total:</strong> ₹{order.totalAmount.toFixed(2)}
+                  </p>
+                  <p>
+                    <strong>Time:</strong>{" "}
+                    {new Date(order.placedAt).toLocaleTimeString()}
+                  </p>
+                </div>
+
+                {/* Items Status */}
+                {order.items?.length > 0 && (
+                  <div className="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <h4 className="font-semibold text-xs text-gray-900 mb-2">Items:</h4>
+                    <div className="space-y-1">
+                      {order.items.slice(0, 3).map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="text-xs flex justify-between items-center text-gray-700"
+                        >
+                          <span>{item.name}</span>
+                          <span>
+                            {getItemStatusIcon(item.itemStatus)} {item.itemStatus}
+                          </span>
+                        </div>
+                      ))}
+                      {order.items.length > 3 && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          +{order.items.length - 3} more items
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Button */}
+                <button className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:shadow-lg hover:shadow-indigo-500/30 text-white py-2.5 rounded-lg text-sm font-semibold transition">
+                  View Details
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-gray-50 rounded-xl border border-gray-200 p-12 text-center">
+            <p className="text-gray-500 text-lg">No orders found</p>
+            <p className="text-gray-400 text-sm mt-2">Orders will appear here when placed</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

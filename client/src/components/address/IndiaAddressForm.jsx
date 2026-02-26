@@ -60,7 +60,7 @@ function SearchDropdown({
 
   return (
     <div className="relative w-full">
-      <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-1">
+      <label className="text-xs font-medium text-gray-700 mb-1.5 block ml-1">
         {label}
       </label>
       <input
@@ -76,29 +76,28 @@ function SearchDropdown({
         onBlur={() => setTimeout(() => setOpen(false), 200)}
         onChange={(e) => setQuery(e.target.value)}
         className={clsx(
-          "w-full h-12 rounded-2xl border border-slate-100 px-5 text-sm font-bold text-slate-900 focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500 focus:bg-white outline-none transition-all placeholder:text-slate-300 shadow-sm",
+          "w-full h-11 rounded-lg border px-3.5 text-sm text-gray-900 focus:ring-2 focus:ring-[#FC8019] focus:border-[#FC8019] outline-none transition-all placeholder:text-gray-400",
           disabled
-            ? "bg-slate-100 cursor-not-allowed opacity-60"
-            : "bg-slate-50/50",
+            ? "bg-gray-100 border-gray-200 cursor-not-allowed opacity-60"
+            : "bg-white border-gray-300",
         )}
       />
       {open && !disabled && (
-        <div className="absolute left-0 right-0 z-[300] mt-2 max-h-52 overflow-y-auto rounded-2xl border border-slate-100 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200 custom-scrollbar">
+        <div className="absolute left-0 right-0 z-[300] mt-2 max-h-52 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-xl">
           {filtered.length === 0 ? (
-            <div className="px-5 py-4 text-xs font-bold text-slate-400 italic">
+            <div className="px-4 py-3 text-xs text-gray-500 italic">
               No matches found
             </div>
           ) : (
             filtered.map((opt) => (
               <div
                 key={opt}
-                // ✅ FIX: onMouseDown fires before onBlur, ensuring the click is registered
                 onMouseDown={(e) => {
                   e.preventDefault();
                   onSelect(opt);
                   setOpen(false);
                 }}
-                className="w-full text-left px-5 py-3.5 text-sm font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0"
+                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FC8019] cursor-pointer transition-colors border-b border-gray-100 last:border-0"
               >
                 {opt}
               </div>
@@ -143,11 +142,11 @@ export default function IndiaAddressForm({ value, onChange }) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* PINCODE */}
-        <div className="space-y-2">
-          <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-1">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-gray-700 mb-1.5 block ml-1">
             Pincode *
           </label>
           <input
@@ -155,7 +154,7 @@ export default function IndiaAddressForm({ value, onChange }) {
             value={value.pincode || ""}
             onChange={(e) => handlePincode(e.target.value)}
             placeholder="6-digit PIN"
-            className="w-full h-12 rounded-2xl border border-slate-100 bg-slate-50/50 px-5 text-sm font-bold text-slate-900 focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500 focus:bg-white outline-none transition-all placeholder:text-slate-300 shadow-sm"
+            className="w-full h-11 rounded-lg border border-gray-300 bg-white px-3.5 text-sm text-gray-900 focus:ring-2 focus:ring-[#FC8019] focus:border-[#FC8019] outline-none transition-all placeholder:text-gray-400"
           />
         </div>
 
@@ -181,28 +180,28 @@ export default function IndiaAddressForm({ value, onChange }) {
         />
 
         {/* MANDAL */}
-        <div className="space-y-2">
-          <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-1">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-gray-700 mb-1.5 block ml-1">
             Mandal / Taluk
           </label>
           <input
             value={value.mandal || ""}
             onChange={(e) => update({ mandal: e.target.value })}
             placeholder="e.g. Uppal"
-            className="w-full h-12 rounded-2xl border border-slate-100 bg-slate-50/50 px-5 text-sm font-bold text-slate-900 focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500 focus:bg-white outline-none transition-all placeholder:text-slate-300 shadow-sm"
+            className="w-full h-11 rounded-lg border border-gray-300 bg-white px-3.5 text-sm text-gray-900 focus:ring-2 focus:ring-[#FC8019] focus:border-[#FC8019] outline-none transition-all placeholder:text-gray-400"
           />
         </div>
 
         {/* VILLAGE */}
-        <div className="sm:col-span-2 space-y-2">
-          <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 block ml-1">
+        <div className="sm:col-span-2 space-y-1.5">
+          <label className="text-xs font-medium text-gray-700 mb-1.5 block ml-1">
             Village / Post Office / Street
           </label>
           <input
             value={value.village || ""}
             onChange={(e) => update({ village: e.target.value })}
             placeholder="Building, Street Name, Area"
-            className="w-full h-12 rounded-2xl border border-slate-100 bg-slate-50/50 px-5 text-sm font-bold text-slate-900 focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500 focus:bg-white outline-none transition-all placeholder:text-slate-300 shadow-sm"
+            className="w-full h-11 rounded-lg border border-gray-300 bg-white px-3.5 text-sm text-gray-900 focus:ring-2 focus:ring-[#FC8019] focus:border-[#FC8019] outline-none transition-all placeholder:text-gray-400"
           />
         </div>
       </div>

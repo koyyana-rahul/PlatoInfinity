@@ -28,39 +28,40 @@ export default function AdminSidebar({ open, onClose }) {
       <div
         onClick={onClose}
         className={clsx(
-          "fixed inset-0 bg-slate-900/35 backdrop-blur-md z-40 lg:hidden transition-opacity duration-500",
-          open ? "opacity-100 block" : "opacity-0 hidden",
+          "fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300",
+          open ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
       />
 
       {/* ================= SIDEBAR CONTAINER ================= */}
       <aside
         className={clsx(
-          "fixed lg:static z-50 lg:z-0 h-screen w-[290px] bg-[#FCFCFC] flex flex-col transition-all duration-500 ease-in-out shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.05)]",
-          open
-            ? "translate-x-0"
-            : "-translate-x-full lg:translate-x-0",
+          "fixed lg:static z-50 lg:z-0 h-screen w-[280px] sm:w-[300px] bg-white flex flex-col transition-transform duration-300 ease-out border-r border-gray-200 shadow-lg lg:shadow-none",
+          open ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
         {/* BRANDING HEADER */}
-        <div className="h-24 flex items-center px-6 gap-3 shrink-0">
-          <div className="w-11 h-11 bg-[#F35C2B] rounded-2xl flex items-center justify-center shadow-[0_20px_25px_-5px_rgb(243_92_43_/_0.35)]">
-            <FiShield className="text-white text-lg" strokeWidth={2.5} />
+        <div className="h-16 sm:h-20 flex items-center px-4 sm:px-6 gap-3 shrink-0 border-b border-gray-100">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-br from-[#FC8019] to-[#FF6B35] rounded-xl flex items-center justify-center shadow-md">
+            <FiShield
+              className="text-white text-base sm:text-lg"
+              strokeWidth={2.5}
+            />
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-black text-slate-900 tracking-tight uppercase leading-none">
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-semibold text-gray-900 leading-tight">
               Plato Admin
             </span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.18em] mt-1">
-              Enterprise Hub
+            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider truncate">
+              Management Portal
             </span>
           </div>
         </div>
 
         {/* NAVIGATION AREA */}
-        <nav className="flex-1 px-4 pb-5 pt-2 space-y-2 overflow-y-auto custom-scrollbar">
-          <p className="px-3 mb-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-            Management
+        <nav className="flex-1 px-3 sm:px-4 py-4 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+          <p className="px-3 mb-3 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+            Navigation
           </p>
 
           {menu.map(({ name, icon: Icon, path }) => (
@@ -70,61 +71,29 @@ export default function AdminSidebar({ open, onClose }) {
               onClick={onClose}
               className={({ isActive }) =>
                 clsx(
-                  "group flex items-center justify-between px-4 py-3.5 rounded-2xl text-sm font-bold transition-all duration-300 active:scale-95",
+                  "group flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-sm font-medium transition-all duration-200",
                   isActive
-                    ? "bg-white text-[#F35C2B] shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.05)]"
-                    : "text-slate-500 hover:bg-white hover:text-slate-900 hover:scale-[1.02]",
+                    ? "bg-gradient-to-r from-orange-50 to-orange-50/50 text-[#FC8019] shadow-sm"
+                    : "text-gray-700 hover:bg-gray-50 hover:text-gray-900",
                 )
               }
             >
-              {/* ✅ THE FIX: isActive is now correctly scoped within this function */}
               {({ isActive }) => (
                 <>
-                  <div className="flex items-center gap-3.5">
-                    <Icon
-                      size={18}
-                      strokeWidth={isActive ? 2.5 : 2}
-                      className={clsx(
-                        "transition-colors",
-                        isActive
-                          ? "text-[#F35C2B]"
-                          : "text-slate-400 group-hover:text-slate-600",
-                      )}
-                    />
-                    <span className="tracking-tight">{name}</span>
-                  </div>
-
-                  <FiChevronRight
-                    size={14}
-                    className={clsx(
-                      "transition-all duration-300",
-                      isActive
-                        ? "opacity-100 translate-x-0 text-[#F35C2B]/70"
-                        : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0",
-                    )}
+                  <Icon
+                    size={18}
+                    strokeWidth={isActive ? 2.5 : 2}
+                    className="flex-shrink-0"
                   />
+                  <span className="truncate">{name}</span>
+                  {isActive && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#FC8019] flex-shrink-0" />
+                  )}
                 </>
               )}
             </NavLink>
           ))}
         </nav>
-
-        {/* PROFILE FOOTER */}
-        <div className="p-4 shrink-0">
-          <div className="bg-white rounded-3xl p-4 flex items-center gap-3 shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.05)] hover:scale-[1.02] transition-all duration-300 cursor-pointer group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#F35C2B] to-[#ff8c66] flex items-center justify-center font-black text-white text-xs shadow-inner">
-              JD
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-black text-slate-900 truncate tracking-tight">
-                John Doe
-              </p>
-              <p className="text-[10px] font-bold text-slate-400 truncate uppercase tracking-wide">
-                Brand Manager
-              </p>
-            </div>
-          </div>
-        </div>
       </aside>
     </>
   );

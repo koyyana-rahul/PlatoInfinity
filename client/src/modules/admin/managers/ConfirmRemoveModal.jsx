@@ -21,57 +21,54 @@ export default function ConfirmRemoveModal({
 
   return (
     <div className="fixed inset-0 z-[400] flex items-center justify-center p-3 sm:p-4">
-      {/* BACKDROP: Blurred for focus */}
+      {/* BACKDROP */}
       <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-500"
+        className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
         onClick={!loading ? onClose : undefined}
       />
 
       {/* MODAL CARD */}
-      <div className="relative bg-white w-full max-w-md rounded-3xl sm:rounded-4xl shadow-[0_40px_100px_-20px_rgba(15,23,42,0.3)] overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200">
+      <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
         {/* CLOSE BUTTON */}
         <button
           onClick={onClose}
           disabled={loading}
-          className="absolute right-4 sm:right-6 top-4 sm:top-6 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-slate-300 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all disabled:opacity-50"
+          className="absolute right-4 sm:right-5 top-4 sm:top-5 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all disabled:opacity-50"
         >
-          <FiX size={20} />
+          <FiX size={18} />
         </button>
 
         {/* HEADER */}
-        <div className="px-6 sm:px-8 pt-8 sm:pt-10 pb-4 sm:pb-6 border-b border-slate-100 text-center">
+        <div className="px-5 sm:px-6 pt-6 sm:pt-8 pb-4 sm:pb-5 border-b border-gray-200 text-center">
           {/* DANGER ICON */}
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-50/80 border border-red-100 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-sm">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-red-50 border border-red-200 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
             <FiAlertTriangle
-              size={32}
+              size={28}
               strokeWidth={2}
               className="sm:w-8 sm:h-8"
             />
           </div>
 
           {/* TITLE */}
-          <h3 className="text-lg sm:text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
             Remove Manager Access?
           </h3>
-          <p className="text-xs sm:text-sm font-semibold text-slate-500 mt-2">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1.5">
             This action cannot be undone
           </p>
         </div>
 
         {/* CONTENT */}
-        <div className="px-6 sm:px-8 py-6 sm:py-8 space-y-6">
+        <div className="px-5 sm:px-6 py-5 sm:py-6 space-y-4">
           {/* MANAGER CARD */}
-          <div className="bg-gradient-to-br from-red-50 to-red-50/50 border border-red-100 rounded-2xl sm:rounded-3xl p-4 sm:p-5 space-y-2">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-2">
             <div className="flex items-start gap-3">
-              <FiLock
-                size={16}
-                className="text-red-500 mt-0.5 shrink-0 sm:mt-1"
-              />
+              <FiLock size={16} className="text-red-500 mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm sm:text-base font-bold text-slate-900 truncate">
+                <h4 className="text-sm font-semibold text-gray-900 truncate">
                   {manager.name}
                 </h4>
-                <p className="text-xs sm:text-sm font-semibold text-slate-600 truncate mt-0.5">
+                <p className="text-xs text-gray-600 truncate mt-0.5">
                   {manager.email}
                 </p>
               </div>
@@ -79,21 +76,19 @@ export default function ConfirmRemoveModal({
           </div>
 
           {/* CONSEQUENCES */}
-          <div className="bg-slate-50/50 border border-slate-200 rounded-2xl sm:rounded-3xl p-4 sm:p-5 space-y-2">
-            <p className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-tight mb-3">
-              What happens:
-            </p>
-            <div className="space-y-1.5 text-xs sm:text-sm font-semibold text-slate-600">
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+            <p className="text-xs font-semibold text-gray-900">What happens:</p>
+            <div className="space-y-2 text-xs text-gray-600">
               <div className="flex items-start gap-2">
-                <span className="text-red-500 font-bold mt-1">•</span>
+                <span className="text-red-500 font-bold mt-0.5">•</span>
                 <span>Loses admin access immediately</span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-red-500 font-bold mt-1">•</span>
+                <span className="text-red-500 font-bold mt-0.5">•</span>
                 <span>Cannot be reversed without new invite</span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-red-500 font-bold mt-1">•</span>
+                <span className="text-red-500 font-bold mt-0.5">•</span>
                 <span>Active sessions will be terminated</span>
               </div>
             </div>
@@ -101,29 +96,25 @@ export default function ConfirmRemoveModal({
         </div>
 
         {/* ACTIONS */}
-        <div className="px-6 sm:px-8 py-4 sm:py-6 border-t border-slate-100 bg-slate-50/30 flex flex-col gap-3 sm:gap-4">
+        <div className="px-5 sm:px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col gap-3">
           <button
             onClick={onConfirm}
             disabled={loading}
             className={clsx(
-              "w-full h-11 sm:h-13 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold uppercase tracking-tight transition-all shadow-lg active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2 sm:gap-3 duration-200",
+              "w-full h-11 rounded-lg text-sm font-semibold transition-all shadow-md active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2",
               loading
-                ? "bg-slate-300 text-slate-500 cursor-wait"
-                : "bg-red-500 text-white shadow-red-200/50 hover:bg-red-600 hover:shadow-red-400/40",
+                ? "bg-gray-300 text-gray-600 cursor-wait"
+                : "bg-red-500 text-white hover:bg-red-600 hover:shadow-lg",
             )}
           >
             {loading ? (
               <>
-                <FiLoader size={14} className="animate-spin sm:w-4 sm:h-4" />
+                <FiLoader size={16} className="animate-spin" />
                 <span>Removing...</span>
               </>
             ) : (
               <>
-                <FiTrash2
-                  size={14}
-                  strokeWidth={2.5}
-                  className="sm:w-4 sm:h-4"
-                />
+                <FiTrash2 size={16} strokeWidth={2.5} />
                 <span>Remove Access</span>
               </>
             )}
@@ -132,7 +123,7 @@ export default function ConfirmRemoveModal({
           <button
             onClick={onClose}
             disabled={loading}
-            className="w-full h-10 sm:h-11 px-4 sm:px-6 text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg sm:rounded-xl uppercase tracking-tight transition-all disabled:opacity-50"
+            className="w-full h-11 px-4 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all disabled:opacity-50"
           >
             Keep Access
           </button>

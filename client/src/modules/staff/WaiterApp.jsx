@@ -16,9 +16,9 @@ import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import { LogOut, Lock, Check, Phone, Home } from "lucide-react";
 
-import Axios from "../api/axios";
-import { setUserDetails, logout } from "../store/auth/userSlice";
-import socket from "../socket/socket";
+import Axios from "../../api/axios";
+import { setUserDetails, logout } from "../../store/auth/userSlice";
+import { socketService } from "../../api/socket.service";
 
 export function WaiterApp() {
   const dispatch = useDispatch();
@@ -65,7 +65,7 @@ export function WaiterApp() {
         toast.success(`Welcome, ${response.data.data.name}!`);
 
         // Join socket rooms for notifications
-        socket.emit("join-room", {
+        socketService.emit("join-room", {
           room: `restaurant:${response.data.data.restaurantId}:waiters`,
         });
 
@@ -186,7 +186,7 @@ export function WaiterApp() {
   useEffect(() => {
     if (!user) return;
 
-    socket.on("item:ready", (data) => {
+    socketService.on("item:ready", (data) => {
       setReadyItems((prev) => [
         ...prev,
         {
@@ -212,7 +212,7 @@ export function WaiterApp() {
     });
 
     return () => {
-      socket.off("item:ready");
+      socketService.off("item:ready");
     };
   }, [user]);
 

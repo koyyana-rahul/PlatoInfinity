@@ -73,48 +73,48 @@ export default function AdminReports() {
   };
 
   const ReportCard = ({ icon: Icon, title, data }) => (
-    <div className="bg-white border border-slate-100 rounded-lg p-6 hover:shadow-md transition-shadow">
+    <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:shadow-gray-200/50 transition-all duration-300">
       <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-blue-50 rounded-lg">
-          <Icon className="text-blue-600" size={20} />
+        <div className="p-2 bg-indigo-100 rounded-lg">
+          <Icon className="text-indigo-600" size={20} />
         </div>
-        <h3 className="font-bold text-slate-900">{title}</h3>
+        <h3 className="font-bold text-gray-900">{title}</h3>
       </div>
       <div className="space-y-2">
         {data && data.length > 0 ? (
           data.slice(0, 5).map((item, idx) => (
             <div key={idx} className="flex justify-between text-sm">
-              <span className="text-slate-600">{item.name || item.label}</span>
-              <span className="font-semibold text-slate-900">
+              <span className="text-gray-600">{item.name || item.label}</span>
+              <span className="font-semibold text-gray-900">
                 {item.value || item.count}
               </span>
             </div>
           ))
         ) : (
-          <p className="text-sm text-slate-500">No data available</p>
+          <p className="text-sm text-gray-500">No data available</p>
         )}
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-slate-100 p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-white p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 animate-in fade-in duration-500">
       {/* ============================================
           HEADER SECTION
           ============================================ */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-gray-200">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
             📈 Reports & Analytics
           </h1>
-          <p className="text-slate-600 mt-1 text-sm sm:text-base">
-            Comprehensive business intelligence and insights
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">
+            Comprehensive business intelligence and data insights
           </p>
         </div>
 
         <button
           onClick={() => exportReport(reportType)}
-          className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl hover:shadow-lg transition font-bold text-sm sm:text-base"
+          className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:shadow-lg hover:shadow-indigo-500/30 transition-all font-bold text-sm sm:text-base"
         >
           <FiDownload size={20} />
           <span className="hidden sm:inline">Export Report</span>
@@ -125,31 +125,31 @@ export default function AdminReports() {
       {/* ============================================
           DATE RANGE SELECTOR
           ============================================ */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 shadow-sm">
-        <label className="block text-sm font-bold text-slate-900 mb-4">
+      <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 sm:p-6">
+        <label className="block text-sm font-bold text-gray-900 mb-4">
           📅 Select Date Range
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="relative">
-            <FiCalendar className="absolute left-3 top-3 text-slate-400 pointer-events-none" />
+            <FiCalendar className="absolute left-3 top-3 text-gray-400 pointer-events-none" />
             <input
               type="date"
               value={dateRange.from}
               onChange={(e) =>
                 setDateRange({ ...dateRange, from: e.target.value })
               }
-              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition text-sm"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition text-sm"
             />
           </div>
           <div className="relative">
-            <FiCalendar className="absolute left-3 top-3 text-slate-400 pointer-events-none" />
+            <FiCalendar className="absolute left-3 top-3 text-gray-400 pointer-events-none" />
             <input
               type="date"
               value={dateRange.to}
               onChange={(e) =>
                 setDateRange({ ...dateRange, to: e.target.value })
               }
-              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition text-sm"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition text-sm"
             />
           </div>
         </div>
@@ -158,15 +158,15 @@ export default function AdminReports() {
       {/* ============================================
           REPORT TYPE TABS
           ============================================ */}
-      <div className="flex gap-2 border-b border-slate-200 bg-white rounded-t-xl p-4">
+      <div className="flex gap-2 border-b border-gray-200 bg-white rounded-t-xl p-4">
         {["sales", "items", "hourly"].map((type) => (
           <button
             key={type}
             onClick={() => setReportType(type)}
             className={`px-4 sm:px-6 py-3 font-bold text-sm sm:text-base transition whitespace-nowrap ${
               reportType === type
-                ? "border-b-4 border-purple-600 text-purple-600"
-                : "text-slate-600 hover:text-slate-900 border-b-4 border-transparent"
+                ? "border-b-4 border-indigo-600 text-indigo-600"
+                : "text-gray-600 hover:text-gray-900 border-b-4 border-transparent"
             }`}
           >
             {type === "sales" && "📊 Sales"}

@@ -50,147 +50,152 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }) {
   }, []);
 
   if (!user?._id || !brand?.name)
-    return <div className="h-24 animate-pulse bg-[#FCFCFC]" />;
+    return <div className="h-14 sm:h-16 animate-pulse bg-white shadow-sm" />;
 
   return (
-    <header className="h-24 bg-[#FCFCFC] sticky top-0 z-[130] flex items-center justify-between px-4 sm:px-8">
-      {/* ================= LEFT: BRANDING & TOGGLE ================= */}
-      <div className="flex items-center gap-4 min-w-0">
-        {/* THE TOGGLE BUTTON */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onMenuClick(); // Triggers toggle in parent
-          }}
-          className={clsx(
-            "lg:hidden w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-300 active:scale-95",
-            isSidebarOpen
-              ? "bg-[#F35C2B] text-white shadow-[0_20px_25px_-5px_rgb(243_92_43_/_0.35)]"
-              : "bg-white text-slate-600 shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.05)] hover:scale-[1.02]",
-          )}
-          aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
-        >
-          {isSidebarOpen ? (
-            <FiX
-              size={20}
-              strokeWidth={2.5}
-              className="animate-in fade-in zoom-in duration-300"
-            />
-          ) : (
-            <FiMenu
-              size={20}
-              strokeWidth={2}
-              className="animate-in fade-in zoom-in duration-300"
-            />
-          )}
-        </button>
+    <header className="h-14 sm:h-16 bg-white sticky top-0 z-[130] shadow-[0_2px_8px_rgba(0,0,0,0.08)] backdrop-blur-md">
+      <div className="h-full w-full px-3 sm:px-4 md:px-6 lg:px-8 flex items-center justify-between">
+        {/* ================= LEFT: BRANDING & TOGGLE ================= */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          {/* THE TOGGLE BUTTON */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onMenuClick();
+            }}
+            className={clsx(
+              "lg:hidden w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg transition-colors duration-200 flex-shrink-0",
+              isSidebarOpen
+                ? "bg-orange-50 text-[#FC8019]"
+                : "text-gray-600 hover:bg-gray-50 active:bg-gray-100",
+            )}
+            aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
+          >
+            {isSidebarOpen ? (
+              <FiX size={20} strokeWidth={2.5} />
+            ) : (
+              <FiMenu size={20} strokeWidth={2.5} />
+            )}
+          </button>
 
-        <div className="flex items-center gap-3 min-w-0 group bg-white rounded-3xl px-3 py-2 shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.05)]">
-          {brand.logoUrl ? (
-            <div className="h-12 w-12 rounded-2xl bg-white overflow-hidden flex-shrink-0 transition-transform duration-500 group-hover:scale-105 shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.05)]">
-              <img
-                src={brand.logoUrl}
-                alt={brand.name}
-                className="h-full w-full object-contain"
-              />
-            </div>
-          ) : (
-            <div className="h-12 w-12 rounded-2xl bg-[#F35C2B] text-white flex items-center justify-center font-black text-lg shadow-[0_20px_25px_-5px_rgb(243_92_43_/_0.35)] flex-shrink-0">
-              {brand.name.charAt(0)}
-            </div>
-          )}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {brand.logoUrl ? (
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg overflow-hidden flex-shrink-0 bg-white border border-gray-100 shadow-sm">
+                <img
+                  src={brand.logoUrl}
+                  alt={brand.name}
+                  className="h-full w-full object-contain p-0.5"
+                />
+              </div>
+            ) : (
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-br from-[#FC8019] to-[#FF6B35] text-white flex items-center justify-center font-semibold text-xs sm:text-sm flex-shrink-0 shadow-md">
+                {brand.name.charAt(0)}
+              </div>
+            )}
 
-          <div className="flex flex-col min-w-0">
-            <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight truncate leading-none">
-              {brand.name}
-            </h1>
-            <div className="flex items-center gap-1.5 mt-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#F35C2B] animate-pulse" />
-              <span className="text-[9px] text-slate-400 font-black uppercase tracking-[0.25em]">
-                {user.role}
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-sm sm:text-base font-semibold text-gray-900 truncate leading-tight">
+                {brand.name}
+              </h1>
+              <span className="text-[10px] sm:text-xs text-gray-500 font-normal capitalize hidden xs:block">
+                {user.role} Portal
               </span>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ================= RIGHT: USER PROFILE ================= */}
-      <div className="relative" ref={dropdownRef}>
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className={clsx(
-            "flex items-center gap-3 p-1.5 sm:pl-2 sm:pr-4 py-1.5 rounded-3xl transition-all duration-500 active:scale-95",
-            open
-              ? "bg-[#F35C2B] text-white shadow-[0_20px_25px_-5px_rgb(243_92_43_/_0.35)]"
-              : "bg-white shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.05)] hover:scale-[1.02]",
-          )}
-        >
-          <div className="relative">
-            <div
-              className={clsx(
-                "h-10 w-10 rounded-2xl flex items-center justify-center font-black text-sm shadow-inner transition-colors",
-                open
-                  ? "bg-white/10 text-white"
-                  : "bg-[#F35C2B]/10 text-[#F35C2B]",
-              )}
-            >
-              {user.name?.charAt(0).toUpperCase()}
-            </div>
-            {!open && (
-              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#F35C2B] border-2 border-white rounded-full" />
-            )}
-          </div>
-
-          <div className="hidden sm:flex flex-col items-start text-left leading-tight">
-            <span className="text-xs font-black tracking-tight leading-none mb-0.5">
-              {user.name}
-            </span>
-            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
-              Online
-            </span>
-          </div>
-
-          <FiChevronDown
+        {/* ================= RIGHT: USER PROFILE ================= */}
+        <div className="relative flex-shrink-0" ref={dropdownRef}>
+          <button
+            onClick={() => setOpen((v) => !v)}
             className={clsx(
-              "text-[12px] transition-transform duration-500",
-              open ? "rotate-180 text-white/80" : "text-slate-300",
+              "flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-all duration-200",
+              open
+                ? "bg-gray-50 shadow-sm"
+                : "hover:bg-gray-50 active:bg-gray-100",
             )}
-          />
-        </button>
-
-        {/* DROPDOWN MENU */}
-        {open && (
-          <div className="absolute right-0 mt-4 w-72 bg-white rounded-[32px] shadow-[0_20px_25px_-5px_rgb(0_0_0_/_0.08)] z-[150] overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-300 origin-top-right">
-            <div className="px-7 py-6 bg-slate-50/60">
-              <div className="flex items-center gap-2 mb-2">
-                <FiActivity size={10} className="text-[#F35C2B]" />
-                <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.25em]">
-                  Active Session
-                </p>
-              </div>
-              <p className="font-black text-slate-900 text-base truncate tracking-tight">
+          >
+            <div className="hidden lg:flex flex-col items-end text-right min-w-0">
+              <span className="text-sm font-medium text-gray-900 leading-tight truncate max-w-[120px]">
                 {user.name}
-              </p>
-              <p className="text-xs font-medium text-slate-500 truncate mt-0.5 opacity-80">
-                {user.email}
-              </p>
+              </span>
+              <span className="text-xs text-gray-500 capitalize truncate">
+                {user.role}
+              </span>
             </div>
 
-            <div className="p-3">
-              <button
-                onClick={handleLogout}
-                className="w-full px-4 py-4 rounded-3xl text-sm font-black text-white bg-[#F35C2B] hover:scale-[1.02] flex items-center gap-4 transition-all active:scale-[0.95]"
-              >
-                <div className="p-2.5 rounded-2xl bg-white/20">
-                  <FiLogOut size={14} strokeWidth={3} />
-                </div>
-                Log Out Account
-              </button>
+            <div className="relative flex-shrink-0">
+              <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gradient-to-br from-[#FC8019] to-[#FF6B35] flex items-center justify-center text-white font-semibold text-xs sm:text-sm shadow-md ring-2 ring-white">
+                {user.name?.charAt(0).toUpperCase()}
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 border-2 border-white rounded-full" />
             </div>
-          </div>
-        )}
+
+            <FiChevronDown
+              className={clsx(
+                "text-gray-400 transition-transform duration-200 hidden lg:block flex-shrink-0",
+                open && "rotate-180",
+              )}
+              size={16}
+            />
+          </button>
+
+          {/* DROPDOWN MENU */}
+          {open && (
+            <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-white rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-gray-100 z-[150] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+              {/* User Info Section */}
+              <div className="px-4 sm:px-5 py-3 sm:py-4 bg-gradient-to-br from-orange-50 via-white to-white border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-[#FC8019] to-[#FF6B35] flex items-center justify-center text-white font-semibold text-base sm:text-lg shadow-md flex-shrink-0 ring-2 ring-orange-100">
+                    {user.name?.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                      {user.name}
+                    </p>
+                    <p className="text-xs sm:text-sm text-gray-500 truncate mt-0.5">
+                      {user.email}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Details */}
+              <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-2.5 sm:space-y-3 bg-gray-50/50">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs sm:text-sm text-gray-600 font-medium">
+                    Account Type
+                  </span>
+                  <span className="text-xs sm:text-sm font-semibold capitalize px-2 sm:px-2.5 py-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-md shadow-sm">
+                    {user.role}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs sm:text-sm text-gray-600 font-medium">
+                    Status
+                  </span>
+                  <span className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-green-600">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full animate-pulse" />
+                    Online
+                  </span>
+                </div>
+              </div>
+
+              {/* Logout Button */}
+              <div className="p-3 sm:p-4 bg-white border-t border-gray-100">
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-semibold text-red-600 hover:bg-red-50 active:bg-red-100 flex items-center justify-center gap-2 transition-all duration-200 border border-red-200 hover:border-red-300 hover:shadow-sm"
+                >
+                  <FiLogOut size={16} className="sm:w-5 sm:h-5" />
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

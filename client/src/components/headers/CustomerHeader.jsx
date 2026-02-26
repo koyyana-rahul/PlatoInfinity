@@ -18,55 +18,59 @@ export default function CustomerHeader() {
 
   if (!brand?._id) {
     return (
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-slate-100">
-        <div className="h-16 px-4 sm:px-6 lg:px-8 flex items-center gap-3 animate-pulse">
-          <div className="h-10 w-10 rounded-full bg-gray-200" />
-          <div className="h-4 w-40 bg-gray-200 rounded-full" />
+      <header className="sticky top-0 z-40 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] backdrop-blur-md">
+        <div className="h-14 sm:h-16 w-full px-3 sm:px-4 md:px-6 lg:px-8 flex items-center gap-2 sm:gap-3 animate-pulse">
+          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-gray-200 flex-shrink-0" />
+          <div className="h-4 w-28 sm:w-32 bg-gray-200 rounded flex-shrink-0" />
         </div>
       </header>
     );
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-slate-100">
-      <div className="h-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex items-center gap-3">
-        {/* LOGO */}
-        {brand.logoUrl ? (
-          <div className="h-10 w-10 rounded-full ring-1 ring-gray-200 overflow-hidden">
-            <img
-              src={brand.logoUrl}
-              alt={brand.name}
-              className="h-full w-full object-contain"
-            />
-          </div>
-        ) : (
-          <div className="h-10 w-10 rounded-full bg-[#FC8019] text-white flex items-center justify-center font-extrabold text-sm">
-            {brand.name.charAt(0).toUpperCase()}
-          </div>
-        )}
-
-        {/* BRAND NAME */}
-        <div className="flex flex-col min-w-0">
-          <span className="text-sm sm:text-base font-extrabold truncate">
-            {brand.name}
-          </span>
-          <span className="hidden sm:inline text-[11px] text-slate-400 font-semibold truncate">
-            Freshly served, fast & hot
-          </span>
-        </div>
-
-        {/* ORDERS BUTTON */}
-        <div className="ml-auto">
-          {hasOrders && !isOrdersPage && (
-            <button
-              onClick={() => navigate(ordersBasePath)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-semibold shadow hover:bg-emerald-700 active:scale-95 transition"
-            >
-              <ClipboardList size={14} />
-              Orders
-            </button>
+    <header className="sticky top-0 z-40 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] backdrop-blur-md">
+      <div className="h-14 sm:h-16 w-full px-3 sm:px-4 md:px-6 lg:px-8 flex items-center justify-between gap-3 sm:gap-4">
+        {/* LEFT: LOGO & BRAND */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          {brand.logoUrl ? (
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg overflow-hidden bg-white border border-gray-100 shadow-sm flex-shrink-0">
+              <img
+                src={brand.logoUrl}
+                alt={brand.name}
+                className="h-full w-full object-contain p-0.5"
+              />
+            </div>
+          ) : (
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-br from-[#FC8019] to-[#FF6B35] text-white flex items-center justify-center font-semibold text-xs sm:text-sm shadow-md flex-shrink-0">
+              {brand.name.charAt(0).toUpperCase()}
+            </div>
           )}
+
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm sm:text-base font-semibold text-gray-900 truncate leading-tight">
+              {brand.name}
+            </span>
+            <span className="hidden sm:inline text-[10px] sm:text-xs text-gray-500 truncate">
+              Fresh food delivered fast
+            </span>
+          </div>
         </div>
+
+        {/* RIGHT: ORDERS BUTTON */}
+        {hasOrders && !isOrdersPage && (
+          <button
+            onClick={() => navigate(ordersBasePath)}
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-gradient-to-r from-green-600 to-green-500 text-white text-xs sm:text-sm font-semibold hover:from-green-700 hover:to-green-600 active:scale-[0.97] transition-all duration-200 shadow-md hover:shadow-lg flex-shrink-0"
+          >
+            <ClipboardList
+              size={16}
+              className="sm:w-[18px] sm:h-[18px]"
+              strokeWidth={2.5}
+            />
+            <span className="hidden xs:inline">My Orders</span>
+            <span className="xs:hidden">Orders</span>
+          </button>
+        )}
       </div>
     </header>
   );
