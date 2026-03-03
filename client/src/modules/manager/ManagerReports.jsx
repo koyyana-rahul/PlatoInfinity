@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  FiBarChart2,
-  FiPieChart,
-  FiTrendingUp,
-  FiDownload,
-  FiUsers,
-} from "react-icons/fi";
+import { FiBarChart2, FiDownload, FiUsers, FiPackage } from "react-icons/fi";
 import AuthAxios from "../../api/authAxios";
 import reportsApi from "../../api/reports.api";
 import toast from "react-hot-toast";
@@ -34,14 +28,45 @@ export default function ManagerReports() {
   const fetchReports = async () => {
     try {
       setLoading(true);
-      const config = reportsApi.getManagerReports(dateRange.from, dateRange.to);
-      const res = await AuthAxios.get(config.url, { params: config.params });
 
-      if (res.data?.success) {
-        setReports(res.data.data);
-      }
+      // Fetch multiple reports in parallel
+      const [salesRes, itemsRes, waitersRes] = await Promise.all([
+        AuthAxios.get("/api/reports/daily-sales", {
+          params: { from: dateRange.from, to: dateRange.to },
+        }),
+        AuthAxios.get("/api/reports/top-items", {
+          params: { from: dateRange.from, to: dateRange.to, limit: 10 },
+        }),
+        AuthAxios.get("/api/reports/waiters", {
+          params: { from: dateRange.from, to: dateRange.to },
+        }),
+      ]);
+
+      // Transform the data to match component expectations
+      const transformedData = {
+        sales:
+          salesRes.data?.data?.dailySales?.map((item) => ({
+            name: item.date || item.day,
+            detail: `${item.orderCount || 0} orders`,
+            value: `₹${item.revenue?.toFixed(0) || 0}`,
+          })) || [],
+        items:
+          itemsRes.data?.data?.topItems?.map((item) => ({
+            name: item.itemName || item.name,
+            detail: `Sold ${item.quantitySold || 0} times`,
+            value: `₹${item.revenue?.toFixed(0) || 0}`,
+          })) || [],
+        staff:
+          waitersRes.data?.data?.waiters?.map((waiter) => ({
+            name: waiter.name,
+            detail: `${waiter.ordersServed || 0} orders`,
+            value: `₹${waiter.totalSales?.toFixed(0) || 0}`,
+          })) || [],
+      };
+
+      setReports(transformedData);
     } catch (error) {
-      console.error("❌ Error fetching reports:", error.message);
+      console.error("Failed to fetch reports:", error.message);
       toast.error("Failed to fetch reports");
     } finally {
       setLoading(false);
@@ -50,186 +75,196 @@ export default function ManagerReports() {
 
   const exportReport = async () => {
     try {
-      const config = reportsApi.exportManagerReport(
-        reportType,
-        dateRange.from,
-        dateRange.to,
-      );
-      const res = await AuthAxios.get(config.url, {
-        params: config.params,
-        responseType: config.responseType,
-      });
+      // Simple CSV export from current data
+      const dataToExport = reports[reportType] || [];
 
-      const url = window.URL.createObjectURL(res.data);
+      if (dataToExport.length === 0) {
+        toast.error("No data to export");
+        return;
+      }
+
+      // Create CSV content
+      const headers = ["Name", "Details", "Value"];
+      const rows = dataToExport.map((item) => [
+        item.name || "",
+        item.detail || "",
+        item.value || "",
+      ]);
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map((row) => row.join(",")),
+      ].join("\n");
+
+      // Download CSV
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `manager-report-${new Date().getTime()}.csv`;
+      a.download = `${reportType}-report-${new Date().getTime()}.csv`;
       a.click();
+      window.URL.revokeObjectURL(url);
       toast.success("Report downloaded");
     } catch (error) {
-      console.error("❌ Export error:", error.message);
+      console.error("Export error:", error.message);
       toast.error("Failed to export report");
     }
   };
 
-  const ReportCard = ({ icon: Icon, title, data, color }) => (
-    <div className="bg-white border border-slate-100 rounded-lg p-6 hover:shadow-md transition-shadow">
+  const ReportCard = ({ icon: Icon, title, data }) => (
+    <div className="bg-white border border-gray-200 rounded-lg p-6">
       <div className="flex items-center gap-3 mb-4">
-        <div className={`p-2 bg-${color}-50 rounded-lg`}>
-          <Icon className={`text-${color}-600`} size={20} />
+        <div className="p-2 bg-orange-50 rounded-lg">
+          <Icon className="text-orange-600" size={20} />
         </div>
-        <h3 className="font-bold text-slate-900">{title}</h3>
+        <h3 className="font-bold text-gray-900">{title}</h3>
       </div>
       <div className="space-y-3">
         {data && data.length > 0 ? (
           data.slice(0, 5).map((item, idx) => (
             <div
               key={idx}
-              className="flex justify-between items-center pb-2 border-b border-slate-100 last:border-0"
+              className="flex justify-between items-center pb-2 border-b border-gray-100 last:border-0"
             >
               <div>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-gray-700">
                   {item.name || item.label}
                 </p>
-                <p className="text-xs text-slate-400">{item.detail}</p>
+                <p className="text-xs text-gray-500">{item.detail}</p>
               </div>
-              <p className="font-semibold text-slate-900">{item.value}</p>
+              <p className="font-semibold text-gray-900">{item.value}</p>
             </div>
           ))
         ) : (
-          <p className="text-sm text-slate-500">No data available</p>
+          <p className="text-sm text-gray-500">No data available</p>
         )}
       </div>
     </div>
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-slate-900">Manager Reports</h2>
-          <p className="text-xs font-semibold text-slate-400 uppercase mt-1">
-            Performance and operations metrics
-          </p>
-        </div>
+    <div className="min-h-screen bg-white">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+          <div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+              Business Analytics
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Track sales, staff, and item performance
+            </p>
+          </div>
 
-        <button
-          onClick={exportReport}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition text-sm font-semibold"
-        >
-          <FiDownload size={16} />
-          Export Report
-        </button>
-      </div>
-
-      {/* Date Range Selector */}
-      <div className="bg-white border border-slate-100 rounded-lg p-4 flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <label className="block text-xs font-bold text-slate-600 mb-2 uppercase">
-            From Date
-          </label>
-          <input
-            type="date"
-            value={dateRange.from}
-            onChange={(e) =>
-              setDateRange({ ...dateRange, from: e.target.value })
-            }
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block text-xs font-bold text-slate-600 mb-2 uppercase">
-            To Date
-          </label>
-          <input
-            type="date"
-            value={dateRange.to}
-            onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
-          />
-        </div>
-      </div>
-
-      {/* Report Type Tabs */}
-      <div className="flex gap-2 border-b border-slate-200">
-        {["sales", "staff", "items"].map((type) => (
           <button
-            key={type}
-            onClick={() => setReportType(type)}
-            className={`px-4 py-3 font-semibold text-sm transition border-b-2 capitalize ${
-              reportType === type
-                ? "border-emerald-500 text-emerald-600"
-                : "border-transparent text-slate-600 hover:text-slate-900"
-            }`}
+            onClick={exportReport}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition text-sm font-semibold"
           >
-            {type} Report
+            <FiDownload size={16} />
+            Export Report
           </button>
-        ))}
-      </div>
-
-      {/* Reports Grid */}
-      {!loading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {reportType === "sales" && (
-            <>
-              <ReportCard
-                icon={FiBarChart2}
-                title="Daily Sales"
-                data={reports.sales}
-                color="emerald"
-              />
-              <ReportCard
-                icon={FiTrendingUp}
-                title="Peak Hours"
-                data={reports.sales}
-                color="blue"
-              />
-            </>
-          )}
-          {reportType === "staff" && (
-            <>
-              <ReportCard
-                icon={FiUsers}
-                title="Staff Performance"
-                data={reports.staff}
-                color="purple"
-              />
-              <ReportCard
-                icon={FiBarChart2}
-                title="Shift Summary"
-                data={reports.staff}
-                color="orange"
-              />
-            </>
-          )}
-          {reportType === "items" && (
-            <>
-              <ReportCard
-                icon={FiPieChart}
-                title="Best Sellers"
-                data={reports.items}
-                color="pink"
-              />
-              <ReportCard
-                icon={FiTrendingUp}
-                title="Inventory Status"
-                data={reports.items}
-                color="indigo"
-              />
-            </>
-          )}
         </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-64 bg-slate-100 rounded-lg animate-pulse"
+
+        <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase">
+              From Date
+            </label>
+            <input
+              type="date"
+              value={dateRange.from}
+              onChange={(e) =>
+                setDateRange({ ...dateRange, from: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
             />
+          </div>
+          <div className="flex-1">
+            <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase">
+              To Date
+            </label>
+            <input
+              type="date"
+              value={dateRange.to}
+              onChange={(e) =>
+                setDateRange({ ...dateRange, to: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
+          {["sales", "staff", "items"].map((type) => (
+            <button
+              key={type}
+              onClick={() => setReportType(type)}
+              className={`px-4 py-3 font-semibold text-sm transition border-b-2 capitalize ${
+                reportType === type
+                  ? "border-orange-500 text-orange-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              {type} Report
+            </button>
           ))}
         </div>
-      )}
+
+        {!loading ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {reportType === "sales" && (
+              <>
+                <ReportCard
+                  icon={FiBarChart2}
+                  title="Daily Sales"
+                  data={reports.sales}
+                />
+                <ReportCard
+                  icon={FiBarChart2}
+                  title="Peak Hours"
+                  data={reports.sales}
+                />
+              </>
+            )}
+            {reportType === "staff" && (
+              <>
+                <ReportCard
+                  icon={FiUsers}
+                  title="Staff Performance"
+                  data={reports.staff}
+                />
+                <ReportCard
+                  icon={FiBarChart2}
+                  title="Shift Summary"
+                  data={reports.staff}
+                />
+              </>
+            )}
+            {reportType === "items" && (
+              <>
+                <ReportCard
+                  icon={FiPackage}
+                  title="Best Sellers"
+                  data={reports.items}
+                />
+                <ReportCard
+                  icon={FiPackage}
+                  title="Inventory Status"
+                  data={reports.items}
+                />
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {[1, 2].map((i) => (
+              <div
+                key={i}
+                className="h-64 bg-gray-100 rounded-lg animate-pulse"
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

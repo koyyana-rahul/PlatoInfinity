@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
+import {
+  FiGrid,
+  FiCheckCircle,
+  FiClock,
+  FiRefreshCcw,
+  FiSearch,
+} from "react-icons/fi";
 
 import { useSocket } from "../../../socket/SocketProvider";
 import Axios from "../../../api/axios";
@@ -16,14 +23,24 @@ export default function WaiterDashboard() {
   const [tables, setTables] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [pinInfo, setPinInfo] = useState(null);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("ALL");
+  const [refreshing, setRefreshing] = useState(false);
 
-  const load = async () => {
-    const [t, s] = await Promise.all([
-      Axios(tableApi.list(restaurantId)),
-      Axios(sessionApi.list(restaurantId, { status: "OPEN" })),
-    ]);
-    setTables(t.data.data || []);
-    setSessions(s.data.data || []);
+  const load = async (silent = false) => {
+    try {
+      if (silent) setRefreshing(true);
+      const [t, s] = await Promise.all([
+        Axios(tableApi.list(restaurantId)),
+        Axios(sessionApi.list(restaurantId, { status: "OPEN" })),
+      ]);
+      setTables(t.data.data || []);
+      setSessions(s.data.data || []);
+    } catch {
+      toast.error("Unable to load table sessions");
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const socket = useSocket();
@@ -89,12 +106,92 @@ export default function WaiterDashboard() {
     }
   };
 
+  const visibleTables = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return tables.filter((t) => {
+      const hasSession = sessionByTable.has(String(t._id));
+      const statusPass =
+        filter === "ALL" ||
+        (filter === "OCCUPIED" && hasSession) ||
+        (filter === "FREE" && !hasSession);
+      const searchPass = !q || (t.tableNumber || "").toLowerCase().includes(q);
+      return statusPass && searchPass;
+    });
+  }, [tables, sessionByTable, filter, search]);
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Tables</h1>
+    <div className="space-y-5">
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
+        <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-orange-700 bg-orange-50 border border-orange-200 rounded-full px-2.5 py-1 mb-3">
+          <FiGrid size={12} /> Waiter Console
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+          Table Sessions
+        </h1>
+        <p className="text-sm text-gray-600 mt-1">
+          Open sessions, hand over PIN, and track occupied tables.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <StatCard
+          label="Total"
+          value={tables.length}
+          icon={<FiGrid size={14} />}
+          tone="neutral"
+        />
+        <StatCard
+          label="Occupied"
+          value={sessions.length}
+          icon={<FiClock size={14} />}
+          tone="orange"
+        />
+        <StatCard
+          label="Available"
+          value={Math.max(tables.length - sessions.length, 0)}
+          icon={<FiCheckCircle size={14} />}
+          tone="green"
+        />
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-2xl p-3 sm:p-4">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+          <div className="md:col-span-6 relative">
+            <FiSearch className="absolute left-3 top-3.5 text-gray-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search table number..."
+              className="w-full h-11 pl-10 pr-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-100 focus:border-orange-400"
+            />
+          </div>
+
+          <div className="md:col-span-4">
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="w-full h-11 px-3 rounded-xl border border-gray-300 text-sm"
+            >
+              <option value="ALL">All tables</option>
+              <option value="FREE">Free</option>
+              <option value="OCCUPIED">Occupied</option>
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+            <button
+              onClick={() => load(true)}
+              className="w-full h-11 rounded-xl border border-orange-200 bg-orange-50 text-orange-700 text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-orange-100"
+            >
+              <FiRefreshCcw className={refreshing ? "animate-spin" : ""} />{" "}
+              Refresh
+            </button>
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tables.map((table) => {
+        {visibleTables.map((table) => {
           const session = sessionByTable.get(String(table._id));
           return (
             <TableCard
@@ -109,6 +206,25 @@ export default function WaiterDashboard() {
       </div>
 
       <SessionInfoModal info={pinInfo} onClose={() => setPinInfo(null)} />
+    </div>
+  );
+}
+
+function StatCard({ label, value, icon, tone = "neutral" }) {
+  const toneClass =
+    tone === "green"
+      ? "bg-green-50 border-green-200 text-green-700"
+      : tone === "orange"
+        ? "bg-orange-50 border-orange-200 text-orange-700"
+        : "bg-white border-gray-200 text-gray-700";
+
+  return (
+    <div className={`rounded-xl border p-4 ${toneClass}`}>
+      <p className="text-xs uppercase tracking-wide font-semibold inline-flex items-center gap-1.5">
+        {icon}
+        {label}
+      </p>
+      <p className="text-2xl font-bold mt-1.5">{value}</p>
     </div>
   );
 }

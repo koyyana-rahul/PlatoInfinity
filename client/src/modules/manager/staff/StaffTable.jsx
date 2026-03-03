@@ -210,12 +210,7 @@ export default function StaffTable({
                 <button
                   disabled={!s.isActive}
                   onClick={() => setPinTarget(s)}
-                  className="
-                    flex-1 text-xs py-2 rounded-lg border
-                    text-gray-800 font-medium
-                    hover:bg-gray-50
-                    disabled:opacity-50 disabled:cursor-not-allowed
-                  "
+                  className="flex-1 h-10 rounded-lg border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <FiKey className="inline mr-1" />
                   Regenerate PIN
@@ -223,10 +218,10 @@ export default function StaffTable({
 
                 <button
                   onClick={() => setToggleTarget(s)}
-                  className={`flex-1 text-xs py-2 rounded-lg border font-medium ${
+                  className={`flex-1 h-10 text-xs rounded-lg border font-semibold ${
                     s.isActive
                       ? "border-red-300 text-red-700 hover:bg-red-50"
-                      : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                      : "border-green-300 text-green-700 hover:bg-green-50"
                   }`}
                 >
                   <FiPower className="inline mr-1" />

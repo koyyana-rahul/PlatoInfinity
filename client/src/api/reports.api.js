@@ -1,5 +1,31 @@
 const reportsApi = {
   /* =====================================================
+     MANAGER REPORTS - Combined
+  ===================================================== */
+
+  getManagerReports: (from, to) => ({
+    url: "/api/reports/sales",
+    method: "GET",
+    params: { from, to },
+  }),
+
+  exportManagerReport: (type, from, to) => {
+    // Map report type to appropriate endpoint
+    const urlMap = {
+      sales: "/api/reports/daily-sales",
+      items: "/api/reports/top-items",
+      staff: "/api/reports/waiters",
+    };
+
+    return {
+      url: urlMap[type] || urlMap.sales,
+      method: "GET",
+      params: { from, to, format: "csv" },
+      responseType: "blob",
+    };
+  },
+
+  /* =====================================================
      SALES REPORTS
   ===================================================== */
 

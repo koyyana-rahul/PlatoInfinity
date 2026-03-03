@@ -108,11 +108,29 @@ export async function listBranchMenu(req, res) {
       restaurantId,
       isArchived: false,
     })
-      .populate("masterItemId", "isVeg image categoryId subcategoryId")
+      .populate("masterItemId", "isVeg image images categoryId subcategoryId")
       .sort({ name: 1 })
       .lean();
 
-    res.json({ success: true, data: items });
+    // Fetch stock data for all items
+    const stocks = await Stock.find({
+      restaurantId,
+      branchMenuItemId: { $in: items.map((i) => i._id) },
+    }).lean();
+
+    // Create a map of itemId -> stockQty
+    const stockMap = new Map();
+    stocks.forEach((s) => {
+      stockMap.set(s.branchMenuItemId.toString(), s.stockQty);
+    });
+
+    // Attach stockQty to each item
+    const itemsWithStock = items.map((item) => ({
+      ...item,
+      stockQty: stockMap.get(item._id.toString()) ?? null,
+    }));
+
+    res.json({ success: true, data: itemsWithStock });
   } catch (err) {
     console.error("listBranchMenu:", err);
     res.status(500).json({ message: "Server error" });
@@ -137,9 +155,21 @@ export async function listBranchMenuGrouped(req, res) {
     })
       .populate({
         path: "masterItemId",
-        select: "categoryId subcategoryId isVeg image",
+        select: "categoryId subcategoryId isVeg image images",
       })
       .lean();
+
+    // Fetch stock data for all items
+    const stocks = await Stock.find({
+      restaurantId,
+      branchMenuItemId: { $in: items.map((i) => i._id) },
+    }).lean();
+
+    // Create a map of itemId -> stockQty
+    const stockMap = new Map();
+    stocks.forEach((s) => {
+      stockMap.set(s.branchMenuItemId.toString(), s.stockQty);
+    });
 
     const tree = {};
 
@@ -168,6 +198,8 @@ export async function listBranchMenuGrouped(req, res) {
         ...item,
         isVeg: master.isVeg,
         image: master.image,
+        images: master.images,
+        stockQty: stockMap.get(item._id.toString()) ?? null,
       });
     }
 

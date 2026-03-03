@@ -12,7 +12,7 @@ const CartItemCard = ({ item, onAdd, onMinus, onRemove }) => {
   };
 
   return (
-    <div className="flex items-center gap-4 bg-white dark:bg-dark-surface p-4 rounded-2xl shadow-subtle dark:shadow-subtle-dark">
+    <div className="flex items-center gap-4 bg-white border border-gray-200 p-4 rounded-2xl shadow-sm hover:shadow-md transition">
       {item.image && (
         <img
           src={item.image}
@@ -22,26 +22,26 @@ const CartItemCard = ({ item, onAdd, onMinus, onRemove }) => {
       )}
       <div className="flex-grow">
         <div className="flex justify-between items-start">
-          <h3 className="font-bold text-base md:text-lg text-gray-800 dark:text-gray-100">
+          <h3 className="font-bold text-base md:text-lg text-gray-900">
             {item.name}
           </h3>
           <VegNonVegIcon isVeg={item.isVeg} />
         </div>
 
         {item.station && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             {stationIcon(item.station)} {item.station}
           </p>
         )}
 
         <div className="flex items-center justify-between mt-3">
-          <p className="text-md md:text-lg font-extrabold text-deep-green dark:text-cream">
+          <p className="text-lg font-bold text-gray-900">
             ₹{item.price * item.quantity}
           </p>
-          <div className="flex items-center gap-2 bg-saffron text-white rounded-full h-9 md:h-10 px-3 shadow-lg">
+          <div className="flex items-center gap-2 bg-orange-500 text-white rounded-full h-9 md:h-10 px-3 shadow-lg">
             <button
               onClick={() => onMinus(item)}
-              className="tap-scaling p-1"
+              className="p-1 hover:scale-110 transition"
               aria-label="Decrease quantity"
             >
               <Minus className="w-4 h-4 md:w-5 md:h-5" />
@@ -51,7 +51,7 @@ const CartItemCard = ({ item, onAdd, onMinus, onRemove }) => {
             </span>
             <button
               onClick={() => onAdd(item)}
-              className="tap-scaling p-1"
+              className="p-1 hover:scale-110 transition"
               aria-label="Increase quantity"
             >
               <Plus className="w-4 h-4 md:w-5 md:h-5" />
@@ -61,7 +61,7 @@ const CartItemCard = ({ item, onAdd, onMinus, onRemove }) => {
       </div>
       <button
         onClick={() => onRemove(item)}
-        className="text-gray-400 hover:text-red-500 transition-colors tap-scaling self-start"
+        className="text-gray-400 hover:text-red-500 transition-colors self-start"
         aria-label="Remove item"
       >
         <Trash2 className="w-4 h-4" />

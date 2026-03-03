@@ -155,7 +155,7 @@ app.use("/api/customer", customerMenuRouter);
 app.use("/api", tableRouter);
 app.use("/api", cartRouter);
 app.use("/api", billRouter);
-app.use("/api", reportRouter);
+app.use("/api/reports", reportRouter);
 app.use("/api", whatsappRouter);
 app.use("/api/kitchen", kitchenRouter);
 app.use("/api", billShareRouter);

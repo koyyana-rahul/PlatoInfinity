@@ -4,6 +4,7 @@ import { useState } from "react";
 import Axios from "../../../../api/axios";
 import chefApi from "../../../../api/chef.api";
 import toast from "react-hot-toast";
+import { Loader2 } from "lucide-react";
 
 const statusLabelMap = {
   NEW: "New",
@@ -42,9 +43,9 @@ export default function KitchenItemRow({
   };
 
   return (
-    <div className="flex items-center justify-between p-3 border rounded-lg bg-white">
+    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-xl bg-white gap-3">
       <div>
-        <p className="font-medium">{item.name}</p>
+        <p className="font-semibold text-gray-900">{item.name}</p>
         <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
         <p className="text-[11px] text-gray-400 mt-1">
           Status: {statusLabelMap[item.itemStatus] || item.itemStatus}
@@ -56,9 +57,10 @@ export default function KitchenItemRow({
           <button
             onClick={() => updateStatus("IN_PROGRESS")}
             disabled={isUpdating}
-            className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded"
+            className="px-4 h-9 text-xs bg-orange-50 text-orange-700 border border-orange-200 rounded-lg font-semibold disabled:opacity-60 hover:shadow-sm transition inline-flex items-center gap-1.5"
           >
-            Start
+            {isUpdating && <Loader2 size={14} className="animate-spin" />}
+            Start Cooking
           </button>
         )}
 
@@ -66,9 +68,10 @@ export default function KitchenItemRow({
           <button
             onClick={() => updateStatus("READY")}
             disabled={isUpdating}
-            className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded"
+            className="px-4 h-9 text-xs bg-green-50 text-green-700 border border-green-200 rounded-lg font-semibold disabled:opacity-60 hover:shadow-sm transition inline-flex items-center gap-1.5"
           >
-            Ready
+            {isUpdating && <Loader2 size={14} className="animate-spin" />}
+            Mark Ready
           </button>
         )}
 
@@ -76,9 +79,10 @@ export default function KitchenItemRow({
           <button
             onClick={() => updateStatus("SERVED")}
             disabled={isUpdating}
-            className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded"
+            className="px-4 h-9 text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-lg font-semibold disabled:opacity-60 hover:shadow-sm transition inline-flex items-center gap-1.5"
           >
-            Served
+            {isUpdating && <Loader2 size={14} className="animate-spin" />}
+            Item Served
           </button>
         )}
       </div>

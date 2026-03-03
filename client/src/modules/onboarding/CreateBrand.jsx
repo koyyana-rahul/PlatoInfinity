@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
-import { FiImage, FiX, FiCheck, FiArrowRight } from "react-icons/fi";
+import { FiImage, FiX } from "react-icons/fi";
 import clsx from "clsx";
 
 import Axios from "../../api/axios";
@@ -18,12 +18,39 @@ const CreateBrand = () => {
   const [logo, setLogo] = useState(null);
   const [preview, setPreview] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const validateName = (value) => {
+    const trimmed = value.trim();
+    if (!trimmed) return "Restaurant name is required";
+    if (trimmed.length < 2) return "Name must be at least 2 characters";
+    if (trimmed.length > 50) return "Name cannot exceed 50 characters";
+    return "";
+  };
+
+  const handleNameChange = (e) => {
+    const value = e.target.value;
+    setName(value);
+    if (value.trim()) {
+      setErrors((prev) => ({ ...prev, name: "" }));
+    }
+  };
 
   const handleLogoChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024)
-      return toast.error("File exceeds 2MB limit");
+
+    // Validate file size
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size exceeds 5MB limit");
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
 
     setLogo(file);
     setPreview(URL.createObjectURL(file));
@@ -37,7 +64,14 @@ const CreateBrand = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) return toast.error("Identifier required");
+
+    // Validate
+    const nameError = validateName(name);
+    if (nameError) {
+      setErrors({ name: nameError });
+      toast.error(nameError);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -53,7 +87,7 @@ const CreateBrand = () => {
 
       if (!res.data.success) throw new Error(res.data.message);
 
-      toast.success("Identity Secured");
+      toast.success("Restaurant created successfully!");
 
       const meRes = await Axios(summaryApi.me);
       if (meRes.data.success) dispatch(setUserDetails(meRes.data.data));
@@ -61,14 +95,13 @@ const CreateBrand = () => {
       navigate("/redirect", { replace: true });
     } catch (err) {
       if (err?.response?.status === 409) {
-        toast.error(
-          `"${name.trim()}" is already registered. Please choose a different brand name.`,
-          { duration: 4000 },
-        );
+        const errorMsg = `"${name.trim()}" is already registered. Please choose a different name.`;
+        setErrors({ name: errorMsg });
+        toast.error(errorMsg, { duration: 4000 });
       } else {
         const errorMsg =
           err?.response?.data?.message ||
-          "Registration failed. Please try again.";
+          "Failed to create restaurant. Please try again.";
         toast.error(errorMsg, { duration: 3000 });
       }
       console.error("Brand creation error:", err);
@@ -78,122 +111,106 @@ const CreateBrand = () => {
   };
 
   return (
-    <section className="min-h-screen bg-[#FDFCFB] flex items-center justify-center px-4 py-8 sm:py-12 animate-in fade-in duration-1000">
-      <div className="w-full max-w-md relative">
-        {/* ================= BRAND TOKEN ================= */}
-        <div className="flex justify-center mb-6 sm:mb-10 relative z-10">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white shadow-[0_15px_40px_rgba(249,115,22,0.12)] rounded-[24px] sm:rounded-[28px] flex items-center justify-center border border-orange-50 transition-transform hover:rotate-12 duration-500">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-[12px] sm:rounded-[14px] shadow-inner flex items-center justify-center">
-              <FiCheck className="text-white" size={18} strokeWidth={4} />
-            </div>
-          </div>
+    <section className="min-h-screen bg-white flex items-center justify-center px-4 py-8 sm:py-12">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="mb-10 text-center">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+            Create Restaurant
+          </h1>
+          <p className="text-gray-600 text-sm">
+            Set up your restaurant profile
+          </p>
         </div>
 
-        {/* ================= MAIN CARD ================= */}
-        <div className="relative z-10 bg-white rounded-[32px] sm:rounded-[40px] shadow-[0_30px_80px_rgba(0,0,0,0.03)] border border-slate-50 p-6 sm:p-12 transition-all">
-          <div className="text-center mb-6 sm:mb-10">
-            <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight leading-none">
-              Brand Hub
-            </h1>
-            <p className="text-[11px] sm:text-sm font-medium text-slate-400 mt-2 sm:mt-3 tracking-tight">
-              Create a unique identity for your restaurant terminal.
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
-            {/* NAME INPUT */}
-            <div className="space-y-2 sm:space-y-3">
-              <label className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] ml-1">
-                Official Descriptor
+        {/* Form Card */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-8 sm:p-10 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Restaurant Name */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Restaurant Name
               </label>
               <input
                 type="text"
                 autoFocus
-                placeholder="e.g. Spice Route Kitchen"
+                placeholder="Enter restaurant name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-5 py-3.5 sm:py-4.5 bg-slate-50/50 border border-slate-100 rounded-2xl
-                           text-sm sm:text-base text-slate-900 font-bold placeholder:text-slate-200 placeholder:font-medium
-                           focus:outline-none focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500/20
-                           transition-all duration-300 shadow-inner"
+                onChange={handleNameChange}
+                maxLength="50"
+                className={clsx(
+                  "w-full px-4 py-3 border-2 rounded-lg text-base",
+                  "placeholder:text-gray-400 placeholder:font-normal",
+                  "focus:outline-none transition-colors",
+                  errors.name
+                    ? "border-red-400 bg-red-50 focus:border-red-500"
+                    : "border-gray-300 bg-gray-50 focus:border-orange-500",
+                )}
               />
-              <p className="text-[10px] text-slate-400 ml-1 mt-1.5">
-                Choose a unique name for your brand. This will be your identity
-                across the platform.
-              </p>
+              {errors.name && (
+                <p className="mt-2 text-xs text-red-600 font-medium">
+                  {errors.name}
+                </p>
+              )}
             </div>
 
-            {/* LOGO AREA */}
-            <div className="space-y-2 sm:space-y-3">
-              <label className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] ml-1 flex justify-between">
-                Brand Mark{" "}
-                <span className="lowercase font-medium opacity-60">
-                  (optional)
-                </span>
+            {/* Logo Upload */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Logo{" "}
+                <span className="text-gray-400 font-normal">(Optional)</span>
               </label>
 
-              <div className="relative group">
-                {preview ? (
-                  <div className="relative h-32 sm:h-44 w-full bg-slate-50/50 rounded-2xl sm:rounded-3xl border border-slate-100 p-6 sm:p-8 flex items-center justify-center animate-in zoom-in-95 duration-500 group">
+              {preview ? (
+                <div className="relative">
+                  <div className="h-32 bg-gray-50 rounded-lg border-2 border-gray-200 p-4 flex items-center justify-center">
                     <img
                       src={preview}
-                      alt="Brand Logo"
-                      className="h-full object-contain filter drop-shadow-xl"
+                      alt="Logo"
+                      className="h-full object-contain"
                     />
-                    <button
-                      onClick={removeLogo}
-                      className="absolute -top-2 -right-2 w-8 h-8 bg-white text-slate-400 hover:text-red-500 shadow-xl rounded-full flex items-center justify-center border border-slate-50 transition-all hover:scale-110 active:scale-90"
-                    >
-                      <FiX size={16} strokeWidth={3} />
-                    </button>
                   </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-2xl sm:rounded-3xl h-32 sm:h-44 cursor-pointer hover:bg-slate-50/50 hover:border-orange-500/20 transition-all duration-500 group">
-                    <div className="w-10 h-10 sm:w-14 sm:h-14 bg-slate-50 rounded-xl sm:rounded-2xl flex items-center justify-center text-slate-300 group-hover:text-orange-500 group-hover:bg-orange-50 transition-all duration-500 shadow-sm">
-                      <FiImage size={20} className="sm:w-6 sm:h-6" />
-                    </div>
-                    <p className="text-[10px] sm:text-[11px] font-black text-slate-300 mt-4 uppercase tracking-widest group-hover:text-slate-400">
-                      Upload Symbol
-                    </p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoChange}
-                      className="hidden"
-                    />
-                  </label>
-                )}
-              </div>
+                  <button
+                    onClick={removeLogo}
+                    type="button"
+                    className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600"
+                  >
+                    <FiX size={16} />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg py-8 cursor-pointer hover:bg-gray-50">
+                  <FiImage className="text-gray-400 mb-2" size={24} />
+                  <p className="text-sm font-medium text-gray-700">
+                    Click to upload
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    PNG, JPG (Max 5MB)
+                  </p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
             </div>
 
-            {/* ACTION BUTTON */}
-            <div className="pt-2">
-              <button
-                disabled={loading || !name.trim()}
-                className={clsx(
-                  "w-full py-4 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.25em] transition-all duration-500 flex items-center justify-center gap-3",
-                  loading || !name.trim()
-                    ? "bg-slate-100 text-slate-300 cursor-not-allowed"
-                    : "bg-slate-900 text-white hover:bg-orange-500 hover:shadow-[0_20px_40px_rgba(249,115,22,0.25)] active:scale-[0.97]",
-                )}
-              >
-                {loading ? (
-                  "Syncing..."
-                ) : (
-                  <>
-                    Initialize Dashboard <FiArrowRight strokeWidth={3} />
-                  </>
-                )}
-              </button>
-            </div>
+            {/* Submit Button */}
+            <button
+              disabled={loading || !name.trim()}
+              type="submit"
+              className={clsx(
+                "w-full py-3 rounded-lg font-semibold text-white transition-all mt-8",
+                loading || !name.trim()
+                  ? "bg-gray-300 cursor-not-allowed"
+                  : "bg-orange-500 hover:bg-orange-600 active:scale-95",
+              )}
+            >
+              {loading ? "Creating..." : "Create Restaurant"}
+            </button>
           </form>
-        </div>
-
-        {/* Meta Info */}
-        <div className="flex flex-col items-center mt-8 space-y-2 opacity-30">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">
-            Authorized Module
-          </p>
         </div>
       </div>
     </section>

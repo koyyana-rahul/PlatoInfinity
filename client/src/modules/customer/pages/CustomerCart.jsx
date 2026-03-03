@@ -181,17 +181,40 @@ export default function CustomerCart() {
   return (
     <div className="min-h-screen bg-white flex flex-col max-w-2xl mx-auto font-sans text-slate-900">
       {/* 1. HEADER */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl px-4 py-5 border-b border-slate-100 flex items-center justify-between">
-        <button
-          onClick={() => navigate(-1)}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-900 transition-colors border border-slate-100"
-        >
-          <ChevronLeft size={20} strokeWidth={2.5} />
-        </button>
-        <h1 className="text-sm font-black uppercase tracking-[0.25em] text-slate-900">
-          Review Order
-        </h1>
-        <div className="w-10" /> {/* Spacer for centering */}
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl px-4 py-5 border-b border-gray-200">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-900 border border-gray-200 hover:bg-gray-100"
+            >
+              <ChevronLeft size={20} strokeWidth={2.5} />
+            </button>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">Review Order</h1>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Table {tableNumber}
+              </p>
+            </div>
+            <div className="ml-auto bg-orange-100 text-orange-700 px-3 py-1 rounded-lg text-xs font-semibold tracking-wide">
+              🛒 {totalQty} items
+            </div>
+          </div>
+          {/* KPI CARDS */}
+          <div className="grid grid-cols-3 gap-2">
+            <Kpi label="Items" value={totalQty} />
+            <Kpi
+              label="Subtotal"
+              value={`₹${Math.round(cart.subtotal || 0)}`}
+              tone="orange"
+            />
+            <Kpi
+              label="Total"
+              value={`₹${Math.round(totalAmount)}`}
+              tone="green"
+            />
+          </div>
+        </div>
       </header>
 
       <main className="flex-1 px-5 py-8 pb-48">
@@ -364,12 +387,30 @@ export default function CustomerCart() {
 function Row({ label, value }) {
   return (
     <div className="flex justify-between items-center">
-      <span className="text-[12px] font-bold text-slate-500 uppercase tracking-wider">
+      <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">
         {label}
       </span>
-      <span className="text-[14px] font-bold text-slate-900 tracking-tight">
+      <span className="text-[14px] font-bold text-gray-900 tracking-tight">
         {value}
       </span>
+    </div>
+  );
+}
+
+function Kpi({ label, value, tone = "neutral" }) {
+  const toneClass =
+    tone === "orange"
+      ? "bg-orange-50 border-orange-200 text-orange-700"
+      : tone === "green"
+        ? "bg-green-50 border-green-200 text-green-700"
+        : "bg-white border-gray-200 text-gray-700";
+
+  return (
+    <div className={`rounded-lg border p-2.5 text-center ${toneClass}`}>
+      <p className="text-[10px] uppercase tracking-wide font-semibold">
+        {label}
+      </p>
+      <p className="text-base font-bold mt-0.5">{value}</p>
     </div>
   );
 }

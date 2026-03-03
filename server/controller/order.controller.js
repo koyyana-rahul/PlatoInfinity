@@ -487,10 +487,14 @@ export async function recentOrdersController(req, res) {
     const { limit = 10, range = "today", restaurantId } = req.query;
     const user = req.user;
 
-    // Build filter - use provided restaurantId or user's restaurantId if they're a manager
-    let filter = {
-      createdAt: { $gte: new Date(), $lte: new Date() },
-    };
+    // Validate user is authenticated
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: true,
+        message: "Unauthorized - user not found",
+      });
+    }
 
     // Parse date range
     let startDate = new Date();
@@ -510,15 +514,42 @@ export async function recentOrdersController(req, res) {
       endDate.setHours(23, 59, 59, 999);
     }
 
-    filter.createdAt = { $gte: startDate, $lte: endDate };
+    // Build filter
+    const filter = {
+      createdAt: { $gte: startDate, $lte: endDate },
+    };
 
-    // If restaurantId is provided, use it. Otherwise use user's restaurantId if they're a manager
-    if (restaurantId) {
-      filter.restaurantId = restaurantId;
-    } else if (user.restaurantId) {
-      filter.restaurantId = user.restaurantId;
+    // Determine which restaurantId to use
+    let selectedRestaurantId = null;
+
+    // Priority 1: Explicit query parameter (if valid)
+    if (restaurantId && restaurantId.trim()) {
+      if (mongoose.Types.ObjectId.isValid(restaurantId)) {
+        selectedRestaurantId = restaurantId;
+      } else {
+        console.warn(`Invalid restaurantId in query: ${restaurantId}`);
+        // Don't filter if invalid - for brand admins
+      }
     }
-    // If neither is provided, fetch all orders for the brand (for brand admins)
+    // Priority 2: User's restaurantId (if not already selected and valid)
+    else if (user.restaurantId && user.restaurantId.trim?.()) {
+      if (mongoose.Types.ObjectId.isValid(user.restaurantId)) {
+        selectedRestaurantId = user.restaurantId;
+      } else {
+        console.warn(
+          `Invalid restaurantId for user: ${user._id}`,
+          user.restaurantId,
+        );
+        // Don't filter if invalid - for brand admins
+      }
+    }
+
+    // Apply filter if valid restaurantId found
+    if (selectedRestaurantId) {
+      filter.restaurantId = selectedRestaurantId;
+    }
+
+    const parsedLimit = Math.min(parseInt(limit) || 10, 500); // Cap at 500
 
     const orders = await Order.find(filter)
       .select(
@@ -526,7 +557,7 @@ export async function recentOrdersController(req, res) {
       )
       .populate("restaurantId", "name")
       .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
+      .limit(parsedLimit)
       .lean();
 
     return res.json({
@@ -535,9 +566,9 @@ export async function recentOrdersController(req, res) {
       data: orders,
     });
   } catch (err) {
-    console.error("recentOrdersController:", err);
+    console.error("recentOrdersController error:", err);
     return res.status(500).json({
-      message: "Server error",
+      message: "Failed to fetch recent orders",
       error: true,
       success: false,
     });

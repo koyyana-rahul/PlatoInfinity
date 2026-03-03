@@ -27,6 +27,9 @@ const orderRouter = express.Router();
 // PLACE ORDER (FROM CART)
 orderRouter.post("/order/place", resolveCustomerSession, placeOrderController);
 
+// GET RECENT ORDERS (ADMIN DASHBOARD) - Must be before /order/:orderId
+orderRouter.get("/order/recent", requireAuth, recentOrdersController);
+
 // GET ORDER DETAILS
 orderRouter.get("/order/:orderId", resolveCustomerSession, getOrderController);
 
@@ -62,9 +65,7 @@ orderRouter.get(
  * ADMIN DASHBOARD
  * ============================
  */
-
-// GET RECENT ORDERS (ADMIN DASHBOARD)
-orderRouter.get("/order/recent", requireAuth, recentOrdersController);
+// NOTE: /order/recent moved above to avoid conflict with /order/:orderId
 
 /**
  * ============================

@@ -1,12 +1,18 @@
 import { useState } from "react";
-import { FiUsers, FiDownload, FiCopy, FiImage, FiTrash2 } from "react-icons/fi";
+import {
+  FiUsers,
+  FiDownload,
+  FiCopy,
+  FiImage,
+  FiTrash2,
+  FiExternalLink,
+} from "react-icons/fi";
 import toast from "react-hot-toast";
-import clsx from "clsx";
 
 const STATUS_STYLE = {
-  FREE: "bg-emerald-50 text-emerald-600 border-emerald-100/50 shadow-emerald-500/5",
-  OCCUPIED: "bg-red-50 text-red-600 border-red-100/50 shadow-red-500/5",
-  RESERVED: "bg-amber-50 text-amber-600 border-amber-100/50 shadow-amber-500/5",
+  FREE: "bg-green-50 text-green-700 border-green-200",
+  OCCUPIED: "bg-red-50 text-red-700 border-red-200",
+  RESERVED: "bg-amber-50 text-amber-700 border-amber-200",
 };
 
 export default function TableCard({ table, onDelete }) {
@@ -14,22 +20,21 @@ export default function TableCard({ table, onDelete }) {
 
   const qrImage = table?.qrImageUrl?.trim();
   const qrLink = table?.qrUrl?.trim();
+  const tableId = table?._id ? table._id.slice(-5).toUpperCase() : "-----";
 
-  /* ================= SECURE COPY ================= */
   const copyLink = async () => {
-    if (!qrLink) return toast.error("Syncing terminal link...");
+    if (!qrLink) return toast.error("QR link not available");
     try {
       await navigator.clipboard.writeText(qrLink);
-      toast.success("Access link secured");
+      toast.success("Link copied");
     } catch {
-      toast.error("Clipboard access denied");
+      toast.error("Copy failed");
     }
   };
 
-  /* ================= HIGH-RES EXPORT ================= */
   const downloadQr = async () => {
-    if (!qrImage) return toast.error("QR generating...");
-    const exportToast = toast.loading("Preparing high-res export...");
+    if (!qrImage) return toast.error("QR image not available");
+    const exportToast = toast.loading("Preparing download...");
     try {
       const res = await fetch(qrImage, { cache: "no-store" });
       const blob = await res.blob();
@@ -41,107 +46,93 @@ export default function TableCard({ table, onDelete }) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success("QR Exported", { id: exportToast });
+      toast.success("QR downloaded", { id: exportToast });
     } catch {
-      toast.error("Export failed", { id: exportToast });
+      toast.error("Download failed", { id: exportToast });
     }
   };
 
   return (
-    <article className="group bg-white border border-slate-100 rounded-[28px] sm:rounded-[36px] p-4 sm:p-5 flex flex-col gap-4 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(15,23,42,0.06)] hover:border-slate-200 hover:scale-[1.01] relative overflow-hidden h-full">
-      {/* ================= HEADER ================= */}
-      <div className="flex justify-between items-start z-10">
-        <div className="min-w-0">
-          <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none truncate">
+    <article className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 flex flex-col gap-4 h-full shadow-sm hover:shadow-md transition-shadow duration-200">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="text-xl font-bold text-gray-900 leading-none">
             {table.tableNumber}
           </h3>
-          <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mt-2 tabular-nums">
-            ID: {table._id.slice(-5).toUpperCase()}
+          <p className="text-[10px] text-gray-400 uppercase mt-2 tracking-wide">
+            Table ID: {tableId}
           </p>
         </div>
 
         <span
-          role="status"
-          className={clsx(
-            "text-[8px] sm:text-[9px] px-2.5 py-1 rounded-full font-black uppercase tracking-widest border backdrop-blur-md transition-all duration-500 shadow-sm",
+          className={`text-[10px] px-2 py-1 rounded-full font-semibold uppercase border ${
             STATUS_STYLE[table.status] ||
-              "bg-slate-50 text-slate-500 border-slate-100",
-          )}
+            "bg-gray-50 text-gray-700 border-gray-200"
+          }`}
         >
           {table.status}
         </span>
       </div>
 
-      {/* ================= QR CANVAS ================= */}
-      <div className="relative aspect-square flex items-center justify-center bg-[#FAFAFA] rounded-[24px] sm:rounded-[30px] overflow-hidden border border-slate-50 group-hover:bg-white group-hover:border-slate-100 transition-all duration-700 shadow-inner">
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] group-hover:opacity-[0.05] transition-opacity" />
-
+      <div className="aspect-square flex items-center justify-center bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
         {qrImage && !imgError ? (
           <img
             src={qrImage}
             alt={`QR Code for ${table.tableNumber}`}
-            className="w-[72%] h-[72%] object-contain transition-all duration-700 group-hover:scale-110 group-hover:rotate-2 filter drop-shadow-md"
+            className="w-[70%] h-[70%] object-contain"
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="flex flex-col items-center justify-center text-slate-200 animate-pulse">
-            <FiImage size={32} strokeWidth={1} className="mb-2" />
-            <span className="text-[8px] font-black uppercase tracking-[0.2em]">
-              Syncing
-            </span>
+          <div className="flex flex-col items-center justify-center text-gray-400">
+            <FiImage size={28} className="mb-2" />
+            <span className="text-[10px] font-medium uppercase">No QR</span>
           </div>
         )}
       </div>
 
-      {/* ================= META & QUICK COPY ================= */}
-      <div className="flex justify-between items-center bg-slate-50/50 rounded-2xl p-2.5 sm:p-3 border border-slate-100/50 group-hover:bg-slate-50 group-hover:border-slate-200 transition-all">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 flex items-center justify-center bg-white rounded-xl shadow-sm border border-slate-100/50 transition-transform group-hover:rotate-[-6deg]">
-            <FiUsers
-              size={14}
-              className="text-emerald-500"
-              aria-hidden="true"
-            />
-          </div>
-          <div className="flex flex-col leading-none">
-            <span className="text-xs sm:text-sm font-black text-slate-800 tabular-nums">
-              {table.seatingCapacity}
-            </span>
-            <span className="text-[8px] text-slate-400 uppercase tracking-widest font-bold mt-1">
-              Capacity
-            </span>
-          </div>
+      <div className="flex justify-between items-center bg-gray-50 rounded-xl p-3 border border-gray-200">
+        <div className="flex items-center gap-2">
+          <FiUsers size={14} className="text-orange-500" />
+          <span className="text-sm font-semibold text-gray-800">
+            {table.seatingCapacity} seats
+          </span>
         </div>
 
-        <button
-          onClick={copyLink}
-          className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-500 hover:bg-white rounded-lg transition-all active:scale-90 hover:shadow-sm"
-          title="Copy Direct Link"
-          aria-label="Copy Direct Link"
-        >
-          <FiCopy size={15} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={copyLink}
+            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-orange-600 hover:bg-white rounded-lg"
+            title="Copy link"
+          >
+            <FiCopy size={14} />
+          </button>
+          <a
+            href={qrLink || "#"}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => !qrLink && e.preventDefault()}
+            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-orange-600 hover:bg-white rounded-lg disabled:opacity-40"
+            title="Open link"
+          >
+            <FiExternalLink size={14} />
+          </a>
+        </div>
       </div>
 
-      {/* ================= ACTIONS ================= */}
-      <div className="grid grid-cols-2 gap-2.5 mt-auto">
+      <div className="grid grid-cols-2 gap-2 mt-auto">
         <button
           onClick={downloadQr}
           disabled={!qrImage}
-          aria-label="Export high-resolution QR"
-          className="flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-100 bg-white text-slate-600 font-black text-[9px] uppercase tracking-widest hover:bg-slate-50 hover:border-slate-200 transition-all active:scale-95 disabled:opacity-30 disabled:grayscale"
+          className="h-10 flex items-center justify-center gap-2 rounded-xl border border-gray-300 text-gray-700 text-xs font-semibold uppercase hover:bg-gray-50 disabled:opacity-40"
         >
-          <FiDownload size={12} strokeWidth={3} aria-hidden="true" />
-          Export
+          <FiDownload size={12} /> Export
         </button>
 
         <button
           onClick={() => onDelete?.(table)}
-          aria-label={`Remove ${table.tableNumber}`}
-          className="flex items-center justify-center gap-2 py-3 rounded-xl bg-red-50 text-red-600 font-black text-[9px] uppercase tracking-widest hover:bg-red-100 transition-all active:scale-95 border border-red-100/20"
+          className="h-10 flex items-center justify-center gap-2 rounded-xl bg-red-50 text-red-600 border border-red-200 text-xs font-semibold uppercase hover:bg-red-100"
         >
-          <FiTrash2 size={12} strokeWidth={3} aria-hidden="true" />
-          Remove
+          <FiTrash2 size={12} /> Remove
         </button>
       </div>
     </article>

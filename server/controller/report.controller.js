@@ -55,22 +55,51 @@ export async function gstReportController(req, res) {
 export async function topItemsReportController(req, res) {
   try {
     const { from, to, limit } = req.query;
+    const restaurantId = req.user.restaurantId;
 
-    const data = await getTopSellingItems({
-      restaurantId: req.user.restaurantId,
-      from,
-      to,
-      limit: Number(limit) || 10,
-    });
+    const start = from ? new Date(from) : new Date().setHours(0, 0, 0, 0);
+    const end = to ? new Date(to) : new Date().setHours(23, 59, 59, 999);
+
+    // Aggregate top items from orders
+    const topItems = await Order.aggregate([
+      {
+        $match: {
+          restaurantId: new mongoose.Types.ObjectId(restaurantId),
+          createdAt: { $gte: start, $lte: end },
+        },
+      },
+      { $unwind: "$items" },
+      {
+        $group: {
+          _id: "$items.name",
+          quantitySold: { $sum: "$items.quantity" },
+          revenue: { $sum: { $multiply: ["$items.quantity", "$items.price"] } },
+        },
+      },
+      { $sort: { revenue: -1 } },
+      { $limit: Number(limit) || 10 },
+      {
+        $project: {
+          itemName: "$_id",
+          quantitySold: 1,
+          revenue: 1,
+          _id: 0,
+        },
+      },
+    ]);
 
     res.json({
       success: true,
       error: false,
-      data,
+      data: {
+        topItems,
+      },
     });
   } catch (err) {
     console.error("topItemsReportController:", err);
-    res.status(500).json({ message: "Server error" });
+    res
+      .status(500)
+      .json({ success: false, error: true, message: "Server error" });
   }
 }
 
@@ -180,20 +209,42 @@ export async function itemSalesReportController(req, res) {
  */
 export async function waiterReportController(req, res) {
   try {
+    const { from, to } = req.query;
     const restaurantId = req.user.restaurantId;
 
+    const start = from ? new Date(from) : new Date().setHours(0, 0, 0, 0);
+    const end = to ? new Date(to) : new Date().setHours(23, 59, 59, 999);
+
+    const matchFilter = {
+      restaurantId: new mongoose.Types.ObjectId(restaurantId),
+      paymentStatus: "PAID",
+      createdAt: { $gte: start, $lte: end },
+    };
+
     const result = await Bill.aggregate([
-      {
-        $match: {
-          restaurantId: new mongoose.Types.ObjectId(restaurantId),
-          paymentStatus: "PAID",
-        },
-      },
+      { $match: matchFilter },
       {
         $group: {
           _id: "$paidByUserId",
-          totalCollected: { $sum: "$totalAmount" },
-          billsCount: { $sum: 1 },
+          totalSales: { $sum: "$totalAmount" },
+          ordersServed: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "waiter",
+        },
+      },
+      { $unwind: { path: "$waiter", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 1,
+          name: "$waiter.name",
+          totalSales: 1,
+          ordersServed: 1,
         },
       },
     ]);
@@ -201,33 +252,66 @@ export async function waiterReportController(req, res) {
     return res.json({
       success: true,
       error: false,
-      data: result,
+      data: {
+        waiters: result.map((w) => ({
+          name: w.name || "Unknown",
+          totalSales: w.totalSales,
+          ordersServed: w.ordersServed,
+        })),
+      },
     });
   } catch (err) {
     console.error("waiterReportController:", err);
-    res.status(500).json({ message: "Server error" });
+    res
+      .status(500)
+      .json({ success: false, error: true, message: "Server error" });
   }
 }
 
 export async function dailySalesReport(req, res) {
-  const { date } = req.query;
-  const start = new Date(date);
-  const end = new Date(date);
-  end.setHours(23, 59, 59);
+  try {
+    const { from, to } = req.query;
+    const restaurantId = req.user.restaurantId;
 
-  const bills = await Bill.find({
-    status: "PAID",
-    createdAt: { $gte: start, $lte: end },
-  }).lean();
+    const start = from ? new Date(from) : new Date().setHours(0, 0, 0, 0);
+    const end = to ? new Date(to) : new Date().setHours(23, 59, 59, 999);
 
-  const totalSales = bills.reduce((sum, b) => sum + b.total, 0);
+    const bills = await Bill.find({
+      restaurantId,
+      paymentStatus: "PAID",
+      createdAt: { $gte: start, $lte: end },
+    }).lean();
 
-  res.json({
-    success: true,
-    totalBills: bills.length,
-    totalSales,
-    bills,
-  });
+    // Group by date
+    const dailySalesMap = {};
+    bills.forEach((bill) => {
+      const dateKey = new Date(bill.createdAt).toISOString().split("T")[0];
+      if (!dailySalesMap[dateKey]) {
+        dailySalesMap[dateKey] = { revenue: 0, orderCount: 0, date: dateKey };
+      }
+      dailySalesMap[dateKey].revenue += bill.totalAmount || 0;
+      dailySalesMap[dateKey].orderCount += 1;
+    });
+
+    const dailySales = Object.values(dailySalesMap).sort(
+      (a, b) => new Date(b.date) - new Date(a.date),
+    );
+
+    res.json({
+      success: true,
+      error: false,
+      data: {
+        dailySales,
+        totalBills: bills.length,
+        totalRevenue: bills.reduce((sum, b) => sum + (b.totalAmount || 0), 0),
+      },
+    });
+  } catch (err) {
+    console.error("dailySalesReport error:", err);
+    res
+      .status(500)
+      .json({ success: false, error: true, message: "Server error" });
+  }
 }
 
 /**

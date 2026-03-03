@@ -159,35 +159,46 @@ export default function CustomerOrders() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white font-sans pb-32">
       {/* HEADER */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 sm:px-6 lg:px-8 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(-1)}
-              className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 active:scale-90 transition-transform"
-            >
-              <ChevronLeft
-                size={18}
-                className="text-slate-900"
-                strokeWidth={2.5}
-              />
-            </button>
-            <div>
-              <h1 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-900">
-                Orders
-              </h1>
-              <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">
-                Table Session
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate(-1)}
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-50 border border-gray-200 hover:bg-gray-100"
+              >
+                <ChevronLeft
+                  size={18}
+                  className="text-gray-900"
+                  strokeWidth={2.5}
+                />
+              </button>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">
+                  Order Status
+                </h1>
+                <p className="text-xs text-gray-500 mt-0.5">Live Updates</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Running Tab
+              </p>
+              <p className="text-lg font-bold text-gray-900">
+                ₹{Math.round(grandTotal)}
               </p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-              Running Tab
-            </p>
-            <p className="text-sm font-black text-slate-900">
-              ₹{Math.round(grandTotal)}
-            </p>
+
+          {/* KPI CARDS */}
+          <div className="grid grid-cols-3 gap-2">
+            <Kpi label="Total Orders" value={orders.length} />
+            <Kpi label="Total Items" value={totalItemsCount} tone="orange" />
+            <Kpi
+              label="Running Total"
+              value={`₹${Math.round(grandTotal)}`}
+              tone="green"
+            />
           </div>
         </div>
       </header>
@@ -339,6 +350,24 @@ export default function CustomerOrders() {
           <ChevronRight size={18} />
         </button>
       </div>
+    </div>
+  );
+}
+
+function Kpi({ label, value, tone = "neutral" }) {
+  const toneClass =
+    tone === "orange"
+      ? "bg-orange-50 border-orange-200 text-orange-700"
+      : tone === "green"
+        ? "bg-green-50 border-green-200 text-green-700"
+        : "bg-white border-gray-200 text-gray-700";
+
+  return (
+    <div className={`rounded-lg border p-2.5 text-center ${toneClass}`}>
+      <p className="text-[10px] uppercase tracking-wide font-semibold">
+        {label}
+      </p>
+      <p className="text-base font-bold mt-0.5">{value}</p>
     </div>
   );
 }

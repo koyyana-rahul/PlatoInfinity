@@ -2,15 +2,13 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import Axios from "../../../api/axios";
 import tableApi from "../../../api/table.api";
-import { FiHash, FiUsers, FiInfo, FiX, FiPlus } from "react-icons/fi";
-import clsx from "clsx";
+import { FiX, FiGrid, FiUsers } from "react-icons/fi";
 
 export default function CreateTableModal({ restaurantId, onClose, onSuccess }) {
   const [form, setForm] = useState({
     tableCode: "",
     seatingCapacity: 4,
   });
-
   const [loading, setLoading] = useState(false);
 
   const validate = () => {
@@ -27,7 +25,6 @@ export default function CreateTableModal({ restaurantId, onClose, onSuccess }) {
 
   const submit = async () => {
     if (!validate()) return;
-
     const tableNumber = `Table ${form.tableCode.trim()}`;
 
     try {
@@ -40,159 +37,103 @@ export default function CreateTableModal({ restaurantId, onClose, onSuccess }) {
         },
       });
 
-      toast.success("Table registered successfully");
+      toast.success("Table created successfully");
       onSuccess?.(res.data?.data);
       onClose();
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Registration failed");
+      toast.error(err?.response?.data?.message || "Unable to create table");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-3 sm:p-4">
-      {/* GLASS BACKDROP */}
-      <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300"
-        onClick={onClose}
-      />
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      {/* MODAL CARD - Max height constrained for short mobile screens */}
-      <div className="relative bg-white w-full max-w-[400px] rounded-[24px] sm:rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100 flex flex-col max-h-[90vh]">
-        {/* HEADER - Tighter vertical padding on mobile */}
-        <div className="px-5 sm:px-8 pt-5 sm:pt-8 pb-3 sm:pb-4 flex justify-between items-start border-b border-slate-50 sm:border-none">
+      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200">
+        <button
+          onClick={onClose}
+          className="absolute right-3 top-3 p-2 rounded-md text-gray-500 hover:bg-gray-100"
+        >
+          <FiX size={18} />
+        </button>
+
+        <div className="p-6 sm:p-7 space-y-5">
           <div>
-            <h2 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight leading-none">
-              Add Table
-            </h2>
-            <p className="text-[9px] sm:text-[11px] font-bold text-emerald-600 uppercase tracking-widest mt-1.5">
-              Inventory Unit
+            <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-orange-700 bg-orange-50 border border-orange-200 rounded-full px-2.5 py-1 mb-3">
+              <FiGrid size={12} /> Table Setup
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">Create Table</h2>
+            <p className="text-sm text-gray-600 mt-1.5">
+              Add a dine-in table with QR ordering enabled.
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 bg-slate-50 text-slate-400 rounded-full hover:text-red-500 transition-colors"
-          >
-            <FiX size={18} />
-          </button>
-        </div>
 
-        {/* BODY - Scrollable if content overflows mobile height */}
-        <div className="px-5 sm:px-8 py-3 sm:py-6 space-y-4 sm:space-y-6 overflow-y-auto flex-1 custom-scrollbar">
-          <InputField
-            label="Number / Code"
-            icon={FiHash}
-            placeholder="e.g. 12 or VIP-1"
-            value={form.tableCode}
-            onChange={(v) => setForm({ ...form, tableCode: v })}
-            required
-          />
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Table Number / Code
+            </label>
+            <input
+              value={form.tableCode}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, tableCode: e.target.value }))
+              }
+              placeholder="e.g. 12 or VIP-1"
+              className="w-full h-11 px-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-100 focus:border-orange-400"
+            />
+          </div>
 
-          <InputField
-            label="Seating Cap."
-            icon={FiUsers}
-            type="number"
-            value={form.seatingCapacity}
-            onChange={(v) => setForm({ ...form, seatingCapacity: v })}
-            min={1}
-          />
-
-          {/* DYNAMIC PREVIEW - Highly condensed for mobile */}
-          <div className="flex items-center gap-3 bg-slate-50/50 border border-slate-100 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl">
-            <div className="p-1.5 sm:p-2.5 bg-white rounded-lg sm:rounded-xl shadow-sm text-emerald-500 shrink-0">
-              <FiInfo size={14} className="sm:w-[18px] sm:h-[18px]" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5 sm:mb-1">
-                Stored As
-              </p>
-              <p className="text-xs sm:text-sm font-bold text-slate-700 truncate">
-                <span className="text-emerald-600 font-black">
-                  Table {form.tableCode || "..."}
-                </span>
-              </p>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Seating Capacity
+            </label>
+            <div className="relative">
+              <FiUsers
+                className="absolute left-3 top-3.5 text-gray-400"
+                size={14}
+              />
+              <input
+                type="number"
+                min={1}
+                value={form.seatingCapacity}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, seatingCapacity: e.target.value }))
+                }
+                className="w-full h-11 pl-9 pr-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-100 focus:border-orange-400"
+              />
             </div>
           </div>
+
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">
+              Preview
+            </p>
+            <p className="text-sm font-semibold text-gray-900 mt-1">
+              Table {form.tableCode || "..."}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              {Number(form.seatingCapacity || 0)} seat capacity
+            </p>
+          </div>
+
+          <div className="pt-1 flex gap-3">
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 h-11 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={submit}
+              disabled={loading}
+              className="flex-1 h-11 bg-orange-500 text-white rounded-xl text-sm font-semibold hover:bg-orange-600 disabled:opacity-60"
+            >
+              {loading ? "Creating..." : "Create Table"}
+            </button>
+          </div>
         </div>
-
-        {/* FOOTER - Fixed padding tier */}
-        <div className="px-5 sm:px-8 py-4 sm:py-6 border-t border-slate-50 bg-slate-50/30 flex justify-end gap-3 items-center">
-          <button
-            onClick={onClose}
-            disabled={loading}
-            className="px-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-all"
-          >
-            Cancel
-          </button>
-
-          <button
-            onClick={submit}
-            disabled={loading}
-            className="
-              flex items-center gap-2
-              bg-slate-900 text-white px-5 sm:px-8 h-10 sm:h-12 rounded-xl sm:rounded-2xl
-              text-[10px] font-black uppercase tracking-widest
-              hover:bg-emerald-600 active:scale-95 
-              disabled:opacity-50 shadow-lg shadow-slate-200 transition-all
-            "
-          >
-            {loading ? (
-              "..."
-            ) : (
-              <>
-                <FiPlus strokeWidth={3} className="w-3 h-3 sm:w-4 sm:h-4" />
-                Create Table
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
-      `}</style>
-    </div>
-  );
-}
-
-function InputField({
-  label,
-  icon: Icon,
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-  required,
-  min,
-}) {
-  return (
-    <div className="space-y-1 sm:space-y-2">
-      <label className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 leading-none">
-        {label} {required && <span className="text-red-400">*</span>}
-      </label>
-
-      <div className="relative group">
-        <div className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors">
-          <Icon size={14} className="sm:w-[18px] sm:h-[18px]" />
-        </div>
-
-        <input
-          type={type}
-          value={value}
-          min={min}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="
-            w-full h-10 sm:h-14 pl-10 sm:pl-12 pr-4
-            bg-white border border-slate-100 rounded-xl sm:rounded-2xl
-            text-xs sm:text-sm font-bold text-slate-900 shadow-sm
-            placeholder:text-slate-200 placeholder:font-medium
-            focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500
-            transition-all
-          "
-        />
       </div>
     </div>
   );

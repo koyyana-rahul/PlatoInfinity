@@ -10,6 +10,7 @@ export async function createBrandController(req, res) {
     const admin = req.user;
     const { name } = req.body;
 
+    // Validation
     if (!name?.trim()) {
       return res.status(400).json({
         message: "Brand name is required",
@@ -18,8 +19,27 @@ export async function createBrandController(req, res) {
       });
     }
 
+    const trimmedName = name.trim();
+
+    // Validate name length
+    if (trimmedName.length < 2) {
+      return res.status(400).json({
+        message: "Brand name must be at least 2 characters",
+        error: true,
+        success: false,
+      });
+    }
+
+    if (trimmedName.length > 50) {
+      return res.status(400).json({
+        message: "Brand name cannot exceed 50 characters",
+        error: true,
+        success: false,
+      });
+    }
+
     // Generate slug
-    const slug = slugify(name, {
+    const slug = slugify(trimmedName, {
       lower: true,
       strict: true,
       trim: true,
@@ -38,21 +58,30 @@ export async function createBrandController(req, res) {
     // Upload logo if exists
     let logoUrl = "";
     if (req.file) {
-      const uploadRes = await uploadImageClodinary(
-        req.file.buffer,
-        "brand-logos",
-      );
-      logoUrl = uploadRes.secure_url;
+      try {
+        const uploadRes = await uploadImageClodinary(
+          req.file.buffer,
+          "brand-logos",
+        );
+        logoUrl = uploadRes.secure_url;
+      } catch (uploadErr) {
+        console.error("Image upload error:", uploadErr);
+        return res.status(400).json({
+          message: "Failed to upload logo. Please try again.",
+          error: true,
+          success: false,
+        });
+      }
     }
 
     const brand = await BrandModel.create({
-      name: name.trim(),
+      name: trimmedName,
       slug,
       logoUrl,
       ownerId: admin._id,
     });
 
-    // Default categories
+    // Default categories - empty array for now
     const defaultCategories = [];
 
     for (let i = 0; i < defaultCategories.length; i++) {
@@ -145,18 +174,109 @@ export async function updateBrandSettingsController(req, res) {
       });
     }
 
-    // Update brand settings
+    // Validation
     const updateData = {};
-    if (storeName !== undefined) updateData.storeName = storeName;
-    if (address !== undefined) updateData.address = address;
-    if (phone !== undefined) updateData.phone = phone;
-    if (email !== undefined) updateData.email = email;
-    if (description !== undefined) updateData.description = description;
-    if (gst !== undefined) updateData.gst = gst;
-    if (fssai !== undefined) updateData.fssai = fssai;
-    if (serviceCharge !== undefined) updateData.serviceCharge = serviceCharge;
-    if (taxRate !== undefined) updateData.taxRate = taxRate;
-    if (deliveryFee !== undefined) updateData.deliveryFee = deliveryFee;
+
+    if (storeName !== undefined) {
+      if (!storeName?.trim()) {
+        return res.status(400).json({
+          message: "Store name is required",
+          error: true,
+          success: false,
+        });
+      }
+      updateData.storeName = storeName.trim();
+    }
+
+    if (address !== undefined) {
+      if (!address?.trim()) {
+        return res.status(400).json({
+          message: "Address is required",
+          error: true,
+          success: false,
+        });
+      }
+      updateData.address = address.trim();
+    }
+
+    if (phone !== undefined) {
+      if (!phone?.trim()) {
+        return res.status(400).json({
+          message: "Phone is required",
+          error: true,
+          success: false,
+        });
+      }
+      updateData.phone = phone.trim();
+    }
+
+    if (email !== undefined) {
+      if (!email?.trim()) {
+        return res.status(400).json({
+          message: "Email is required",
+          error: true,
+          success: false,
+        });
+      }
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        return res.status(400).json({
+          message: "Invalid email format",
+          error: true,
+          success: false,
+        });
+      }
+      updateData.email = email.trim();
+    }
+
+    if (description !== undefined) {
+      updateData.description = description?.trim() || "";
+    }
+
+    if (gst !== undefined) {
+      updateData.gst = gst?.trim() || "";
+    }
+
+    if (fssai !== undefined) {
+      updateData.fssai = fssai?.trim() || "";
+    }
+
+    if (serviceCharge !== undefined) {
+      const sc = parseFloat(serviceCharge) || 0;
+      if (sc < 0 || sc > 100) {
+        return res.status(400).json({
+          message: "Service charge must be between 0 and 100",
+          error: true,
+          success: false,
+        });
+      }
+      updateData.serviceCharge = sc;
+    }
+
+    if (taxRate !== undefined) {
+      const tr = parseFloat(taxRate) || 0;
+      if (tr < 0 || tr > 100) {
+        return res.status(400).json({
+          message: "Tax rate must be between 0 and 100",
+          error: true,
+          success: false,
+        });
+      }
+      updateData.taxRate = tr;
+    }
+
+    if (deliveryFee !== undefined) {
+      const df = parseFloat(deliveryFee) || 0;
+      if (df < 0) {
+        return res.status(400).json({
+          message: "Delivery fee cannot be negative",
+          error: true,
+          success: false,
+        });
+      }
+      updateData.deliveryFee = df;
+    }
 
     const updatedBrand = await BrandModel.findByIdAndUpdate(
       brand._id,

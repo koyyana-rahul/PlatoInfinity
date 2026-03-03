@@ -11,121 +11,64 @@ export default function RemoveStaffModal({
   const isActive = staff.isActive;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4 overflow-hidden">
-      {/* 1. GLASS BACKDROP */}
-      <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-500"
-        onClick={onClose}
-      />
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      {/* 2. CENTERED MODAL CARD */}
-      <div className="relative bg-white w-full max-w-[380px] rounded-[28px] sm:rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100 flex flex-col max-h-[90vh]">
-        {/* CLOSE ICON */}
+      <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-full bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors z-10"
+          className="absolute top-3 right-3 p-2 rounded-md text-gray-500 hover:bg-gray-100"
         >
           <FiX size={18} />
         </button>
 
-        {/* SCROLLABLE CONTENT */}
-        <div className="p-6 sm:p-10 flex flex-col items-center text-center overflow-y-auto">
-          {/* SEMANTIC ICON AREA */}
-          <div className="relative mb-4 sm:mb-6 shrink-0">
-            <div
-              className={clsx(
-                "absolute inset-0 blur-2xl rounded-full",
-                isActive ? "bg-red-500/15" : "bg-emerald-500/15",
-              )}
-            />
-
-            <div
-              className={clsx(
-                "relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-[24px] flex items-center justify-center",
-                isActive
-                  ? "bg-red-50 text-red-600"
-                  : "bg-emerald-50 text-emerald-600",
-              )}
-            >
-              {isActive ? (
-                <FiAlertCircle size={32} strokeWidth={1.5} />
-              ) : (
-                <FiShield size={32} strokeWidth={1.5} />
-              )}
-            </div>
-          </div>
-
-          {/* TYPOGRAPHY */}
-          <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
-            {isActive ? "Confirm Deactivation" : "Restore Access"}
-          </h3>
-          <p className="mt-2 text-[11px] sm:text-sm font-medium text-slate-500 leading-relaxed px-1">
-            You are changing the system status for
-            <span className="text-slate-900 font-bold italic">
-              {" "}
-              {staff.name}
-            </span>
-            .
-          </p>
-
-          {/* STAFF INFO MINI-CARD */}
-          <div className="mt-6 w-full space-y-2">
-            <div className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Identify
-              </span>
-              <span className="text-xs font-mono font-bold text-slate-700">
-                {staff.staffCode}
-              </span>
-            </div>
-          </div>
-
-          {/* CONSEQUENCE LIST */}
+        <div className="p-6 sm:p-7 space-y-4">
           <div
             className={clsx(
-              "mt-5 w-full p-4 rounded-xl border text-left",
+              "w-12 h-12 rounded-lg flex items-center justify-center",
               isActive
-                ? "bg-red-50/50 border-red-100"
-                : "bg-emerald-50/50 border-emerald-100",
+                ? "bg-red-50 text-red-600"
+                : "bg-green-50 text-green-600",
             )}
           >
-            <p
-              className={clsx(
-                "text-[10px] font-black uppercase tracking-widest mb-2",
-                isActive ? "text-red-500" : "text-emerald-600",
-              )}
-            >
-              System Changes:
-            </p>
-            <ul className="space-y-1.5">
-              {isActive ? (
-                <>
-                  <li className="text-[11px] font-bold text-red-700 flex items-center gap-2">
-                    • Access terminal disabled
-                  </li>
-                  <li className="text-[11px] font-bold text-red-700 flex items-center gap-2">
-                    • Secure PIN invalidated
-                  </li>
-                </>
-              ) : (
-                <>
-                  <li className="text-[11px] font-bold text-emerald-700 flex items-center gap-2">
-                    • Restore terminal login
-                  </li>
-                  <li className="text-[11px] font-bold text-emerald-700 flex items-center gap-2">
-                    • Re-generate access PIN
-                  </li>
-                </>
-              )}
-            </ul>
+            {isActive ? <FiAlertCircle size={22} /> : <FiShield size={22} />}
           </div>
 
-          {/* ACTIONS */}
-          <div className="mt-8 flex flex-row gap-2 w-full">
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">
+              {isActive ? "Deactivate Staff" : "Activate Staff"}
+            </h3>
+            <p className="text-sm text-gray-600 mt-1">
+              You are changing access for{" "}
+              <span className="font-semibold">{staff.name}</span>.
+            </p>
+          </div>
+
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center justify-between">
+            <span className="text-xs text-gray-500 uppercase">Staff Code</span>
+            <span className="text-sm font-semibold text-gray-900">
+              {staff.staffCode}
+            </span>
+          </div>
+
+          <div
+            className={clsx(
+              "rounded-lg p-3 border text-sm",
+              isActive
+                ? "bg-red-50 border-red-200 text-red-700"
+                : "bg-green-50 border-green-200 text-green-700",
+            )}
+          >
+            {isActive
+              ? "Staff login will be blocked until reactivated."
+              : "Staff login will be restored and they can access the system again."}
+          </div>
+
+          <div className="pt-1 flex gap-3">
             <button
               onClick={onClose}
               disabled={loading}
-              className="flex-1 h-11 sm:h-12 rounded-xl sm:rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors border border-transparent hover:border-slate-100"
+              className="flex-1 h-10 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50"
             >
               Cancel
             </button>
@@ -134,19 +77,13 @@ export default function RemoveStaffModal({
               onClick={onConfirm}
               disabled={loading}
               className={clsx(
-                "flex-[1.5] h-11 sm:h-12 text-white rounded-xl sm:rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2",
+                "flex-1 h-10 text-white rounded-lg text-sm font-semibold disabled:opacity-60",
                 isActive
-                  ? "bg-red-600 shadow-red-100 hover:bg-red-700"
-                  : "bg-emerald-600 shadow-emerald-100 hover:bg-emerald-700",
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-green-600 hover:bg-green-700",
               )}
             >
-              {loading ? (
-                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : isActive ? (
-                "Deactivate"
-              ) : (
-                "Activate Now"
-              )}
+              {loading ? "Updating..." : isActive ? "Deactivate" : "Activate"}
             </button>
           </div>
         </div>

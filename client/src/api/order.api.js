@@ -72,6 +72,12 @@ const orderApi = {
     url: `/api/order/status/${idempotencyKey}`,
     method: "GET",
   }),
+
+  /* ========== WAITER: ACTIVE ORDERS ========== */
+  listActiveOrders: () => ({
+    url: "/api/waiter/orders",
+    method: "GET",
+  }),
 };
 
 /**

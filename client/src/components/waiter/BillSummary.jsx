@@ -2,7 +2,7 @@ export default function BillSummary({ bill }) {
   if (!bill) return null;
 
   return (
-    <div className="bg-white border rounded-2xl p-4 space-y-2">
+    <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
       <Row label="Subtotal" value={`₹${bill.subtotal}`} />
       <Row label="Taxes" value={`₹${bill.taxes}`} />
       <Row label="Total" value={`₹${bill.total}`} bold />
@@ -12,9 +12,13 @@ export default function BillSummary({ bill }) {
 
 function Row({ label, value, bold }) {
   return (
-    <div className="flex justify-between">
-      <span className="text-sm text-gray-600">{label}</span>
-      <span className={`text-sm ${bold ? "font-bold" : ""}`}>{value}</span>
+    <div className="flex justify-between items-center">
+      <span className="text-sm text-gray-600 font-medium">{label}</span>
+      <span
+        className={`text-sm ${bold ? "font-bold text-gray-900" : "font-semibold text-gray-800"}`}
+      >
+        {value}
+      </span>
     </div>
   );
 }
