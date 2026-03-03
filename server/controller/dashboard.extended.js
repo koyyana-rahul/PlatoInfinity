@@ -18,22 +18,41 @@ export async function kpiMetricsController(req, res) {
     const { range = "today", restaurantId } = req.query;
     const user = req.user;
 
-    // Build filter
+    // Build filter based on user role and query params
     let filter = {};
-    if (restaurantId) {
+    let brandRestaurantIds = [];
+
+    // ✅ BRAND_ADMIN: Always filter by brand restaurants
+    if (user.role === "BRAND_ADMIN" && user.brandId) {
+      const brandRestaurants = await Restaurant.find({
+        brandId: user.brandId,
+      })
+        .select("_id")
+        .lean();
+
+      brandRestaurantIds = brandRestaurants.map((r) => r._id);
+
+      // If specific restaurant requested, verify it belongs to the brand
+      if (restaurantId) {
+        if (brandRestaurantIds.some((id) => id.toString() === restaurantId)) {
+          filter.restaurantId = restaurantId;
+        } else {
+          return res.status(403).json({
+            success: false,
+            error: true,
+            message: "Access denied to this restaurant",
+          });
+        }
+      } else {
+        // No specific restaurant - show all brand restaurants
+        filter.restaurantId = { $in: brandRestaurantIds };
+      }
+    }
+    // ✅ MANAGER or other roles: Filter by their restaurant or query param
+    else if (restaurantId) {
       filter.restaurantId = restaurantId;
     } else if (user.restaurantId) {
       filter.restaurantId = user.restaurantId;
-    } else if (user.brandId) {
-      // Brand Admin: Get all restaurants belonging to this brand
-      const brandRestaurants = await Restaurant.find({ brandId: user.brandId })
-        .select("_id")
-        .lean();
-      const restaurantIds = brandRestaurants.map((r) => r._id);
-
-      if (restaurantIds.length > 0) {
-        filter.restaurantId = { $in: restaurantIds };
-      }
     }
 
     // Date range
@@ -201,11 +220,60 @@ export async function performanceMetricsController(req, res) {
     const { restaurantId } = req.query;
     const user = req.user;
 
-    // Get all staff
+    // Get all staff - Build filter based on user role and query params
     const filter = {};
     let branchName = "Your Branch";
+    let brandRestaurantIds = [];
 
-    if (restaurantId) {
+    // ✅ BRAND_ADMIN: Always filter by brand restaurants
+    if (user.role === "BRAND_ADMIN" && user.brandId) {
+      const brandRestaurants = await Restaurant.find({
+        brandId: user.brandId,
+      })
+        .select("_id name")
+        .lean();
+
+      brandRestaurantIds = brandRestaurants.map((r) => r._id);
+
+      // If specific restaurant requested, verify it belongs to the brand
+      if (restaurantId) {
+        if (brandRestaurantIds.some((id) => id.toString() === restaurantId)) {
+          filter.restaurantId = restaurantId;
+          const restaurant = brandRestaurants.find(
+            (r) => r._id.toString() === restaurantId,
+          );
+          if (restaurant) {
+            branchName = restaurant.name;
+          }
+        } else {
+          // Restaurant doesn't belong to this brand
+          return res.status(403).json({
+            success: false,
+            error: true,
+            message: "Access denied to this restaurant",
+          });
+        }
+      } else {
+        // No specific restaurant - show all brand restaurants
+        filter.restaurantId = { $in: brandRestaurantIds };
+        const brand = await Brand.findById(user.brandId).select("name").lean();
+        if (brand) {
+          branchName = brand.name;
+        }
+      }
+    }
+    // ✅ MANAGER: Filter by their specific restaurant
+    else if (user.role === "MANAGER" && user.restaurantId) {
+      filter.restaurantId = user.restaurantId;
+      const restaurant = await Restaurant.findById(user.restaurantId)
+        .select("name")
+        .lean();
+      if (restaurant) {
+        branchName = restaurant.name;
+      }
+    }
+    // ✅ Other staff roles with restaurantId
+    else if (restaurantId) {
       filter.restaurantId = restaurantId;
       const restaurant = await Restaurant.findById(restaurantId)
         .select("name")
@@ -220,21 +288,6 @@ export async function performanceMetricsController(req, res) {
         .lean();
       if (restaurant) {
         branchName = restaurant.name;
-      }
-    } else if (user.brandId) {
-      // Brand Admin: Get all restaurants belonging to this brand
-      const brandRestaurants = await Restaurant.find({ brandId: user.brandId })
-        .select("_id")
-        .lean();
-      const restaurantIds = brandRestaurants.map((r) => r._id);
-
-      if (restaurantIds.length > 0) {
-        filter.restaurantId = { $in: restaurantIds };
-      }
-
-      const brand = await Brand.findById(user.brandId).select("name").lean();
-      if (brand) {
-        branchName = brand.name;
       }
     }
 
@@ -360,22 +413,41 @@ export async function operationalMetricsController(req, res) {
     const { range = "today", restaurantId } = req.query;
     const user = req.user;
 
-    // Build filter
+    // Build filter based on user role and query params
     let filter = {};
-    if (restaurantId) {
+    let brandRestaurantIds = [];
+
+    // ✅ BRAND_ADMIN: Always filter by brand restaurants
+    if (user.role === "BRAND_ADMIN" && user.brandId) {
+      const brandRestaurants = await Restaurant.find({
+        brandId: user.brandId,
+      })
+        .select("_id")
+        .lean();
+
+      brandRestaurantIds = brandRestaurants.map((r) => r._id);
+
+      // If specific restaurant requested, verify it belongs to the brand
+      if (restaurantId) {
+        if (brandRestaurantIds.some((id) => id.toString() === restaurantId)) {
+          filter.restaurantId = restaurantId;
+        } else {
+          return res.status(403).json({
+            success: false,
+            error: true,
+            message: "Access denied to this restaurant",
+          });
+        }
+      } else {
+        // No specific restaurant - show all brand restaurants
+        filter.restaurantId = { $in: brandRestaurantIds };
+      }
+    }
+    // ✅ MANAGER or other roles: Filter by their restaurant or query param
+    else if (restaurantId) {
       filter.restaurantId = restaurantId;
     } else if (user.restaurantId) {
       filter.restaurantId = user.restaurantId;
-    } else if (user.brandId) {
-      // Brand Admin: Get all restaurants belonging to this brand
-      const brandRestaurants = await Restaurant.find({ brandId: user.brandId })
-        .select("_id")
-        .lean();
-      const restaurantIds = brandRestaurants.map((r) => r._id);
-
-      if (restaurantIds.length > 0) {
-        filter.restaurantId = { $in: restaurantIds };
-      }
     }
 
     // Date range
@@ -461,22 +533,41 @@ export async function revenueBreakdownController(req, res) {
     const { range = "today", restaurantId } = req.query;
     const user = req.user;
 
-    // Build filter
+    // Build filter based on user role and query params
     let filter = {};
-    if (restaurantId) {
+    let brandRestaurantIds = [];
+
+    // ✅ BRAND_ADMIN: Always filter by brand restaurants
+    if (user.role === "BRAND_ADMIN" && user.brandId) {
+      const brandRestaurants = await Restaurant.find({
+        brandId: user.brandId,
+      })
+        .select("_id")
+        .lean();
+
+      brandRestaurantIds = brandRestaurants.map((r) => r._id);
+
+      // If specific restaurant requested, verify it belongs to the brand
+      if (restaurantId) {
+        if (brandRestaurantIds.some((id) => id.toString() === restaurantId)) {
+          filter.restaurantId = restaurantId;
+        } else {
+          return res.status(403).json({
+            success: false,
+            error: true,
+            message: "Access denied to this restaurant",
+          });
+        }
+      } else {
+        // No specific restaurant - show all brand restaurants
+        filter.restaurantId = { $in: brandRestaurantIds };
+      }
+    }
+    // ✅ MANAGER or other roles: Filter by their restaurant or query param
+    else if (restaurantId) {
       filter.restaurantId = restaurantId;
     } else if (user.restaurantId) {
       filter.restaurantId = user.restaurantId;
-    } else if (user.brandId) {
-      // Brand Admin: Get all restaurants belonging to this brand
-      const brandRestaurants = await Restaurant.find({ brandId: user.brandId })
-        .select("_id")
-        .lean();
-      const restaurantIds = brandRestaurants.map((r) => r._id);
-
-      if (restaurantIds.length > 0) {
-        filter.restaurantId = { $in: restaurantIds };
-      }
     }
 
     // Date range
