@@ -3,6 +3,7 @@ import express from "express";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { requireRole } from "../middleware/requireRole.js";
 import {
+  listSuspiciousOrdersForAdminController,
   listSuspiciousOrdersController,
   getSuspiciousOrderController,
   approveSuspiciousOrderController,
@@ -11,30 +12,38 @@ import {
 
 const suspiciousRouter = express.Router();
 
+// Admin/Brand Admin - List suspicious orders across brand restaurants
+suspiciousRouter.get(
+  "/",
+  requireAuth,
+  requireRole("BRAND_ADMIN"),
+  listSuspiciousOrdersForAdminController,
+);
+
 // Manager-only
 suspiciousRouter.get(
   "/manager/suspicious-orders",
   requireAuth,
   requireRole("MANAGER"),
-  listSuspiciousOrdersController
+  listSuspiciousOrdersController,
 );
 suspiciousRouter.get(
   "/manager/suspicious-orders/:id",
   requireAuth,
   requireRole("MANAGER"),
-  getSuspiciousOrderController
+  getSuspiciousOrderController,
 );
 suspiciousRouter.post(
   "/manager/suspicious-orders/:id/approve",
   requireAuth,
   requireRole("MANAGER"),
-  approveSuspiciousOrderController
+  approveSuspiciousOrderController,
 );
 suspiciousRouter.post(
   "/manager/suspicious-orders/:id/reject",
   requireAuth,
   requireRole("MANAGER"),
-  rejectSuspiciousOrderController
+  rejectSuspiciousOrderController,
 );
 
 export default suspiciousRouter;

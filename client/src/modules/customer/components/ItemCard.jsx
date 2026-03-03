@@ -2,6 +2,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import QuantityStepper from "./QuantityStepper";
 // import FavoriteButton from "./FavoriteButton";
 import VegNonVegIcon from "../../../components/ui/VegNonVegIcon";
+import {
+  fallbackCustomerImage,
+  getPrimaryItemImage,
+} from "../utils/resolveItemImages";
 
 export default function ItemCard({ item, qty = 0, onAdd, onMinus }) {
   const navigate = useNavigate();
@@ -21,32 +25,19 @@ export default function ItemCard({ item, qty = 0, onAdd, onMinus }) {
       <div className="relative p-3 pb-0">
         <div className="relative overflow-hidden rounded-2xl bg-gray-100">
           <img
-            src={item.image || "/food-placeholder.jpg"}
+            src={getPrimaryItemImage(item)}
             alt={item.name}
             loading="lazy"
+            onError={fallbackCustomerImage}
             className="h-40 sm:h-44 md:h-48 w-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         </div>
 
-        {/* VEG / NON-VEG + STATION BADGE */}
-        <div className="absolute top-5 left-5 flex gap-2 items-start">
+        {/* VEG / NON-VEG */}
+        <div className="absolute top-5 left-5">
           <div className="bg-white/90 backdrop-blur-md px-2 py-1 rounded-lg shadow-sm border border-gray-100">
             <VegNonVegIcon isVeg={item.isVeg} size={10} />
           </div>
-          {/* KITCHEN STATION BADGE */}
-          {item.stationBadge && (
-            <div className="bg-orange-50 backdrop-blur-md px-3 py-1.5 rounded-lg shadow-sm border border-orange-200 flex items-center gap-1">
-              <span
-                className="text-lg"
-                title={item.stationDisplayName || item.station}
-              >
-                {item.stationBadge}
-              </span>
-              <span className="text-[10px] font-bold text-orange-900 hidden sm:inline max-w-[80px] truncate">
-                {item.stationDisplayName || item.station}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* STEPPER (ONLY IF IN CART) */}
@@ -73,13 +64,6 @@ export default function ItemCard({ item, qty = 0, onAdd, onMinus }) {
         <p className="font-bold tracking-tight text-[15px] sm:text-base leading-tight line-clamp-2 text-gray-900">
           {item.name}
         </p>
-
-        {/* DESCRIPTION */}
-        {item.description && (
-          <p className="text-[12px] sm:text-sm text-gray-500 line-clamp-2 leading-relaxed">
-            {item.description}
-          </p>
-        )}
 
         {/* PRICE */}
         <div className="pt-2 flex justify-between items-center">

@@ -304,12 +304,25 @@ export async function performanceMetricsController(req, res) {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const orders = await Order.find({
-      ...filter,
-      createdAt: { $gte: today, $lte: tomorrow },
-    })
-      .select("items waiterId servedBy cashierId billedBy")
-      .lean();
+    // Get yesterday's date range for trend calculation
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+
+    const [todayOrders, yesterdayOrders] = await Promise.all([
+      Order.find({
+        ...filter,
+        createdAt: { $gte: today, $lte: tomorrow },
+      })
+        .select("items waiterId servedBy cashierId billedBy")
+        .lean(),
+      Order.find({
+        ...filter,
+        createdAt: { $gte: yesterday, $lt: today },
+      })
+        .select("items waiterId servedBy cashierId billedBy")
+        .lean(),
+    ]);
 
     // Get restaurant names for all staff (with caching)
     const restaurantCache = {};
@@ -329,12 +342,19 @@ export async function performanceMetricsController(req, res) {
     const staffMetrics = await Promise.all(
       staff.map(async (s) => {
         // Match orders based on staff role
-        let metricsValue = 0;
+        let todayValue = 0;
+        let yesterdayValue = 0;
         let metricsLabel = "";
 
         if (s.role === "CHEF") {
           // Count items prepared by this chef
-          metricsValue = orders.reduce((sum, order) => {
+          todayValue = todayOrders.reduce((sum, order) => {
+            const chefItems = order.items.filter(
+              (item) => item.chefId?.toString() === s._id.toString(),
+            );
+            return sum + chefItems.length;
+          }, 0);
+          yesterdayValue = yesterdayOrders.reduce((sum, order) => {
             const chefItems = order.items.filter(
               (item) => item.chefId?.toString() === s._id.toString(),
             );
@@ -343,7 +363,12 @@ export async function performanceMetricsController(req, res) {
           metricsLabel = "Orders Prepared";
         } else if (s.role === "WAITER") {
           // Count orders served by this waiter
-          metricsValue = orders.filter(
+          todayValue = todayOrders.filter(
+            (order) =>
+              order.waiterId?.toString() === s._id.toString() ||
+              order.servedBy?.toString() === s._id.toString(),
+          ).length;
+          yesterdayValue = yesterdayOrders.filter(
             (order) =>
               order.waiterId?.toString() === s._id.toString() ||
               order.servedBy?.toString() === s._id.toString(),
@@ -351,12 +376,27 @@ export async function performanceMetricsController(req, res) {
           metricsLabel = "Orders Served";
         } else if (s.role === "CASHIER") {
           // Count transactions by this cashier
-          metricsValue = orders.filter(
+          todayValue = todayOrders.filter(
+            (order) =>
+              order.cashierId?.toString() === s._id.toString() ||
+              order.billedBy?.toString() === s._id.toString(),
+          ).length;
+          yesterdayValue = yesterdayOrders.filter(
             (order) =>
               order.cashierId?.toString() === s._id.toString() ||
               order.billedBy?.toString() === s._id.toString(),
           ).length;
           metricsLabel = "Transactions";
+        }
+
+        // Calculate real trend (percentage change from yesterday)
+        let trend = 0;
+        if (yesterdayValue > 0) {
+          trend = Math.round(
+            ((todayValue - yesterdayValue) / yesterdayValue) * 100,
+          );
+        } else if (todayValue > 0) {
+          trend = 100; // New activity today
         }
 
         // Get restaurant name for this specific staff
@@ -374,17 +414,20 @@ export async function performanceMetricsController(req, res) {
             .toUpperCase(),
           metric: {
             label: metricsLabel,
-            value: metricsValue,
-            trend: Math.floor(Math.random() * 20 - 10),
+            value: todayValue,
+            trend: trend,
           },
+          todayValue,
         };
       }),
     );
 
-    // Sort by metric value and get top 4
+    // Filter out staff with no activity today and sort by metric value, get top 4
     const topStaff = staffMetrics
+      .filter((staff) => staff.todayValue > 0)
       .sort((a, b) => b.metric.value - a.metric.value)
-      .slice(0, 4);
+      .slice(0, 4)
+      .map(({ todayValue, ...staff }) => staff); // Remove todayValue from response
 
     return res.json({
       success: true,

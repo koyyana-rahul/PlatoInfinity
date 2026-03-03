@@ -1,6 +1,10 @@
 import { motion } from "framer-motion";
 import { Plus, Minus, Star, Flame } from "lucide-react";
 import VegNonVegIcon from "../../../components/ui/VegNonVegIcon";
+import {
+  fallbackCustomerImage,
+  getPrimaryItemImage,
+} from "../utils/resolveItemImages";
 
 const FoodCard = ({ item, quantity, onAdd, onMinus }) => {
   const cardVariants = {
@@ -8,7 +12,8 @@ const FoodCard = ({ item, quantity, onAdd, onMinus }) => {
     visible: { opacity: 1, y: 0 },
   };
 
-  const hasImage = item.image;
+  const imageSrc = getPrimaryItemImage(item);
+  const hasImage = !!imageSrc;
 
   return (
     <motion.div
@@ -19,10 +24,11 @@ const FoodCard = ({ item, quantity, onAdd, onMinus }) => {
       {hasImage && (
         <div className="w-full h-40 overflow-hidden">
           <img
-            src={item.image}
+            src={imageSrc}
             alt={item.name}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
+            onError={fallbackCustomerImage}
           />
         </div>
       )}
@@ -35,10 +41,6 @@ const FoodCard = ({ item, quantity, onAdd, onMinus }) => {
           </h3>
           <VegNonVegIcon isVeg={item.isVeg} />
         </div>
-
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 flex-grow">
-          {item.description}
-        </p>
 
         {/* Spice & Rating */}
         <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300 mb-4">

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import { X } from "lucide-react";
+import { X, ChevronDown, Search, Check } from "lucide-react";
 
 import Axios from "../../../../api/axios";
 import branchMenuApi from "../../../../api/branchMenu.api";
@@ -18,7 +18,15 @@ export default function EditBranchItemModal({ item, onClose, onSuccess }) {
   });
   const [stations, setStations] = useState([]);
   const [stationLoading, setStationLoading] = useState(true);
+  const [stationOpen, setStationOpen] = useState(false);
+  const [stationQuery, setStationQuery] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const filteredStations = stations.filter((s) =>
+    String(s?.name || "")
+      .toLowerCase()
+      .includes(stationQuery.toLowerCase()),
+  );
 
   useEffect(() => {
     const loadStations = async () => {
@@ -111,21 +119,86 @@ export default function EditBranchItemModal({ item, onClose, onSuccess }) {
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
               Kitchen Station
             </label>
-            <select
-              value={form.station}
-              disabled={stationLoading}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, station: e.target.value }))
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
-            >
-              <option value="">No Specific Station</option>
-              {stations.map((s) => (
-                <option key={s._id || s.name} value={s.name}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <button
+                type="button"
+                disabled={stationLoading}
+                onClick={() => setStationOpen((prev) => !prev)}
+                className="w-full h-11 px-3 rounded-xl border border-gray-300 bg-white text-sm text-left flex items-center justify-between hover:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-200 disabled:opacity-60"
+              >
+                <span className="truncate text-gray-800">
+                  {stationLoading
+                    ? "Loading stations..."
+                    : form.station || "No Specific Station"}
+                </span>
+                <ChevronDown
+                  size={16}
+                  className={`text-gray-500 transition-transform ${stationOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {stationOpen && !stationLoading && (
+                <div className="absolute z-40 mt-2 w-full rounded-xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
+                  <div className="p-2 border-b border-gray-100">
+                    <div className="flex items-center gap-2 rounded-lg border border-gray-200 px-2.5 h-9">
+                      <Search size={14} className="text-gray-400" />
+                      <input
+                        value={stationQuery}
+                        onChange={(e) => setStationQuery(e.target.value)}
+                        placeholder="Search station"
+                        className="w-full bg-transparent text-sm outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="max-h-52 overflow-y-auto py-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForm((p) => ({ ...p, station: "" }));
+                        setStationOpen(false);
+                      }}
+                      className="w-full px-3 py-2.5 text-left text-sm hover:bg-orange-50 flex items-center justify-between"
+                    >
+                      <span className="truncate text-gray-700">
+                        No Specific Station
+                      </span>
+                      {!form.station && (
+                        <Check size={14} className="text-orange-500" />
+                      )}
+                    </button>
+
+                    {filteredStations.length ? (
+                      filteredStations.map((s) => {
+                        const selected = form.station === s.name;
+                        return (
+                          <button
+                            key={s._id || s.name}
+                            type="button"
+                            onClick={() => {
+                              setForm((p) => ({ ...p, station: s.name }));
+                              setStationOpen(false);
+                            }}
+                            className="w-full px-3 py-2.5 text-left text-sm hover:bg-orange-50 flex items-center justify-between"
+                          >
+                            <span className="truncate text-gray-800">
+                              {s.name}
+                            </span>
+                            {selected && (
+                              <Check size={14} className="text-orange-500" />
+                            )}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="px-3 py-3 text-sm text-gray-500">
+                        No stations found
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div>

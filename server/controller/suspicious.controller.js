@@ -8,6 +8,7 @@ import StationQueueEventModel from "../models/stationQueueEvent.model.js";
 import KitchenStationModel from "../models/kitchenStation.model.js";
 import IdempotencyKeyModel from "../models/idempotencyKey.model.js";
 import AuditLog from "../models/auditLog.model.js";
+import Restaurant from "../models/restaurant.model.js";
 
 /**
  * NOTE: For kitchen notifications we call notifyKitchenAfterApprove() after transaction commits.
@@ -23,10 +24,75 @@ async function notifyKitchenAfterApprove(order) {
     }).lean();
     console.log(
       "notifyKitchenAfterApprove: created events",
-      stationEvents.length
+      stationEvents.length,
     );
   } catch (e) {
     console.error("notifyKitchenAfterApprove error", e);
+  }
+}
+
+/**
+ * GET /api/suspicious
+ * Query: ?filter=PENDING_APPROVAL&limit=10
+ * Admin/Brand Admin - Lists suspicious orders from brand's restaurants
+ */
+export async function listSuspiciousOrdersForAdminController(req, res) {
+  try {
+    const user = req.user;
+    const { filter: statusFilter, limit = 10 } = req.query;
+
+    // Build restaurant filter based on user role
+    let restaurantFilter = {};
+
+    if (user.role === "BRAND_ADMIN" && user.brandId) {
+      // Get all restaurants for this brand
+      const brandRestaurants = await Restaurant.find({
+        brandId: user.brandId,
+      })
+        .select("_id")
+        .lean();
+
+      const restaurantIds = brandRestaurants.map((r) => r._id);
+
+      if (restaurantIds.length > 0) {
+        restaurantFilter.restaurantId = { $in: restaurantIds };
+      } else {
+        // No restaurants for this brand, return empty
+        return res.json({
+          message: "suspicious orders",
+          error: false,
+          success: true,
+          data: [],
+        });
+      }
+    } else if (user.restaurantId) {
+      // For managers or staff with specific restaurant
+      restaurantFilter.restaurantId = user.restaurantId;
+    }
+
+    // Build status filter
+    const filter = { ...restaurantFilter };
+    if (statusFilter) {
+      filter.status = statusFilter;
+    }
+
+    const items = await SuspiciousOrderModel.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(Number(limit))
+      .populate("restaurantId", "name")
+      .lean();
+
+    return res.json({
+      message: "suspicious orders",
+      error: false,
+      success: true,
+      data: items,
+    });
+  } catch (err) {
+    console.error("listSuspiciousOrdersForAdminController error:", err);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: true, success: false });
   }
 }
 
@@ -204,7 +270,7 @@ export async function approveSuspiciousOrderController(req, res) {
       }
 
       for (const [stationName, stationItems] of Object.entries(
-        itemsByStation
+        itemsByStation,
       )) {
         const stationDoc = await KitchenStationModel.findOne({
           restaurantId: suspect.restaurantId,
@@ -223,7 +289,7 @@ export async function approveSuspiciousOrderController(req, res) {
             status: "NEW",
             createdAt: new Date(),
           })),
-          { session: mongooseSession }
+          { session: mongooseSession },
         );
       }
 
@@ -237,7 +303,7 @@ export async function approveSuspiciousOrderController(req, res) {
       // Optional: map idempotency key (if pending key existed)
       await IdempotencyKeyModel.updateMany(
         { suspiciousId: suspect._id },
-        { orderId: orderDoc._id, pending: false }
+        { orderId: orderDoc._id, pending: false },
       )
         .session(mongooseSession)
         .catch(() => {});
@@ -318,7 +384,7 @@ export async function rejectSuspiciousOrderController(req, res) {
     // Optional: mark idempotency keys as rejected
     await IdempotencyKeyModel.updateMany(
       { suspiciousId: suspect._id },
-      { pending: false }
+      { pending: false },
     ).catch(() => {});
 
     try {

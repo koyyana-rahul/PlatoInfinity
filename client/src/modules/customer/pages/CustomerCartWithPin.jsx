@@ -112,8 +112,8 @@ export default function CustomerCart() {
   );
 
   useEffect(() => {
-    dispatch(fetchCart());
-  }, [dispatch]);
+    dispatch(fetchCart({ tableId }));
+  }, [dispatch, tableId]);
 
   useEffect(() => {
     const loadOrdersSummary = async () => {
@@ -220,7 +220,7 @@ export default function CustomerCart() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white flex flex-col font-sans text-slate-900">
       {/* 1. HEADER */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-b border-slate-100">
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl px-3 sm:px-6 lg:px-8 py-4 sm:py-5 border-b border-slate-100">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <button
             onClick={() => navigate(-1)}
@@ -235,7 +235,7 @@ export default function CustomerCart() {
         </div>
       </header>
 
-      <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8 pb-40">
+      <main className="flex-1 px-3 sm:px-6 lg:px-8 py-6 sm:py-8 pb-36 sm:pb-40">
         <div className="max-w-6xl mx-auto lg:grid lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
           <section>
             {/* FRAUD WARNING */}
@@ -333,7 +333,7 @@ export default function CustomerCart() {
             </div>
           </section>
 
-          <aside className="space-y-8 lg:sticky lg:top-24 h-fit">
+          <aside className="space-y-6 lg:space-y-8 lg:sticky lg:top-24 h-fit">
             {/* BILLING SUMMARY */}
             <div className="bg-white rounded-[28px] p-6 sm:p-8 ring-1 ring-slate-100 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.4)]">
               <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-6">
@@ -523,12 +523,12 @@ export default function CustomerCart() {
       </main>
 
       {/* BOTTOM CHECKOUT BAR */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 p-4 sm:p-5 z-40 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/85 backdrop-blur-xl border-t border-slate-100 p-3 sm:p-5 z-40 pb-[calc(env(safe-area-inset-bottom)+0.9rem)]">
         <div className="max-w-6xl mx-auto">
           <button
             disabled={isPlacing}
             onClick={handlePlaceOrder}
-            className="w-full h-16 bg-slate-900 disabled:bg-slate-200 text-white rounded-[20px] flex items-center justify-between px-8 transition-all active:scale-[0.98] shadow-2xl shadow-slate-300 overflow-hidden relative"
+            className="w-full h-14 sm:h-16 bg-slate-900 disabled:bg-slate-200 text-white rounded-[18px] sm:rounded-[20px] flex items-center justify-between px-5 sm:px-8 transition-all active:scale-[0.98] shadow-2xl shadow-slate-300 overflow-hidden relative"
           >
             {isPlacing && (
               <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center backdrop-blur-sm z-10">

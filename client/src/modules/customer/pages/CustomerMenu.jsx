@@ -63,7 +63,7 @@ export default function CustomerMenu() {
     sessionId,
     restaurantId,
     tableId,
-    onCartUpdate: () => dispatch(fetchCart()),
+    onCartUpdate: () => dispatch(fetchCart({ tableId })),
     onMenuUpdate: handleMenuUpdate,
   });
 
@@ -90,8 +90,8 @@ export default function CustomerMenu() {
   }, [tableId]);
 
   useEffect(() => {
-    dispatch(fetchCart());
-  }, [dispatch]);
+    dispatch(fetchCart({ tableId }));
+  }, [dispatch, tableId]);
 
   const category = useMemo(
     () => menu.find((c) => c.id === activeCat),

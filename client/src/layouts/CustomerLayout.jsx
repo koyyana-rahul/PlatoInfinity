@@ -40,16 +40,16 @@ export default function CustomerLayout() {
   }, [dispatch, sessionId]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#f9f9f8] via-white to-[#f6f6f4] selection:bg-orange-100 selection:text-orange-900 antialiased font-sans text-slate-900">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#fff7f2] via-white to-[#f8fafc] selection:bg-orange-100 selection:text-orange-900 antialiased font-sans text-slate-900">
       {/* 1. BRAND HEADER */}
-      <div className="block w-full bg-transparent pt-3 md:pt-5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="block w-full bg-transparent pt-2 sm:pt-3 md:pt-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-8">
           <CustomerHeader />
         </div>
       </div>
 
       {/* 2. MAIN CONTENT AREA */}
-      <main className="w-full max-w-7xl mx-auto relative flex-1 px-4 sm:px-6 lg:px-8 pb-32 sm:pb-28 md:pb-16 pt-2 md:pt-4">
+      <main className="w-full max-w-7xl mx-auto relative flex-1 px-2.5 sm:px-5 lg:px-8 pb-32 sm:pb-28 md:pb-20 pt-1.5 md:pt-3">
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
           <Outlet />
         </div>
@@ -65,9 +65,8 @@ export default function CustomerLayout() {
           overscroll-behavior-y: none; 
           -webkit-font-smoothing: antialiased;
         }
-        /* Hide scrollbars for a clean app feel */
-        ::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );

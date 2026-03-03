@@ -71,7 +71,7 @@ export default function CallWaiterModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in fade-in zoom-in duration-300">
+      <div className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 animate-in fade-in zoom-in duration-300 ring-1 ring-slate-100">
         {/* CLOSE BUTTON */}
         <button
           onClick={onClose}
@@ -85,7 +85,7 @@ export default function CallWaiterModal({
           <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 ring-4 ring-amber-50">
             <span className="text-4xl">👋</span>
           </div>
-          <h2 className="text-3xl font-black text-slate-900 text-center tracking-tight mb-2">
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 text-center tracking-tight mb-2">
             Ready to Order?
           </h2>
           <p className="text-center text-slate-500 font-medium text-[15px]">
@@ -94,7 +94,7 @@ export default function CallWaiterModal({
         </div>
 
         {/* MESSAGE */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-7 sm:mb-8">
           {/* CALL OPTION */}
           <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100 text-center ring-2 ring-blue-100">
             <div className="text-3xl mb-2">📞</div>
@@ -139,7 +139,7 @@ export default function CallWaiterModal({
           <button
             onClick={handleCallWaiter}
             disabled={isWaiting}
-            className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-200 text-white font-bold py-4 rounded-2xl transition-all active:scale-95 text-[14px] uppercase tracking-widest flex items-center justify-center gap-3"
+            className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-200 text-white font-bold py-3.5 sm:py-4 rounded-2xl transition-all active:scale-95 text-[12px] sm:text-[14px] uppercase tracking-widest flex items-center justify-center gap-3"
           >
             <Phone size={20} />
             {isWaiting ? "Notified..." : "Call Waiter"}
@@ -148,7 +148,7 @@ export default function CallWaiterModal({
           <button
             onClick={handleWaiterArrived}
             disabled={isWaiting}
-            className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-200 text-white font-bold py-4 rounded-2xl transition-all active:scale-95 text-[14px] uppercase tracking-widest flex items-center justify-center gap-3"
+            className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-200 text-white font-bold py-3.5 sm:py-4 rounded-2xl transition-all active:scale-95 text-[12px] sm:text-[14px] uppercase tracking-widest flex items-center justify-center gap-3"
           >
             <Hand size={20} />
             Waiter Has Arrived

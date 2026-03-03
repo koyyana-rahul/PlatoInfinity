@@ -53,41 +53,6 @@ export const PerformanceMetrics = ({ staffData = [], loading }) => {
     );
   }
 
-  // Mock data if no staffData
-  const mockStaff = [
-    {
-      id: 1,
-      name: "Chef Rohit",
-      role: "CHEF",
-      initials: "CR",
-      metric: { label: "Orders Prepared", value: 24, trend: 12 },
-    },
-    {
-      id: 2,
-      name: "Waiter Priya",
-      role: "WAITER",
-      initials: "WP",
-      metric: { label: "Orders Served", value: 32, trend: 8 },
-    },
-    {
-      id: 3,
-      name: "Cashier Amit",
-      role: "CASHIER",
-      initials: "CA",
-      metric: { label: "Transactions", value: 18, trend: -3 },
-    },
-    {
-      id: 4,
-      name: "Manager Sneha",
-      role: "MANAGER",
-      initials: "MS",
-      metric: { label: "Avg Rating", value: "4.8", trend: 5 },
-    },
-  ];
-
-  const displayStaff =
-    staffData && staffData.length > 0 ? staffData : mockStaff;
-
   return (
     <div>
       <div className="flex items-center gap-2 mb-4">
@@ -95,11 +60,22 @@ export const PerformanceMetrics = ({ staffData = [], loading }) => {
         <h3 className="text-lg font-bold text-slate-900">Top Performance</h3>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {displayStaff.map((staff) => (
-          <StaffCard key={staff.id} staff={staff} metric={staff.metric} />
-        ))}
-      </div>
+      {staffData && staffData.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {staffData.map((staff) => (
+            <StaffCard key={staff.id} staff={staff} metric={staff.metric} />
+          ))}
+        </div>
+      ) : (
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
+          <FiUsers className="mx-auto text-slate-300 mb-3" size={48} />
+          <p className="text-slate-600 font-medium mb-1">No Staff Activity</p>
+          <p className="text-sm text-slate-500">
+            No staff performance data available for today. Staff activity will
+            appear here once they start working.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

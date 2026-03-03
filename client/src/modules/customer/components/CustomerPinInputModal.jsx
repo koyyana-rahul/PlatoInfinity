@@ -84,7 +84,7 @@ export default function CustomerPinInputModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in fade-in zoom-in duration-300">
+      <div className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 animate-in fade-in zoom-in duration-300 ring-1 ring-slate-100 max-h-[92vh] overflow-y-auto no-scrollbar">
         {/* CLOSE BUTTON */}
         <button
           onClick={onClose}
@@ -99,7 +99,7 @@ export default function CustomerPinInputModal({
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 ring-4 ring-blue-50">
             <Lock size={28} className="text-blue-600" strokeWidth={1.5} />
           </div>
-          <h2 className="text-2xl font-black text-slate-900 text-center tracking-tight mb-2">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 text-center tracking-tight mb-2">
             Enter Table PIN
           </h2>
           <p className="text-center text-slate-500 text-[14px] font-medium">
@@ -143,7 +143,7 @@ export default function CustomerPinInputModal({
         {!isBlacklisted && (
           <>
             {/* PIN INPUT GRID */}
-            <div className="bg-slate-50 rounded-2xl p-8 mb-6 border border-slate-100">
+            <div className="bg-slate-50 rounded-2xl p-5 sm:p-8 mb-6 border border-slate-100">
               <div className="grid grid-cols-4 gap-3">
                 {[0, 1, 2, 3].map((idx) => (
                   <input
@@ -158,7 +158,7 @@ export default function CustomerPinInputModal({
                     onChange={(e) => handlePinInput(e.target.value, idx)}
                     onKeyDown={(e) => handleKeyDown(e, idx)}
                     disabled={isLoading}
-                    className="w-full h-16 text-center text-2xl font-black border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all disabled:bg-slate-100 disabled:opacity-50"
+                    className="w-full h-14 sm:h-16 text-center text-xl sm:text-2xl font-black border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all disabled:bg-slate-100 disabled:opacity-50"
                     placeholder="•"
                   />
                 ))}
@@ -230,7 +230,7 @@ export default function CustomerPinInputModal({
             <button
               onClick={handleSubmit}
               disabled={pin.length !== 4 || isLoading}
-              className="w-full h-16 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 text-white font-bold rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest text-[13px]"
+              className="w-full h-14 sm:h-16 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 text-white font-bold rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest text-[12px] sm:text-[13px]"
             >
               {isLoading ? (
                 <>

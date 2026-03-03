@@ -33,36 +33,53 @@ export default function CustomerJoin() {
   /* ================= UI ================= */
 
   if (loading) {
-    return <div className="h-72 bg-gray-200 rounded-3xl animate-pulse" />;
+    return (
+      <div className="max-w-lg mx-auto">
+        <div className="h-72 bg-gray-200 rounded-3xl animate-pulse" />
+      </div>
+    );
   }
 
   if (!table) {
-    return <div className="p-6 bg-white rounded-2xl">Table not found</div>;
+    return (
+      <div className="max-w-lg mx-auto min-h-[60vh] flex items-center justify-center px-4">
+        <div className="w-full p-6 bg-white rounded-3xl ring-1 ring-slate-100 shadow-sm text-center">
+          <p className="text-lg font-bold text-slate-900">Table not found</p>
+          <p className="text-sm text-slate-500 mt-1">
+            Please scan a valid QR code.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-lg mx-auto p-6 bg-white min-h-screen flex flex-col">
+    <div className="max-w-lg mx-auto p-4 sm:p-6 bg-transparent min-h-[calc(100vh-120px)] flex flex-col">
       {/* HEADER CARD */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 mb-6">
+      <div className="bg-white/95 ring-1 ring-slate-100 rounded-3xl p-5 sm:p-6 mb-5 shadow-[0_16px_35px_-26px_rgba(15,23,42,0.45)]">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Welcome!</h1>
-            <p className="text-sm text-gray-600 mt-1">Ready to dine with us</p>
+            <h1 className="text-2xl font-extrabold text-gray-900">
+              Welcome 👋
+            </h1>
+            <p className="text-sm text-gray-600 mt-1 font-medium">
+              Your table is ready to order
+            </p>
           </div>
-          <div className="bg-orange-100 text-orange-700 px-3 py-1 rounded-lg text-xs font-semibold tracking-wide">
+          <div className="bg-orange-100 text-orange-700 px-3 py-1 rounded-xl text-xs font-bold tracking-wide">
             🍽️ Dining
           </div>
         </div>
       </div>
 
       {/* TABLE INFO CARDS */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-2 gap-3 mb-5">
         <Kpi label="Table" value={`#${table.tableNumber}`} />
         <Kpi label="Seats" value={table.seatingCapacity} tone="orange" />
       </div>
 
       {/* INFORMATION BOXES */}
-      <div className="space-y-3 mb-8 flex-1">
+      <div className="space-y-3 mb-7 flex-1">
         <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-900">
           <p className="font-semibold mb-1">✅ Browse Without PIN</p>
           <p className="text-xs leading-relaxed">
@@ -84,7 +101,7 @@ export default function CustomerJoin() {
       {/* CTA BUTTON */}
       <button
         onClick={() => navigate(`${base}/menu`, { replace: true })}
-        className="w-full h-12 bg-orange-500 text-white rounded-xl font-bold text-sm hover:bg-orange-600 transition"
+        className="w-full h-14 bg-gradient-to-r from-[#F35C2B] to-[#FF7A45] text-white rounded-2xl font-black text-xs sm:text-sm hover:brightness-105 transition shadow-[0_12px_30px_-18px_rgba(243,92,43,0.65)] tracking-wider uppercase"
       >
         Start Browsing Menu
       </button>
@@ -99,9 +116,9 @@ function Kpi({ label, value, tone = "neutral" }) {
       : "bg-white border-gray-200 text-gray-700";
 
   return (
-    <div className={`rounded-xl border p-4 ${toneClass}`}>
-      <p className="text-xs uppercase tracking-wide font-semibold">{label}</p>
-      <p className="text-2xl font-bold mt-1">{value}</p>
+    <div className={`rounded-2xl border p-4 ${toneClass}`}>
+      <p className="text-[11px] uppercase tracking-wider font-bold">{label}</p>
+      <p className="text-2xl font-black mt-1 leading-none">{value}</p>
     </div>
   );
 }

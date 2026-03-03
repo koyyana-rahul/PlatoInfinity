@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 
 const getTableId = () => {
   const path = window.location.pathname;
-  const match = path.match(/\/table\/([a-f0-9]+)/i);
+  const match = path.match(/\/table\/([^/]+)/i);
   if (match) return match[1];
 
   const searchParams = new URLSearchParams(window.location.search);
@@ -29,10 +29,22 @@ const getDeviceId = () => {
 ================================ */
 export const fetchCart = createAsyncThunk(
   "customerCart/fetch",
-  async (_, { rejectWithValue }) => {
+  async (payload = {}, { rejectWithValue }) => {
     try {
-      const tableId = getTableId();
+      const tableId = payload?.tableId || getTableId();
       const deviceId = getDeviceId();
+
+      // Guard: avoid noisy 400s when table context is unavailable/invalid
+      if (!tableId || !/^[a-f\d]{24}$/i.test(String(tableId))) {
+        return { items: [], subtotal: 0, tax: 0, totalAmount: 0 };
+      }
+
+      // Guard: only call cart API if customer session exists for this table
+      const sessionKey = `plato:customerSession:${tableId}`;
+      const hasSession = localStorage.getItem(sessionKey);
+      if (!hasSession) {
+        return { items: [], subtotal: 0, tax: 0, totalAmount: 0 };
+      }
 
       const res = await Axios({
         ...customerApi.cart.get,
@@ -43,9 +55,17 @@ export const fetchCart = createAsyncThunk(
       });
       return res.data?.data || {};
     } catch (err) {
-      return rejectWithValue(
-        err?.response?.data?.message || "Fetch cart failed",
-      );
+      const message = err?.response?.data?.message || "Fetch cart failed";
+
+      // Session might have expired/closed; keep UI stable instead of failing loudly
+      if (
+        err?.response?.status === 400 &&
+        /table|session|invalid/i.test(String(message))
+      ) {
+        return { items: [], subtotal: 0, tax: 0, totalAmount: 0 };
+      }
+
+      return rejectWithValue(message);
     }
   },
 );

@@ -157,7 +157,7 @@ export default function CustomerOrders() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white font-sans pb-32">
+    <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white font-sans pb-28 sm:pb-32">
       {/* HEADER */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
         <div className="max-w-5xl mx-auto">
@@ -203,7 +203,7 @@ export default function CustomerOrders() {
         </div>
       </header>
 
-      <main className="px-4 sm:px-6 lg:px-8 pt-8">
+      <main className="px-3 sm:px-6 lg:px-8 pt-6 sm:pt-8">
         <div className="max-w-5xl mx-auto">
           {/* SUMMARY CARD */}
           <div className="mb-10 bg-slate-900 rounded-[2.5rem] p-6 text-white flex items-center justify-between shadow-2xl shadow-slate-200">
@@ -339,10 +339,10 @@ export default function CustomerOrders() {
       </main>
 
       {/* FLOATING ACTION */}
-      <div className="fixed bottom-6 left-0 right-0 z-40 px-6 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+      <div className="fixed bottom-4 sm:bottom-6 left-0 right-0 z-40 px-4 sm:px-6 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
         <button
           onClick={() => navigate(basePath + "/menu")}
-          className="max-w-md mx-auto w-full h-15 bg-slate-900 text-white rounded-3xl flex items-center justify-center gap-3 shadow-2xl shadow-slate-400 active:scale-95 transition-transform py-4"
+          className="max-w-md mx-auto w-full h-14 sm:h-15 bg-slate-900 text-white rounded-3xl flex items-center justify-center gap-3 shadow-2xl shadow-slate-400 active:scale-95 transition-transform py-4"
         >
           <span className="text-[11px] font-black uppercase tracking-[0.2em]">
             Add Items
