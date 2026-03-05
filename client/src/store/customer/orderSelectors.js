@@ -2,6 +2,7 @@ import { createSelector } from "@reduxjs/toolkit";
 
 export const selectCustomerOrdersState = (state) =>
   state.customerOrders ?? {
+    hasOrders: false,
     items: [],
     loading: false,
   };
@@ -12,5 +13,7 @@ export const selectCustomerOrdersState = (state) =>
  */
 export const selectHasOrders = createSelector(
   selectCustomerOrdersState,
-  (orders) => Array.isArray(orders.items) && orders.items.length > 0,
+  (orders) =>
+    Boolean(orders?.hasOrders) ||
+    (Array.isArray(orders?.items) && orders.items.length > 0),
 );

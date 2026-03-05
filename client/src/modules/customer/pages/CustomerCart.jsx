@@ -10,6 +10,9 @@ import {
   ArrowRight,
   Loader2,
   UtensilsCrossed,
+  Sparkles,
+  AlertCircle,
+  Lock,
 } from "lucide-react";
 
 import QuantityStepper from "../components/QuantityStepper";
@@ -179,183 +182,256 @@ export default function CustomerCart() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col max-w-2xl mx-auto font-sans text-slate-900">
-      {/* 1. HEADER */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl px-4 py-5 border-b border-gray-200">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center gap-3 mb-4">
+    <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white flex flex-col font-sans text-slate-900 pb-40">
+      {/* 1. STICKY HEADER */}
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-xl px-4 sm:px-6 py-4 border-b border-slate-100">
+        <div className="max-w-4xl mx-auto">
+          {/* Header Top */}
+          <div className="flex items-center justify-between mb-4 gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-900 border border-gray-200 hover:bg-gray-100"
+              className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
             >
-              <ChevronLeft size={20} strokeWidth={2.5} />
+              <ChevronLeft size={22} strokeWidth={2.5} />
             </button>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">Review Order</h1>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Table {tableNumber}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+                <ShoppingBag size={20} className="flex-shrink-0" />
+                Review Order
+                <Sparkles size={16} className="text-orange-500 flex-shrink-0" />
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Table #{tableNumber}
               </p>
             </div>
-            <div className="ml-auto bg-orange-100 text-orange-700 px-3 py-1 rounded-lg text-xs font-semibold tracking-wide">
-              🛒 {totalQty} items
+            <div className="flex-shrink-0 bg-orange-100 text-orange-700 px-3 py-1.5 rounded-full text-xs sm:text-sm font-black tracking-wide">
+              {totalQty} items
             </div>
           </div>
-          {/* KPI CARDS */}
-          <div className="grid grid-cols-3 gap-2">
-            <Kpi label="Items" value={totalQty} />
-            <Kpi
-              label="Subtotal"
-              value={`₹${Math.round(cart.subtotal || 0)}`}
-              tone="orange"
-            />
-            <Kpi
-              label="Total"
-              value={`₹${Math.round(totalAmount)}`}
-              tone="green"
-            />
+
+          {/* KPI CARDS - Responsive Grid */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="bg-white border border-slate-200 rounded-2xl p-3 text-center hover:border-slate-300 transition-colors">
+              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-400">
+                Items
+              </p>
+              <p className="text-lg sm:text-xl font-black text-slate-900 mt-1">
+                {totalQty}
+              </p>
+            </div>
+            <div className="bg-orange-50 border border-orange-200 rounded-2xl p-3 text-center">
+              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-orange-600">
+                Subtotal
+              </p>
+              <p className="text-lg sm:text-xl font-black text-orange-700 mt-1">
+                ₹{Math.round(cart.subtotal || 0)}
+              </p>
+            </div>
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 text-center">
+              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-emerald-600">
+                Total
+              </p>
+              <p className="text-lg sm:text-xl font-black text-emerald-600 mt-1">
+                ₹{Math.round(totalAmount)}
+              </p>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 px-5 py-8 pb-48">
-        {/* 2. ORDER TYPE SWITCHER */}
-        <div className="mb-10">
-          <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-4 ml-1">
-            Service Method
-          </p>
-          <div className="bg-slate-100/50 p-1.5 rounded-[22px] flex gap-1 ring-1 ring-slate-100">
-            {["DINE_IN", "TAKEAWAY"].map((t) => (
-              <button
-                key={t}
-                onClick={() => setOrderType(t)}
-                className={`flex-1 py-3.5 rounded-[18px] text-[11px] font-bold uppercase tracking-widest transition-all ${
-                  orderType === t
-                    ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50"
-                    : "text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                {t.replace("_", " ")}
-              </button>
-            ))}
+      {/* 2. MAIN CONTENT */}
+      <main className="flex-1 px-4 sm:px-6 py-6 sm:py-8">
+        <div className="max-w-4xl mx-auto">
+          {/* SERVICE METHOD SELECTOR */}
+          <div className="mb-8">
+            <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-3">
+              📍 Service Method
+            </label>
+            <div className="bg-slate-100/60 p-1.5 rounded-2xl flex gap-1.5 ring-1 ring-slate-200">
+              {["DINE_IN", "TAKEAWAY"].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setOrderType(t)}
+                  className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-widest transition-all duration-200 ${
+                    orderType === t
+                      ? "bg-white text-slate-900 shadow-md ring-1 ring-slate-300 scale-[1.02]"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  {t === "DINE_IN" ? "🍽️ Dine In" : "🚚 Takeaway"}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* 3. ITEM LIST */}
-        <div className="space-y-6 mb-12">
-          <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2 ml-1">
-            Your Selection
-          </p>
-          {items.map((it) => (
-            <div
-              key={it._id}
-              className="relative flex justify-between items-start group animate-in fade-in slide-in-from-bottom-3 duration-300"
-            >
-              <div className="flex-1 min-w-0 pr-4">
-                <h3 className="font-bold text-[17px] text-slate-900 tracking-tight leading-snug mb-1">
-                  {it.name}
-                </h3>
-                <p className="text-[13px] font-semibold text-slate-400 mb-4">
-                  ₹{Math.round(it.price)}
-                </p>
-
-                <div className="inline-block">
-                  <QuantityStepper
-                    value={it.quantity}
-                    onAdd={() =>
-                      dispatch(
-                        updateCartItem({
-                          cartItemId: it._id,
-                          quantity: it.quantity + 1,
-                        }),
-                      )
-                    }
-                    onMinus={() => {
-                      if (it.quantity <= 1) {
-                        dispatch(removeCartItem(it._id));
-                      } else {
+          {/* ITEMS LIST */}
+          <div className="mb-10">
+            <h2 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">
+              📦 Your Selection ({totalQty} items)
+            </h2>
+            <div className="space-y-4">
+              {items.map((it) => (
+                <div
+                  key={it._id}
+                  className="group bg-white rounded-2xl p-4 border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all duration-200 flex justify-between items-start"
+                >
+                  <div className="flex-1 min-w-0 pr-4">
+                    <h3 className="font-bold text-sm sm:text-base text-slate-900 truncate mb-1">
+                      {it.name}
+                    </h3>
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-sm sm:text-base font-black text-slate-900">
+                        ₹{Math.round(it.price)}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-400 bg-slate-50 px-2 py-1 rounded">
+                        Qty: {it.quantity}
+                      </span>
+                    </div>
+                    <QuantityStepper
+                      value={it.quantity}
+                      onAdd={() =>
                         dispatch(
                           updateCartItem({
                             cartItemId: it._id,
-                            quantity: it.quantity - 1,
+                            quantity: it.quantity + 1,
                           }),
-                        );
+                        )
                       }
-                    }}
+                      onMinus={() => {
+                        if (it.quantity <= 1) {
+                          dispatch(removeCartItem(it._id));
+                        } else {
+                          dispatch(
+                            updateCartItem({
+                              cartItemId: it._id,
+                              quantity: it.quantity - 1,
+                            }),
+                          );
+                        }
+                      }}
+                    />
+                  </div>
+
+                  {/* RIGHT SIDE - PRICE & DELETE */}
+                  <div className="flex flex-col items-end gap-3 flex-shrink-0">
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500 mb-1">Subtotal</p>
+                      <p className="text-lg sm:text-xl font-black text-slate-900">
+                        ₹{Math.round(it.price * it.quantity)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => dispatch(removeCartItem(it._id))}
+                      className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all active:scale-90"
+                    >
+                      <Trash2 size={18} strokeWidth={2} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* PAYMENT SUMMARY CARD */}
+          <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-3xl p-6 sm:p-8 ring-1 ring-slate-200 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                💳 Payment Breakdown
+              </h3>
+              <Lock size={16} className="text-slate-400" />
+            </div>
+
+            <div className="space-y-4">
+              <BillingRow
+                label="Cart Subtotal"
+                value={`₹${Math.round(cart.subtotal || 0)}`}
+                highlight={false}
+              />
+              <BillingRow
+                label="Taxes & Charges"
+                value={`₹${Math.round(cart.tax || 0)}`}
+                highlight={false}
+              />
+
+              {/* TOTAL */}
+              <div className="pt-5 mt-5 border-t-2 border-slate-300 flex justify-between items-end">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
+                    Amount to Pay
+                  </p>
+                  <p className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter">
+                    ₹{Math.round(totalAmount)}
+                  </p>
+                </div>
+                <div className="text-right pb-2">
+                  <ShoppingBag
+                    size={28}
+                    className="text-emerald-200 opacity-50"
                   />
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div className="text-right flex flex-col items-end">
-                <span className="font-bold text-[17px] text-slate-900 mb-2">
-                  ₹{Math.round(it.price * it.quantity)}
-                </span>
-                <button
-                  onClick={() => dispatch(removeCartItem(it._id))}
-                  className="p-2 -mr-2 text-slate-300 hover:text-red-500 transition-colors active:scale-90"
-                >
-                  <Trash2 size={18} strokeWidth={2} />
-                </button>
+          {/* INFO CARDS */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex gap-3">
+              <AlertCircle
+                size={18}
+                className="text-blue-600 flex-shrink-0 mt-0.5"
+              />
+              <div className="text-xs">
+                <p className="font-bold text-blue-900 mb-1">Secure Order</p>
+                <p className="text-blue-800">
+                  PIN protection keeps your order safe
+                </p>
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* 4. BILLING SUMMARY */}
-        <div className="bg-slate-50 rounded-[32px] p-8 ring-1 ring-slate-100">
-          <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-6">
-            Payment Summary
-          </p>
-          <div className="space-y-4">
-            <Row
-              label="Cart Subtotal"
-              value={`₹${Math.round(cart.subtotal || 0)}`}
-            />
-            <Row
-              label="Taxes & Charges"
-              value={`₹${Math.round(cart.tax || 0)}`}
-            />
-            <div className="pt-6 mt-2 border-t border-slate-200/60 flex justify-between items-end">
-              <div>
-                <span className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">
-                  Amount to pay
-                </span>
-                <span className="text-3xl font-black text-slate-900 tracking-tighter">
-                  ₹{Math.round(totalAmount)}
-                </span>
-              </div>
-              <div className="pb-1">
-                <ShoppingBag size={24} className="text-slate-200" />
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex gap-3">
+              <span className="text-xl flex-shrink-0">⚡</span>
+              <div className="text-xs">
+                <p className="font-bold text-emerald-900 mb-1">Quick Service</p>
+                <p className="text-emerald-800">Order prepared in minutes</p>
               </div>
             </div>
           </div>
         </div>
       </main>
 
-      {/* 5. BOTTOM CHECKOUT BAR */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 p-5 z-40">
-        <div className="max-w-2xl mx-auto">
+      {/* 3. STICKY BOTTOM CHECKOUT BAR */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 p-4 sm:p-5 z-40">
+        <div className="max-w-4xl mx-auto">
           <button
-            disabled={isSubmittingOrder}
+            disabled={isSubmittingOrder || !totalQty}
             onClick={handlePlaceOrderClick}
-            className="w-full h-16 bg-slate-900 disabled:bg-slate-200 text-white rounded-[20px] flex items-center justify-between px-8 transition-all active:scale-[0.98] shadow-2xl shadow-slate-300 overflow-hidden relative"
+            className="w-full h-16 sm:h-14 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:from-slate-200 disabled:to-slate-200 text-white rounded-2xl sm:rounded-full flex items-center justify-between px-6 transition-all active:scale-95 shadow-lg hover:shadow-xl overflow-hidden relative font-bold text-sm sm:text-base"
           >
             {isSubmittingOrder && (
-              <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center backdrop-blur-sm z-10">
+              <div className="absolute inset-0 bg-black/20 flex items-center justify-center backdrop-blur-sm">
                 <Loader2 className="animate-spin text-white" size={24} />
               </div>
             )}
             <div className="text-left">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 mb-0.5">
+              <p className="text-xs font-bold uppercase tracking-wider text-white/70">
                 Ready to Order
               </p>
-              <p className="text-[15px] font-bold tracking-tight">
+              <p className="text-base sm:text-lg font-black tracking-tight">
                 {totalQty} {totalQty > 1 ? "Items" : "Item"} • ₹
                 {Math.round(totalAmount)}
               </p>
             </div>
-            <div className="flex items-center gap-2 font-bold text-[13px] uppercase tracking-widest">
-              Place Order <ChevronRight size={18} strokeWidth={3} />
+            <div className="flex items-center gap-2 font-bold uppercase">
+              <span className="hidden xs:inline text-xs">Place Order</span>
+              <ChevronRight size={20} strokeWidth={2.5} />
             </div>
+          </button>
+
+          {/* CONTINUE SHOPPING LINK */}
+          <button
+            onClick={() => navigate(base + "/menu")}
+            className="w-full text-center text-xs sm:text-sm text-slate-500 hover:text-slate-700 py-3 font-semibold transition-colors"
+          >
+            ← Continue shopping
           </button>
         </div>
       </div>
@@ -384,33 +460,21 @@ export default function CustomerCart() {
   );
 }
 
-function Row({ label, value }) {
+function BillingRow({ label, value, highlight = false }) {
   return (
-    <div className="flex justify-between items-center">
-      <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">
+    <div
+      className={`flex justify-between items-center ${highlight ? "font-black" : ""}`}
+    >
+      <span
+        className={`text-xs sm:text-sm font-${highlight ? "black" : "semibold"} uppercase tracking-wider ${highlight ? "text-slate-700" : "text-slate-600"}`}
+      >
         {label}
       </span>
-      <span className="text-[14px] font-bold text-gray-900 tracking-tight">
+      <span
+        className={`text-sm sm:text-base font-${highlight ? "black" : "bold"} ${highlight ? "text-slate-900" : "text-slate-800"}`}
+      >
         {value}
       </span>
-    </div>
-  );
-}
-
-function Kpi({ label, value, tone = "neutral" }) {
-  const toneClass =
-    tone === "orange"
-      ? "bg-orange-50 border-orange-200 text-orange-700"
-      : tone === "green"
-        ? "bg-green-50 border-green-200 text-green-700"
-        : "bg-white border-gray-200 text-gray-700";
-
-  return (
-    <div className={`rounded-lg border p-2.5 text-center ${toneClass}`}>
-      <p className="text-[10px] uppercase tracking-wide font-semibold">
-        {label}
-      </p>
-      <p className="text-base font-bold mt-0.5">{value}</p>
     </div>
   );
 }

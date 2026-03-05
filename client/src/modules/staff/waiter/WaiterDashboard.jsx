@@ -88,12 +88,30 @@ export default function WaiterDashboard() {
   }, [sessions]);
 
   const openSession = async (tableId) => {
-    const res = await Axios({
-      ...sessionApi.open(restaurantId),
-      data: { tableId },
-    });
-    setPinInfo(res.data.data);
-    toast.success("Session opened");
+    try {
+      const res = await Axios({
+        ...sessionApi.open(restaurantId),
+        data: { tableId },
+      });
+      setPinInfo(res.data.data);
+      toast.success("Session opened");
+
+      // 🔥 Optimistic update: immediately update local state
+      // The socket event will also update, but this ensures instant feedback
+      setTables((prev) =>
+        prev.map((t) => (t._id === tableId ? { ...t, status: "OCCUPIED" } : t)),
+      );
+
+      // 🔄 Refetch sessions to get the complete session data
+      // This ensures the UI is updated even if socket event is delayed/missed
+      const sessionsRes = await Axios(
+        sessionApi.list(restaurantId, { status: "OPEN" }),
+      );
+      setSessions(sessionsRes.data.data || []);
+    } catch (err) {
+      console.error("Failed to open session:", err);
+      toast.error(err.response?.data?.message || "Failed to open session");
+    }
   };
 
   const handleViewPin = async (session) => {

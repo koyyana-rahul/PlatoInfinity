@@ -2,6 +2,7 @@ import { io } from "socket.io-client";
 import { useEffect } from "react";
 
 let socket;
+let connectPromise = null;
 
 // Get the same API URL as axios uses
 const getSocketUrl = () => {
@@ -30,30 +31,37 @@ export function useCustomerSocket({
   onMenuUpdate,
 }) {
   useEffect(() => {
-    if (!sessionId || !restaurantId) return;
+    if (!restaurantId || !tableId) return;
 
-    socket = io(getSocketUrl(), {
-      path: "/socket.io",
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: 5,
-    });
+    if (!socket) {
+      socket = io(getSocketUrl(), {
+        path: "/socket.io",
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: 5,
+      });
+    }
 
     socket.on("connect", () => {
       console.log("✅ Socket connected:", socket.id);
-      socket.emit("join:customer", { sessionId, tableId, restaurantId });
+      if (sessionId) {
+        socket.emit("join:customer", { sessionId, tableId, restaurantId });
+      }
     });
 
     socket.on("connect_error", (error) => {
       console.error("❌ Socket connection error:", error);
     });
 
-    // Listen for cart updates
-    socket.on("cart:update", (data) => {
+    const handleCartUpdate = (data) => {
       console.log("🔄 Cart update received:", data);
       if (onCartUpdate) onCartUpdate(data);
-    });
+    };
+
+    // Listen for cart updates (support both event names)
+    socket.on("cart:update", handleCartUpdate);
+    socket.on("cart:updated", handleCartUpdate);
 
     // Listen for menu updates (real-time refresh)
     socket.on("menu:update", (data) => {
@@ -74,17 +82,123 @@ export function useCustomerSocket({
     });
 
     return () => {
-      socket.disconnect();
+      socket.off("cart:update", handleCartUpdate);
+      socket.off("cart:updated", handleCartUpdate);
     };
   }, [sessionId, restaurantId, tableId, onCartUpdate, onMenuUpdate]);
 }
 
-export function emitCustomerSocketEvent(event, payload, ack) {
-  if (!socket || !socket.connected) {
-    console.warn("⚠️ Customer socket not connected");
+export async function ensureCustomerSocketConnection({
+  sessionId,
+  restaurantId,
+  tableId,
+}) {
+  if (!restaurantId || !tableId) {
+    console.warn("⚠️ Missing restaurantId or tableId", {
+      restaurantId,
+      tableId,
+    });
     return false;
   }
 
-  socket.emit(event, payload, ack);
+  if (socket?.connected) {
+    console.log("✅ Socket already connected, joining customer room...", {
+      sessionId,
+      restaurantId,
+      tableId,
+    });
+    socket.emit("join:customer", { sessionId, tableId, restaurantId });
+    await new Promise((res) => setTimeout(res, 200));
+    return true;
+  }
+
+  if (!socket) {
+    console.log("🔌 Creating new socket connection...");
+    socket = io(getSocketUrl(), {
+      path: "/socket.io",
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
+    });
+  }
+
+  if (!connectPromise) {
+    console.log("⏳ Waiting for socket to connect...");
+    connectPromise = new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        console.warn("⏱️ Socket connection timeout (4s)");
+        resolve(false);
+      }, 4000);
+
+      socket.once("connect", () => {
+        clearTimeout(timeout);
+        console.log("✅ Socket connected, socket.id:", socket.id);
+        resolve(true);
+      });
+
+      socket.once("connect_error", (error) => {
+        clearTimeout(timeout);
+        console.error("❌ Socket connection error:", error);
+        resolve(false);
+      });
+    }).finally(() => {
+      connectPromise = null;
+    });
+  }
+
+  const connected = await connectPromise;
+  if (connected) {
+    console.log("✅ Socket connected, now emitting join:customer...", {
+      sessionId,
+      tableId,
+      restaurantId,
+    });
+    socket.emit("join:customer", { sessionId, tableId, restaurantId });
+    await new Promise((res) => setTimeout(res, 200));
+  } else {
+    console.error("❌ Failed to connect socket");
+  }
+
+  return connected;
+}
+
+export async function emitCustomerSocketEvent(event, payload, ack) {
+  console.log("📤 Emitting event:", event, "payload:", payload);
+
+  if (!socket) {
+    console.error("❌ Socket not initialized");
+    return false;
+  }
+
+  if (!socket.connected) {
+    console.warn(
+      "⚠️ Customer socket not connected (connected:",
+      socket.connected,
+      "), attempting to ensure connection...",
+    );
+    const { restaurantId, tableId } = payload;
+    const connected = await ensureCustomerSocketConnection({
+      restaurantId,
+      tableId,
+      sessionId: localStorage.getItem(`plato:customerSession:${tableId}`),
+    });
+
+    if (!connected) {
+      console.error("❌ Could not establish socket connection");
+      return false;
+    }
+  }
+
+  if (!socket.connected) {
+    console.error("❌ Socket still not connected after ensure attempt");
+    return false;
+  }
+
+  console.log("📤 Emitting:", event, "to socket:", socket.id);
+  socket.emit(event, payload, (response) => {
+    console.log("📬 Ack received for", event, ":", response);
+    if (ack) ack(response);
+  });
   return true;
 }

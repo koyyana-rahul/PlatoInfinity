@@ -118,28 +118,28 @@ export default function StickyCartBar() {
       >
         <button
           onClick={() => setIsOpen(true)}
-          className="max-w-xl mx-auto w-full h-16 bg-white/95 ring-1 ring-slate-100 rounded-3xl flex items-center justify-between px-4 sm:px-5 startup-shadow pointer-events-auto active:scale-95 transition-all"
+          className="max-w-xl mx-auto w-full h-16 bg-gradient-to-r from-[#F35C2B] to-[#FF7A45] ring-0 rounded-3xl flex items-center justify-between px-4 sm:px-5 startup-shadow pointer-events-auto active:scale-95 transition-all hover:shadow-lg hover:brightness-110"
         >
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="bg-gradient-to-r from-[#F35C2B] to-[#FF7A45] p-2.5 rounded-2xl shadow-md">
+              <div className="bg-white/20 backdrop-blur-sm p-2.5 rounded-2xl shadow-md">
                 <ShoppingBag size={20} className="text-white" />
               </div>
-              <span className="absolute -top-2 -right-2 bg-slate-900 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">
+              <span className="absolute -top-2 -right-2 bg-white text-[#F35C2B] text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">
                 {qty}
               </span>
             </div>
             <div className="text-left">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] leading-none mb-1">
+              <p className="text-[10px] font-black text-white/80 uppercase tracking-[0.15em] leading-none mb-1">
                 Your Basket
               </p>
-              <p className="text-base font-black text-slate-900 leading-none">
+              <p className="text-base font-black text-white leading-none">
                 ₹{total.toLocaleString()}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-[#F35C2B] py-2 px-4 rounded-full">
+          <div className="flex items-center gap-2 bg-white/20 py-2 px-4 rounded-full">
             <span className="text-[10px] font-black text-white uppercase tracking-widest hidden xs:inline">
               View
             </span>

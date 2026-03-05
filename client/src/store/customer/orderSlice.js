@@ -1,8 +1,26 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { fetchCustomerOrders, placeOrder } from "./orderThunks";
 
+const HAS_ORDERS_KEY = "plato:customerHasOrders";
+
+const readHasOrders = () => {
+  try {
+    return localStorage.getItem(HAS_ORDERS_KEY) === "true";
+  } catch {
+    return false;
+  }
+};
+
+const persistHasOrders = (value) => {
+  try {
+    localStorage.setItem(HAS_ORDERS_KEY, value ? "true" : "false");
+  } catch {
+    // ignore storage failures (private mode/quota)
+  }
+};
+
 const initialState = {
-  hasOrders: false,
+  hasOrders: readHasOrders(),
   items: [],
   loading: false,
 };
@@ -14,6 +32,7 @@ const customerOrdersSlice = createSlice({
     resetOrders(state) {
       state.hasOrders = false;
       state.items = [];
+      persistHasOrders(false);
     },
   },
   extraReducers: (builder) => {
@@ -28,6 +47,7 @@ const customerOrdersSlice = createSlice({
 
         // ✅ survives refresh
         state.hasOrders = action.payload.length > 0;
+        persistHasOrders(state.hasOrders);
       })
       .addCase(fetchCustomerOrders.rejected, (state) => {
         state.loading = false;
@@ -36,6 +56,7 @@ const customerOrdersSlice = createSlice({
     /* ================= PLACE ORDER ================= */
     builder.addCase(placeOrder.fulfilled, (state) => {
       state.hasOrders = true;
+      persistHasOrders(true);
     });
   },
 });

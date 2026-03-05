@@ -32,7 +32,7 @@ export async function placeOrderController(req, res) {
 
   try {
     const session = req.sessionDoc;
-    const { tablePin, mode, customerLabel } = req.body;
+    const { tablePin, mode, customerLabel, paymentMethod = null } = req.body;
     const deviceId = req.deviceId || req.body?.deviceId || null;
 
     /**
@@ -162,6 +162,44 @@ export async function placeOrderController(req, res) {
     const orderStatus = fraudResult.isFraudulent ? "PENDING_APPROVAL" : "OPEN";
 
     /**
+     * 5️⃣ CREATE ORDER
+     */
+    const table = await Table.findById(session.tableId)
+      .select("name tableNumber")
+      .session(mongoSession);
+
+    if (!table) {
+      throw new Error("Table not found for active session");
+    }
+
+    const [order] = await Order.create(
+      [
+        {
+          restaurantId: session.restaurantId,
+          sessionId: session._id,
+          tableId: session.tableId,
+          tableName: table.name || table.tableNumber || "Table",
+          items: orderItems,
+          orderStatus,
+          paymentMethod,
+          isSuspicious: !!fraudResult.isFraudulent,
+          suspiciousReason:
+            fraudResult.isFraudulent && fraudResult.reasons?.length
+              ? fraudResult.reasons.join(", ")
+              : null,
+          meta: {
+            mode: effectiveMode,
+            customerLabel: customerLabel || null,
+            deviceId: deviceId || null,
+            fraudScore: fraudResult.riskScore || 0,
+            fraudReasons: fraudResult.reasons || [],
+          },
+        },
+      ],
+      { session: mongoSession },
+    );
+
+    /**
      * 6️⃣ CLEAR CART
      */
     await CartItem.deleteMany(
@@ -257,7 +295,10 @@ export async function placeOrderController(req, res) {
     return res.status(201).json({
       success: true,
       error: false,
-      data: order,
+      data: {
+        ...(typeof order?.toObject === "function" ? order.toObject() : order),
+        orderId: order._id,
+      },
       autoApproved: !fraudResult.isFraudulent,
       fraudAlerts: fraudResult.isFraudulent ? fraudResult.reasons : [],
     });

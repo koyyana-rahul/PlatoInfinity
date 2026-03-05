@@ -7,6 +7,39 @@ export function initAxiosInterceptors() {
   if (initialized) return;
   initialized = true;
 
+  const getCustomerSessionToken = (url = "", config = {}) => {
+    const directToken =
+      sessionStorage.getItem("plato:token") ||
+      localStorage.getItem("plato:token");
+
+    if (directToken) return directToken;
+
+    const headerTableId =
+      config?.headers?.["x-table-id"] || config?.headers?.["X-Table-Id"];
+    const routeTableIdMatch = String(url).match(
+      /^\/api\/order\/table\/([^/?#]+)/i,
+    );
+    const tableId =
+      headerTableId ||
+      routeTableIdMatch?.[1] ||
+      localStorage.getItem("plato:lastTableId");
+
+    if (!tableId) return null;
+
+    const tableSessionRaw = localStorage.getItem(
+      `plato:customerSession:${tableId}`,
+    );
+    if (!tableSessionRaw) return null;
+
+    // Some flows store plain session id, some store JSON payload
+    try {
+      const parsed = JSON.parse(tableSessionRaw);
+      return parsed?.sessionToken || parsed?.token || null;
+    } catch {
+      return null;
+    }
+  };
+
   /* =====================================================
      REQUEST INTERCEPTOR
      Attach JWT tokens for admin + customer session tokens
@@ -58,10 +91,8 @@ export function initAxiosInterceptors() {
         url.startsWith("/api/order") ||
         url.startsWith("/api/customer")
       ) {
-        // Get session token from sessionStorage or localStorage
-        const sessionToken =
-          sessionStorage.getItem("plato:token") ||
-          localStorage.getItem("plato:token");
+        // Optional session token (for hybrid flows)
+        const sessionToken = getCustomerSessionToken(url, config);
 
         if (sessionToken) {
           config.headers["x-customer-session"] = sessionToken;
@@ -71,8 +102,6 @@ export function initAxiosInterceptors() {
             "| Token:",
             sessionToken.substring(0, 10) + "...",
           );
-        } else if (!url.startsWith("/api/cart")) {
-          console.warn("⚠️ No session token found in storage for", url);
         }
       }
 

@@ -6,6 +6,14 @@ import {
   getWaiterOrdersController,
   getReadyItemsController,
 } from "../controller/waiter.controller.js";
+import {
+  saveWaiterAlertController,
+  acknowledgeWaiterAlertController,
+  getAlertsByTimeSlotController,
+  getDailyAlertHistoryController,
+  getAlertAnalyticsController,
+  exportAlertsController,
+} from "../controller/waiterAlert.controller.js";
 import Order from "../models/order.model.js";
 import Table from "../models/table.model.js";
 import Bill from "../models/bill.model.js";
@@ -276,5 +284,32 @@ waiterRouter.get("/my-tables", async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+/**
+ * ===================================================
+ * WAITER ALERT ENDPOINTS - HISTORY & AUDIT
+ * ===================================================
+ */
+
+// 💾 Save waiter alert (can be called from client)
+waiterRouter.post("/alerts/save", saveWaiterAlertController);
+
+// ✅ Acknowledge alert (mark as attended)
+waiterRouter.patch(
+  "/alerts/:alertId/acknowledge",
+  acknowledgeWaiterAlertController,
+);
+
+// 📊 Get alerts by time slot
+waiterRouter.get("/alerts/time-slot", getAlertsByTimeSlotController);
+
+// 📅 Get daily alert history (grouped by time slots)
+waiterRouter.get("/alerts/daily", getDailyAlertHistoryController);
+
+// 📈 Get alert analytics for date range
+waiterRouter.get("/alerts/analytics", getAlertAnalyticsController);
+
+// 📥 Export alerts as JSON or CSV
+waiterRouter.get("/alerts/export", exportAlertsController);
 
 export default waiterRouter;

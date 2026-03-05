@@ -8,6 +8,7 @@ import {
   payBillController,
   getBillBySessionController,
   getCustomerBillController,
+  requestCustomerBillController,
 } from "../controller/bill.controller.js";
 
 const billRouter = express.Router();
@@ -23,7 +24,7 @@ billRouter.post(
   "/bill/session/:sessionId",
   requireAuth,
   requireRole("WAITER", "MANAGER", "CASHIER"),
-  generateBillController
+  generateBillController,
 );
 
 // Pay bill
@@ -31,14 +32,14 @@ billRouter.post(
   "/bill/:billId/pay",
   requireAuth,
   requireRole("WAITER", "MANAGER", "CASHIER"),
-  payBillController
+  payBillController,
 );
 
 // Staff view bill
 billRouter.get(
   "/bill/session/:sessionId",
   requireAuth,
-  getBillBySessionController
+  getBillBySessionController,
 );
 
 /**
@@ -49,5 +50,12 @@ billRouter.get(
 
 // 👇 CUSTOMER VIEW BILL (NO LOGIN)
 billRouter.get("/customer/bill", requireSessionAuth, getCustomerBillController);
+
+// 👇 CUSTOMER REQUEST BILL ALERT (NO LOGIN)
+billRouter.post(
+  "/customer/bill/request",
+  requireSessionAuth,
+  requestCustomerBillController,
+);
 
 export default billRouter;

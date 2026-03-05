@@ -24,6 +24,8 @@ import {
 import Axios from "../../../api/axios";
 import customerApi from "../../../api/customer.api";
 import QuantityStepper from "../components/QuantityStepper";
+import CallWaiterModal from "../components/CallWaiterModal";
+import { useCustomerSocket } from "../hooks/useCustomerSocket";
 
 import {
   fetchCart,
@@ -45,6 +47,8 @@ export default function CustomerCart() {
   const dispatch = useDispatch();
 
   const base = `/${brandSlug}/${restaurantSlug}/table/${tableId}`;
+  const sessionKey = `plato:customerSession:${tableId}`;
+  const sessionId = localStorage.getItem(sessionKey);
 
   const cart = useSelector(selectCartState);
   const items = useSelector(selectCartItems);
@@ -55,6 +59,7 @@ export default function CustomerCart() {
   const [pin, setPin] = useState("");
   const [pinPromptVisible, setPinPromptVisible] = useState(false);
   const [pinEntryVisible, setPinEntryVisible] = useState(false);
+  const [showCallWaiterModal, setShowCallWaiterModal] = useState(false);
   const [mode, setMode] = useState("FAMILY");
   const [customerLabel, setCustomerLabel] = useState("");
   const [isPlacing, setIsPlacing] = useState(false);
@@ -62,6 +67,8 @@ export default function CustomerCart() {
   const [isFirstOrder, setIsFirstOrder] = useState(true);
   const [ordersTotal, setOrdersTotal] = useState(0);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [tableNumber, setTableNumber] = useState("Table");
+  const [restaurantId, setRestaurantId] = useState(null);
 
   const hasLargeQty = items.some((item) => item.quantity > 10);
 
@@ -111,9 +118,34 @@ export default function CustomerCart() {
     [ordersTotal, totalAmount],
   );
 
+  useCustomerSocket({
+    sessionId,
+    restaurantId,
+    tableId,
+    onCartUpdate: () => dispatch(fetchCart({ tableId })),
+  });
+
   useEffect(() => {
     dispatch(fetchCart({ tableId }));
   }, [dispatch, tableId]);
+
+  useEffect(() => {
+    const loadTableInfo = async () => {
+      try {
+        const res = await Axios(customerApi.publicTable(tableId));
+        if (res.data?.data?.tableNumber) {
+          setTableNumber(res.data.data.tableNumber);
+        }
+        if (res.data?.data?.restaurantId) {
+          setRestaurantId(res.data.data.restaurantId);
+        }
+      } catch {
+        // non-blocking
+      }
+    };
+
+    loadTableInfo();
+  }, [tableId]);
 
   useEffect(() => {
     const loadOrdersSummary = async () => {
@@ -147,7 +179,7 @@ export default function CustomerCart() {
 
   const handlePlaceOrder = async () => {
     if (!pinEntryVisible) {
-      setPinPromptVisible(true);
+      setShowCallWaiterModal(true);
       return;
     }
     if (pin.length !== 4) {
@@ -175,6 +207,12 @@ export default function CustomerCart() {
     } finally {
       setIsPlacing(false);
     }
+  };
+
+  const handleWaiterConfirmed = () => {
+    setPinPromptVisible(true);
+    setPinEntryVisible(true);
+    setShowCallWaiterModal(false);
   };
 
   if (loading && !items.length) {
@@ -551,6 +589,16 @@ export default function CustomerCart() {
           </button>
         </div>
       </div>
+
+      <CallWaiterModal
+        isOpen={showCallWaiterModal}
+        tableNumber={tableNumber}
+        tableId={tableId}
+        restaurantId={restaurantId}
+        sessionId={sessionId}
+        onClose={() => setShowCallWaiterModal(false)}
+        onWaiterConfirmed={handleWaiterConfirmed}
+      />
     </div>
   );
 }

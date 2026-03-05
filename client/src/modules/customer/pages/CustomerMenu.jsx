@@ -45,6 +45,16 @@ export default function CustomerMenu() {
   const cartItems = useSelector(selectCartItems);
   const quantities = useSelector(selectQuantities);
 
+  const normalizeId = (value) => {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "object") {
+      if (value._id) return String(value._id);
+      if (value.id) return String(value.id);
+    }
+    return String(value);
+  };
+
   // Real-time Update Handler
   const handleMenuUpdate = async () => {
     try {
@@ -72,12 +82,17 @@ export default function CustomerMenu() {
     (async () => {
       try {
         setLoading(true);
-        const res = await Axios(customerApi.publicMenuByTable(tableId));
-        const data = res.data?.data || [];
+        const [menuRes, tableRes] = await Promise.all([
+          Axios(customerApi.publicMenuByTable(tableId)),
+          Axios(customerApi.publicTable(tableId)),
+        ]);
+        const data = menuRes.data?.data || [];
         if (!active) return;
         setMenu(data);
         if (data.length) setActiveCat(data[0].id);
-        if (res.data?.restaurantId) setRestaurantId(res.data.restaurantId);
+        if (tableRes.data?.data?.restaurantId) {
+          setRestaurantId(tableRes.data.data.restaurantId);
+        }
       } catch {
         toast.error("Offline: Reconnecting...");
       } finally {
@@ -238,7 +253,9 @@ export default function CustomerMenu() {
                 dispatch(addToCart({ branchMenuItemId: id, quantity: 1 }))
               }
               onMinus={(id) => {
-                const item = cartItems.find((i) => i.branchMenuItemId === id);
+                const item = cartItems.find(
+                  (i) => normalizeId(i.branchMenuItemId) === normalizeId(id),
+                );
                 if (!item) return;
                 item.quantity <= 1
                   ? dispatch(removeCartItem(item._id))

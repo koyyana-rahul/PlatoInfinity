@@ -39,12 +39,9 @@ export const fetchCart = createAsyncThunk(
         return { items: [], subtotal: 0, tax: 0, totalAmount: 0 };
       }
 
-      // Guard: only call cart API if customer session exists for this table
-      const sessionKey = `plato:customerSession:${tableId}`;
-      const hasSession = localStorage.getItem(sessionKey);
-      if (!hasSession) {
-        return { items: [], subtotal: 0, tax: 0, totalAmount: 0 };
-      }
+      // Important: do not block cart fetch on localStorage session keys.
+      // Session keys may be absent after refresh in some flows, while the
+      // backend still has an active table session and cart.
 
       const res = await Axios({
         ...customerApi.cart.get,
@@ -131,7 +128,7 @@ export const addToCart = createAsyncThunk(
 ================================ */
 export const updateCartItem = createAsyncThunk(
   "customerCart/update",
-  async ({ cartItemId, quantity }, { rejectWithValue }) => {
+  async ({ cartItemId, quantity }, { rejectWithValue, dispatch }) => {
     try {
       const tableId = getTableId();
       const deviceId = getDeviceId();
@@ -144,6 +141,7 @@ export const updateCartItem = createAsyncThunk(
           "x-device-id": deviceId,
         },
       });
+      dispatch(fetchCart({ tableId }));
       return { cartItemId, quantity };
     } catch (err) {
       return rejectWithValue(
@@ -158,7 +156,7 @@ export const updateCartItem = createAsyncThunk(
 ================================ */
 export const removeCartItem = createAsyncThunk(
   "customerCart/remove",
-  async (cartItemId, { rejectWithValue }) => {
+  async (cartItemId, { rejectWithValue, dispatch }) => {
     try {
       const tableId = getTableId();
       const deviceId = getDeviceId();
@@ -171,6 +169,7 @@ export const removeCartItem = createAsyncThunk(
           "x-device-id": deviceId,
         },
       });
+      dispatch(fetchCart({ tableId }));
       return cartItemId;
     } catch (err) {
       return rejectWithValue(
@@ -185,7 +184,7 @@ export const removeCartItem = createAsyncThunk(
 ================================ */
 export const placeOrder = createAsyncThunk(
   "customerOrders/place",
-  async ({ tablePin, mode, customerLabel }, { rejectWithValue }) => {
+  async ({ tablePin, mode, customerLabel }, { rejectWithValue, dispatch }) => {
     try {
       if (!tablePin || tablePin.length !== 4) {
         return rejectWithValue("Invalid PIN");
@@ -214,6 +213,8 @@ export const placeOrder = createAsyncThunk(
       } else {
         toast.success("Order sent to kitchen!", { icon: "✅" });
       }
+
+      dispatch(fetchCart({ tableId }));
 
       return res.data?.data;
     } catch (err) {

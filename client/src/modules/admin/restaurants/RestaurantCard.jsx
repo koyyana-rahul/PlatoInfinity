@@ -96,35 +96,40 @@ export default function RestaurantCard({
       </div>
 
       {/* ACTION BUTTONS */}
-      <div className="px-4 sm:px-5 py-3 sm:py-3.5 bg-gray-50 border-t border-gray-100">
-        <div className="grid grid-cols-2 gap-2 mb-2">
+      <div className="px-4 sm:px-5 py-3 sm:py-4 bg-gradient-to-b from-gray-50 to-white border-t border-gray-100 space-y-2.5">
+        {/* Primary: Manage Managers Button */}
+        <button
+          onClick={onManageManagers}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#FC8019] to-[#FF6B35] hover:from-[#FF6B35] hover:to-[#FF5722] text-white rounded-xl font-bold text-sm sm:text-base transition-all shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 active:scale-95 border-2 border-orange-600"
+          title="Manage managers for this restaurant"
+        >
+          <FiUsers size={18} strokeWidth={2.5} />
+          <span>Manage Managers</span>
+          <span className="ml-auto text-xs bg-white/20 px-2 py-1 rounded-full font-semibold">
+            →
+          </span>
+        </button>
+
+        {/* Secondary Actions Row */}
+        <div className="grid grid-cols-2 gap-2">
           <button
             onClick={onView}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-xs transition-all border border-gray-200 active:scale-[0.98]"
-            title="View details"
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white hover:bg-gray-100 text-gray-700 rounded-lg font-semibold text-xs transition-all border-2 border-gray-200 hover:border-gray-300 active:scale-95"
+            title="View restaurant details"
           >
-            <FiEye size={14} />
-            <span>View</span>
+            <FiEye size={16} strokeWidth={2} />
+            <span>View Details</span>
           </button>
 
           <button
-            onClick={onManageManagers}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-[#FC8019] to-[#FF6B35] hover:shadow-md text-white rounded-lg font-semibold text-xs transition-all active:scale-[0.98]"
-            title="Manage managers"
+            onClick={onDelete}
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-semibold text-xs transition-all border-2 border-red-200 hover:border-red-300 active:scale-95"
+            title="Delete restaurant"
           >
-            <FiUsers size={14} />
-            <span>Managers</span>
+            <FiTrash2 size={16} strokeWidth={2} />
+            <span>Delete</span>
           </button>
         </div>
-
-        <button
-          onClick={onDelete}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-red-50 text-red-600 rounded-lg font-medium text-xs transition-all border border-red-200 active:scale-[0.98]"
-          title="Delete restaurant"
-        >
-          <FiTrash2 size={14} />
-          <span>Delete</span>
-        </button>
       </div>
     </div>
   );

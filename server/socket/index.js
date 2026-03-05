@@ -4,6 +4,7 @@ import UserModel from "../models/user.model.js";
 import StationQueueEvent from "../models/stationQueueEvent.model.js";
 import Order from "../models/order.model.js";
 import Table from "../models/table.model.js";
+import WaiterAlert from "../models/waiterAlert.model.js";
 import {
   registerSocket,
   emitStationStatusUpdate,
@@ -16,10 +17,33 @@ let io;
    INIT SOCKET SERVER
 ===================================================== */
 export function initSocketServer(httpServer, options = {}) {
+  // Determine allowed origins for CORS
+  const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    process.env.CLIENT_URL,
+  ].filter(Boolean);
+
   io = new SocketIOServer(httpServer, {
     path: options.path || "/socket.io",
     cors: {
-      origin: "*",
+      origin: (origin, callback) => {
+        // In development, allow all localhost origins
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else if (process.env.NODE_ENV !== "production") {
+          // Development: be permissive with localhost variants
+          if (origin?.includes("localhost") || origin?.includes("127.0.0.1")) {
+            callback(null, true);
+          } else {
+            callback(new Error("CORS not allowed"));
+          }
+        } else {
+          callback(new Error("CORS not allowed"));
+        }
+      },
       methods: ["GET", "POST"],
       credentials: true,
     },
@@ -40,6 +64,10 @@ export function initSocketServer(httpServer, options = {}) {
         socket.handshake.auth?.token ||
         socket.handshake.headers?.authorization?.split(" ")[1];
 
+      console.log(
+        `🔐 Socket auth attempt | uuid=${socket.id} | has_token=${!!token}`,
+      );
+
       // 🔄 TRY JWT FIRST (for staff/admin/manager/chef)
       if (token) {
         try {
@@ -48,9 +76,18 @@ export function initSocketServer(httpServer, options = {}) {
             process.env.JWT_SECRET_ACCESS || process.env.JWT_SECRET,
           );
 
+          console.log(`✅ JWT verified | payload:`, {
+            _id: payload._id,
+            role: payload.role,
+            restaurantId: payload.restaurantId,
+          });
+
           const userId = payload.sub || payload._id;
           const user = await UserModel.findById(userId).lean();
-          if (!user) return next(new Error("User not found"));
+          if (!user) {
+            console.error(`❌ User not found for _id: ${userId}`);
+            return next(new Error("User not found"));
+          }
 
           socket.user = {
             id: String(user._id),
@@ -60,10 +97,11 @@ export function initSocketServer(httpServer, options = {}) {
             station: user.kitchenStation || null,
           };
 
+          console.log(`✅ Staff authenticated | socket.user:`, socket.user);
           return next();
         } catch (jwtErr) {
           // JWT verification failed, treat as customer session token
-          console.log("JWT failed, treating as customer session token");
+          console.warn(`⚠️ JWT verification failed: ${jwtErr.message}`);
         }
       }
 
@@ -76,9 +114,10 @@ export function initSocketServer(httpServer, options = {}) {
         station: null,
       };
 
+      console.log(`✅ Customer session allowed (JWT not required)`);
       next();
     } catch (err) {
-      console.error("Socket auth error:", err.message);
+      console.error("❌ Socket auth error:", err.message);
       next(new Error("Unauthorized"));
     }
   });
@@ -87,38 +126,64 @@ export function initSocketServer(httpServer, options = {}) {
   io.on("connection", (socket) => {
     const user = socket.user;
 
-    console.log(
-      `🔌 ${socket.id} connected | ${user.role} | restaurant=${user.restaurantId}`,
-    );
+    console.log(`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔌 SOCKET CONNECTED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Socket ID: ${socket.id}
+  Role: ${user.role}
+  User ID: ${user.id}
+  Name: ${user.name}
+  Restaurant ID: ${user.restaurantId}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    `);
 
     // Skip base room for customers (they'll join explicitly)
     if (user.role !== "CUSTOMER" && user.restaurantId) {
+      console.log(`✅ Staff member - joining rooms...`);
+
       /* ---------- BASE ROOM ---------- */
       socket.join(`restaurant:${user.restaurantId}`);
+      console.log(`  ✓ Joined: restaurant:${user.restaurantId}`);
 
       /* ---------- MANAGER ROOM ---------- */
       if (user.role === "MANAGER" || user.role === "BRAND_ADMIN") {
         socket.join(`restaurant:${user.restaurantId}:managers`);
+        console.log(`  ✓ Joined: restaurant:${user.restaurantId}:managers`);
       }
 
       /* ---------- WAITER ROOM ---------- */
       if (user.role === "WAITER" || user.role === "MANAGER") {
         socket.join(`restaurant:${user.restaurantId}:waiters`);
+        console.log(`  ✓ Joined: restaurant:${user.restaurantId}:waiters`);
+        console.log(
+          `  📊 Waiters in room: ${io.sockets.adapter.rooms.get(`restaurant:${user.restaurantId}:waiters`)?.size || 0}`,
+        );
       }
 
       /* ---------- CHEF ROOM ---------- */
       if (user.role === "CHEF" && user.station) {
         socket.join(`restaurant:${user.restaurantId}:station:${user.station}`);
         socket.join(`restaurant:${user.restaurantId}:kitchen`);
+        console.log(
+          `  ✓ Joined: restaurant:${user.restaurantId}:station:${user.station}`,
+        );
+        console.log(`  ✓ Joined: restaurant:${user.restaurantId}:kitchen`);
       }
 
       /* ---------- CASHIER ROOM ---------- */
       if (user.role === "CASHIER") {
         socket.join(`restaurant:${user.restaurantId}:cashier`);
+        console.log(`  ✓ Joined: restaurant:${user.restaurantId}:cashier`);
       }
 
       /* ---------- USER-SPECIFIC ROOM (for direct notifications) ---------- */
       socket.join(`user:${user.id}`);
+      console.log(`  ✓ Joined: user:${user.id}`);
+    } else if (user.role === "CUSTOMER") {
+      console.log(
+        `👥 Customer connected (will join specific room on join:customer event)`,
+      );
     }
 
     /* ---------- CUSTOMER JOINS ---------- */
@@ -137,7 +202,16 @@ export function initSocketServer(httpServer, options = {}) {
       "table:call_waiter",
       async ({ restaurantId, tableId, tableName, reason }, ack) => {
         try {
+          console.log("📞 Received table:call_waiter event", {
+            socketId: socket.id,
+            restaurantId,
+            tableId,
+            tableName,
+            reason,
+          });
+
           if (!restaurantId || !tableId) {
+            console.error("❌ Missing restaurantId or tableId");
             ack?.({ ok: false, error: "Missing restaurant or table" });
             return;
           }
@@ -145,28 +219,121 @@ export function initSocketServer(httpServer, options = {}) {
           let resolvedTableName = tableName;
 
           if (!resolvedTableName) {
+            console.log("🔍 Looking up table:", tableId);
             const table = await Table.findById(tableId)
               .select("tableNumber restaurantId")
               .lean();
 
-            if (!table || String(table.restaurantId) !== String(restaurantId)) {
+            if (!table) {
+              console.error("❌ Table not found:", tableId);
               ack?.({ ok: false, error: "Table not found" });
               return;
             }
 
+            if (String(table.restaurantId) !== String(restaurantId)) {
+              console.error(
+                "❌ Table restaurant mismatch:",
+                String(table.restaurantId),
+                "!==",
+                String(restaurantId),
+              );
+              ack?.({ ok: false, error: "Table restaurant mismatch" });
+              return;
+            }
+
             resolvedTableName = table.tableNumber;
+            console.log("✅ Table resolved:", resolvedTableName);
           }
 
-          io.to(`restaurant:${restaurantId}:waiters`).emit("table:call-bell", {
-            tableId,
+          const normalizedReason = String(reason || "").toUpperCase();
+          const isBillRequest =
+            normalizedReason === "BILL_REQUEST" ||
+            normalizedReason.includes("BILL");
+          const isTablePinRequest =
+            normalizedReason === "TABLE_PIN_REQUEST" ||
+            normalizedReason.includes("PIN") ||
+            normalizedReason === "ORDER";
+
+          const alertType = isBillRequest
+            ? "BILL_REQUEST"
+            : isTablePinRequest
+              ? "TABLE_PIN"
+              : "GENERAL";
+
+          const normalizedAlertReason = isBillRequest
+            ? "Customer requested bill"
+            : isTablePinRequest
+              ? "Customer requested table PIN help"
+              : reason || "GENERAL";
+
+          const alertPayload = {
+            tableId: String(tableId),
             tableName: resolvedTableName || "Table",
-            reason: reason || "GENERAL",
-            timestamp: new Date(),
-          });
+            reason: normalizedAlertReason,
+            alertType,
+            timestamp: new Date().toISOString(),
+          };
+
+          // 💾 SAVE ALERT TO DATABASE
+          try {
+            const alertDate = new Date();
+            const dateSlot = alertDate.toISOString().split("T")[0]; // YYYY-MM-DD
+            const hour = String(alertDate.getHours()).padStart(2, "0");
+            const timeSlot = `${hour}:00-${String(
+              (alertDate.getHours() + 1) % 24,
+            ).padStart(2, "0")}:00`;
+
+            const waiterAlert = new WaiterAlert({
+              restaurantId,
+              tableId,
+              tableName: resolvedTableName || "Table",
+              reason: normalizedAlertReason || "Call button pressed",
+              alertType,
+              status: "PENDING",
+              dateSlot,
+              timeSlot,
+              createdBySessionId: null,
+            });
+
+            await waiterAlert.save();
+
+            console.log("✅ Alert stored in database:", {
+              _id: waiterAlert._id,
+              table: resolvedTableName,
+              dateSlot,
+              timeSlot,
+            });
+
+            alertPayload.alertId = waiterAlert._id;
+          } catch (dbErr) {
+            console.error("⚠️ Failed to save alert to database:", dbErr);
+            // Continue with broadcast anyway, don't block on DB save
+          }
+
+          const waiterRoom = `restaurant:${restaurantId}:waiters`;
+          const waiterCount =
+            io.sockets.adapter.rooms.get(waiterRoom)?.size || 0;
+
+          console.log(`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📢 BROADCASTING WAITER CALL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Room: ${waiterRoom}
+  Waiters connected: ${waiterCount}
+  Payload: ${JSON.stringify(alertPayload, null, 2)}
+  Events: table:call-bell, table:call_waiter, table:waiter_called
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          `);
+
+          io.to(waiterRoom).emit("table:call-bell", alertPayload);
+          io.to(waiterRoom).emit("table:call_waiter", alertPayload);
+          io.to(waiterRoom).emit("table:waiter_called", alertPayload);
+
+          console.log(`✅ Broadcast sent to ${waiterCount} waiter(s)`);
 
           ack?.({ ok: true });
         } catch (err) {
-          console.error("table:call_waiter error:", err);
+          console.error("❌ table:call_waiter error:", err);
           ack?.({ ok: false, error: err.message });
         }
       },
@@ -602,15 +769,26 @@ export function initSocketServer(httpServer, options = {}) {
 
     /* ================= DISCONNECT ================= */
     socket.on("disconnect", () => {
-      console.log(`❌ ${socket.id} disconnected`);
+      console.log(`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔌 SOCKET DISCONNECTED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Socket ID: ${socket.id}
+  Role: ${user.role}
+  User Name: ${user.name}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      `);
 
       // Broadcast staff going offline
       if (["CHEF", "WAITER", "CASHIER"].includes(user.role)) {
-        io.to(`restaurant:${user.restaurantId}`).emit("staff:went-offline", {
-          staffId: user.id,
-          role: user.role,
-          timestamp: new Date(),
-        });
+        if (user.restaurantId) {
+          io.to(`restaurant:${user.restaurantId}`).emit("staff:went-offline", {
+            staffId: user.id,
+            role: user.role,
+            name: user.name,
+            timestamp: new Date(),
+          });
+        }
       }
     });
   });

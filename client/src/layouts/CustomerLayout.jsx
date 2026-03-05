@@ -1,11 +1,32 @@
 import { Outlet, Navigate, useParams } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerHeader from "../components/headers/CustomerHeader";
 import Axios from "../api/axios";
 import customerApi from "../api/customer.api";
 import { setBrandDetails } from "../store/brand/brandSlice";
 import { fetchCustomerOrders } from "../store/customer/orderThunks";
+
+const resolveSessionIdFromStorage = (tableId) => {
+  if (!tableId) return null;
+
+  const sessionKey = `plato:customerSession:${tableId}`;
+  const rawSession = localStorage.getItem(sessionKey);
+  if (!rawSession) return null;
+
+  try {
+    const parsed = JSON.parse(rawSession);
+    return (
+      parsed?.sessionId ||
+      parsed?._id ||
+      parsed?.id ||
+      parsed?.session?.sessionId ||
+      null
+    );
+  } catch {
+    return rawSession;
+  }
+};
 
 export default function CustomerLayout() {
   const { tableId } = useParams();
@@ -14,8 +35,30 @@ export default function CustomerLayout() {
 
   if (!tableId) return <Navigate to="/" replace />;
 
-  const sessionKey = `plato:customerSession:${tableId}`;
-  const sessionId = localStorage.getItem(sessionKey);
+  const [sessionId, setSessionId] = useState(() =>
+    resolveSessionIdFromStorage(tableId),
+  );
+
+  useEffect(() => {
+    setSessionId(resolveSessionIdFromStorage(tableId));
+
+    // Some flows write session slightly after mount; retry briefly
+    let tries = 0;
+    const maxTries = 10;
+    const interval = setInterval(() => {
+      const resolved = resolveSessionIdFromStorage(tableId);
+      if (resolved) {
+        setSessionId(resolved);
+        clearInterval(interval);
+        return;
+      }
+
+      tries += 1;
+      if (tries >= maxTries) clearInterval(interval);
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [tableId]);
 
   useEffect(() => {
     if (tableId) {

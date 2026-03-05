@@ -2,6 +2,7 @@ import Bill from "../models/bill.model.js";
 import Order from "../models/order.model.js";
 import Session from "../models/session.model.js";
 import Table from "../models/table.model.js";
+import WaiterAlert from "../models/waiterAlert.model.js";
 
 /**
  * =========================
@@ -203,6 +204,83 @@ export async function getCustomerBillController(req, res) {
     });
   } catch (err) {
     console.error("getCustomerBillController:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: true,
+      success: false,
+    });
+  }
+}
+
+/**
+ * =========================
+ * CUSTOMER REQUEST BILL ALERT
+ * =========================
+ * POST /customer/bill/request
+ * Session auth via cookie / header
+ */
+export async function requestCustomerBillController(req, res) {
+  try {
+    const session = req.sessionDoc;
+
+    if (!session || session.status !== "OPEN") {
+      return res.status(400).json({
+        message: "Session is not active",
+        error: true,
+        success: false,
+      });
+    }
+
+    const table = await Table.findById(session.tableId)
+      .select("tableNumber")
+      .lean();
+
+    const tableName = table?.tableNumber || "Table";
+    const alertDate = new Date();
+    const dateSlot = alertDate.toISOString().split("T")[0];
+    const hour = String(alertDate.getHours()).padStart(2, "0");
+    const timeSlot = `${hour}:00-${String((alertDate.getHours() + 1) % 24).padStart(2, "0")}:00`;
+
+    const waiterAlert = await WaiterAlert.create({
+      restaurantId: session.restaurantId,
+      tableId: session.tableId,
+      tableName,
+      reason: "Customer requested bill",
+      alertType: "BILL_REQUEST",
+      status: "PENDING",
+      dateSlot,
+      timeSlot,
+      createdBySessionId: String(session._id),
+    });
+
+    const payload = {
+      alertId: waiterAlert._id,
+      tableId: String(session.tableId),
+      tableName,
+      reason: "Customer requested bill",
+      alertType: "BILL_REQUEST",
+      timestamp: alertDate.toISOString(),
+    };
+
+    const io = req.app.locals.io;
+    if (io) {
+      const waiterRoom = `restaurant:${session.restaurantId}:waiters`;
+      io.to(waiterRoom).emit("table:call-bell", payload);
+      io.to(waiterRoom).emit("table:call_waiter", payload);
+      io.to(waiterRoom).emit("table:waiter_called", payload);
+    }
+
+    return res.status(201).json({
+      success: true,
+      error: false,
+      message: "Bill request sent to waiter",
+      data: {
+        alertId: waiterAlert._id,
+        tableName,
+      },
+    });
+  } catch (err) {
+    console.error("requestCustomerBillController:", err);
     return res.status(500).json({
       message: "Server error",
       error: true,

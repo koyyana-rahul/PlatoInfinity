@@ -81,7 +81,7 @@ import CustomerCart from "../modules/customer/pages/CustomerCartWithPin";
 import CustomerOrders from "../modules/customer/pages/CustomerOrders";
 import CustomerBill from "../modules/customer/pages/CustomerBill";
 import CustomerItem from "../modules/customer/pages/CustomerItem";
-import CustomerMenuApp from "../modules/customer/CustomerMenuApp";
+import CustomerLegacyMenuRedirect from "../modules/customer/CustomerLegacyMenuRedirect";
 
 /* ================= FALLBACK ================= */
 const NotFound = () => (
@@ -131,7 +131,7 @@ const router = createBrowserRouter([
   /* ================= CUSTOMER SIMPLIFIED MENU ================= */
   {
     path: "/menu/:brandSlug/:restaurantSlug/:tableId",
-    element: <CustomerMenuApp />,
+    element: <CustomerLegacyMenuRedirect />,
   },
 
   /* ================= INVITE ================= */

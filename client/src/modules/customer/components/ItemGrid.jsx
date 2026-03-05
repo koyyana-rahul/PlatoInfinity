@@ -30,27 +30,32 @@ export default function ItemGrid({
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-5 px-1 sm:px-0 pb-24 sm:pb-20">
       <AnimatePresence mode="popLayout">
-        {items.map((item, index) => (
-          <motion.div
-            key={item.id}
-            layout
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{
-              duration: 0.4,
-              delay: index * 0.05, // Staggered entry effect
-              ease: [0.215, 0.61, 0.355, 1], // Custom cubic-bezier for smooth motion
-            }}
-          >
-            <ItemCard
-              item={item}
-              qty={quantities[item.id] ?? 0}
-              onAdd={onAdd}
-              onMinus={onMinus}
-            />
-          </motion.div>
-        ))}
+        {items.map((item, index) =>
+          (() => {
+            const itemId = item?.id || item?._id;
+            return (
+              <motion.div
+                key={itemId}
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{
+                  duration: 0.4,
+                  delay: index * 0.05, // Staggered entry effect
+                  ease: [0.215, 0.61, 0.355, 1], // Custom cubic-bezier for smooth motion
+                }}
+              >
+                <ItemCard
+                  item={item}
+                  qty={quantities[itemId] ?? 0}
+                  onAdd={onAdd}
+                  onMinus={onMinus}
+                />
+              </motion.div>
+            );
+          })(),
+        )}
       </AnimatePresence>
     </div>
   );

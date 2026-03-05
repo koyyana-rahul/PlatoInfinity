@@ -11,8 +11,35 @@ const initialState = {
   subtotal: 0,
   tax: 0,
   total: 0,
+  totalAmount: 0,
   loading: false,
 };
+
+function normalizeId(value) {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object") {
+    if (value._id) return String(value._id);
+    if (value.id) return String(value.id);
+  }
+  return String(value);
+}
+
+function recomputeTotals(state) {
+  const subtotal = (state.items || []).reduce(
+    (sum, i) => sum + (i.price || 0) * (i.quantity || 0),
+    0,
+  );
+  const tax = (state.items || []).reduce(
+    (sum, i) =>
+      sum + ((i.price || 0) * (i.quantity || 0) * (i.taxPercent || 0)) / 100,
+    0,
+  );
+  state.subtotal = subtotal;
+  state.tax = tax;
+  state.total = subtotal + tax;
+  state.totalAmount = state.total;
+}
 
 const cartSlice = createSlice({
   name: "customerCart",
@@ -33,6 +60,7 @@ const cartSlice = createSlice({
         state.subtotal = cart.subtotal || 0;
         state.tax = cart.tax || 0;
         state.total = cart.totalAmount || 0;
+        state.totalAmount = state.total;
       })
       .addCase(fetchCart.rejected, (state) => {
         state.loading = false;
@@ -43,8 +71,9 @@ const cartSlice = createSlice({
       const item = action.payload;
       if (!item) return;
 
+      const incomingId = normalizeId(item.branchMenuItemId);
       const existing = state.items.find(
-        (i) => i.branchMenuItemId === item.branchMenuItemId,
+        (i) => normalizeId(i.branchMenuItemId) === incomingId,
       );
 
       if (existing) {
@@ -52,6 +81,8 @@ const cartSlice = createSlice({
       } else {
         state.items.push(item);
       }
+
+      recomputeTotals(state);
     });
 
     /* ================= UPDATE CART ITEM ================= */
@@ -63,6 +94,8 @@ const cartSlice = createSlice({
       if (item) {
         item.quantity = quantity;
       }
+
+      recomputeTotals(state);
     });
 
     /* ================= REMOVE CART ITEM ================= */
@@ -71,6 +104,7 @@ const cartSlice = createSlice({
       if (!cartItemId) return;
 
       state.items = state.items.filter((i) => i._id !== cartItemId);
+      recomputeTotals(state);
     });
   },
 });
