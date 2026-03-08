@@ -44,14 +44,21 @@ export function useCustomerSocket({
     }
 
     socket.on("connect", () => {
-      console.log("✅ Socket connected:", socket.id);
-      if (sessionId) {
+      console.log("✅ Customer socket connected:", socket.id);
+      if (sessionId && restaurantId && tableId) {
         socket.emit("join:customer", { sessionId, tableId, restaurantId });
+        console.log("📤 Emitted join:customer", { sessionId, tableId, restaurantId });
+      } else {
+        console.warn("⚠️ Missing sessionId/restaurantId/tableId on connect", { sessionId, restaurantId, tableId });
       }
     });
 
+    socket.on("disconnect", (reason) => {
+      console.warn("❌ Customer socket disconnected:", reason);
+    });
+
     socket.on("connect_error", (error) => {
-      console.error("❌ Socket connection error:", error);
+      console.error("❌ Customer socket connection error:", error);
     });
 
     const handleCartUpdate = (data) => {
@@ -81,9 +88,37 @@ export function useCustomerSocket({
       if (onMenuUpdate) onMenuUpdate(data);
     });
 
+    // Listen for real-time order/item status updates
+    socket.on("order:item-status-updated", (data) => {
+      console.log("📶 Customer: order:item-status-updated", data);
+    });
+
+    socket.on("order:item-status", (data) => {
+      console.log("📶 Customer: order:item-status", data);
+    });
+
+    socket.on("order:item-ready", (data) => {
+      console.log("🔔 Customer: order:item-ready", data);
+    });
+
+    // Re-join room on reconnect in case server lost room membership
+    socket.on("reconnect", () => {
+      console.log("🔄 Socket reconnected, re-joining customer room");
+      if (sessionId && restaurantId && tableId) {
+        socket.emit("join:customer", { sessionId, tableId, restaurantId });
+      }
+    });
+
     return () => {
       socket.off("cart:update", handleCartUpdate);
       socket.off("cart:updated", handleCartUpdate);
+      socket.off("menu:update");
+      socket.off("menu:item:change");
+      socket.off("menu:category:change");
+      socket.off("order:item-status-updated");
+      socket.off("order:item-status");
+      socket.off("order:item-ready");
+      socket.off("reconnect");
     };
   }, [sessionId, restaurantId, tableId, onCartUpdate, onMenuUpdate]);
 }

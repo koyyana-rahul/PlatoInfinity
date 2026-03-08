@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FiClock, FiFilter, FiRefreshCcw } from "react-icons/fi";
+import { FiClock, FiFilter, FiRefreshCcw, FiBell } from "react-icons/fi";
 import { useSocket } from "../../../socket/SocketProvider";
 import Axios from "../../../api/axios";
 import orderApi from "../../../api/order.api";
@@ -10,6 +10,7 @@ export default function WaiterOrders() {
   const [orders, setOrders] = useState([]);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [refreshing, setRefreshing] = useState(false);
+  const [readyAlerts, setReadyAlerts] = useState([]);
 
   const socket = useSocket();
 
@@ -62,6 +63,7 @@ export default function WaiterOrders() {
     };
 
     const handleItemStatusChanged = (data) => {
+      console.log("📶 WaiterOrders: item status changed", data);
       const { orderId, itemId, itemIndex, itemStatus } = data;
       setOrders((prevOrders) =>
         prevOrders.map((order) => {
@@ -72,6 +74,7 @@ export default function WaiterOrders() {
               const matches =
                 String(item._id) === String(itemId) || idx === itemIndex;
               if (!matches) return item;
+              console.log(`🔄 Waiter: updating item ${item.name} to ${itemStatus}`);
               return { ...item, itemStatus };
             }),
           };
@@ -79,50 +82,125 @@ export default function WaiterOrders() {
       );
     };
 
+    // Listen for READY alerts from kitchen
+    const handleItemReadyAlert = (alert) => {
+      console.log("🔔 WAITER ALERT - item ready:", alert);
+      toast(`${alert.itemName} is ready for Table ${alert.tableName}`, {
+        icon: "🔔",
+        duration: 6000,
+      });
+      // Optionally show in a dedicated alerts list
+      setReadyAlerts((prev) => [alert, ...prev.slice(0, 9)]);
+    };
+
+    // Real-time item status updates (e.g., when another waiter serves an item)
+    socket.on("order:item-status-updated", handleItemStatusChanged);
+    socket.on("order:item-status", handleItemStatusChanged);
     socket.on("order:placed", handleNewOrder);
     socket.on("table:order-placed", handleTableOrderPlaced);
     socket.on("order:itemStatus", handleStatusUpdate);
     socket.on("table:item-status-changed", handleItemStatusChanged);
+    socket.on("waiter:item-ready-alert", handleItemReadyAlert);
 
     return () => {
+      socket.off("order:item-status-updated", handleItemStatusChanged);
+      socket.off("order:item-status", handleItemStatusChanged);
       socket.off("order:placed", handleNewOrder);
       socket.off("table:order-placed", handleTableOrderPlaced);
       socket.off("order:itemStatus", handleStatusUpdate);
       socket.off("table:item-status-changed", handleItemStatusChanged);
+      socket.off("waiter:item-ready-alert", handleItemReadyAlert);
     };
   }, [socket]);
+
+  // Helper to compute order-level status from items (same as OrderCard)
+  const getOrderLevelStatus = (order) => {
+    if (!order.items || order.items.length === 0) return "PLACED";
+    const statuses = order.items.map(it => String(it.itemStatus || "NEW").toUpperCase());
+    if (statuses.some(s => s === "SERVING")) return "SERVING";
+    if (statuses.some(s => s === "SERVED")) return "SERVED";
+    if (statuses.some(s => s === "READY")) return "READY";
+    if (statuses.some(s => s === "IN_PROGRESS")) return "PREPARING";
+    return "PLACED";
+  };
 
   const visibleOrders =
     statusFilter === "ALL"
       ? orders
       : orders.filter(
-          (o) => String(o.orderStatus || "").toUpperCase() === statusFilter,
+          (o) => getOrderLevelStatus(o) === statusFilter,
         );
 
   return (
     <div className="space-y-4">
       <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
-        <h1 className="text-2xl font-bold text-gray-900">Live Orders</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Monitor incoming table orders and item status in real time.
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Live Orders</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Monitor incoming table orders and item status in real time.
+            </p>
+          </div>
+          {readyAlerts.length > 0 && (
+            <div className="relative">
+              <FiBell className="text-orange-500 animate-pulse" size={20} />
+              <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                {readyAlerts.length}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Ready Alerts Banner */}
+      {readyAlerts.length > 0 && (
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
+              <FiBell /> Ready for pickup
+            </h2>
+            <button
+              onClick={() => setReadyAlerts([])}
+              className="text-xs text-orange-600 hover:text-orange-800"
+            >
+              Clear
+            </button>
+          </div>
+          <div className="space-y-1">
+            {readyAlerts.slice(0, 3).map((alert, idx) => (
+              <div key={idx} className="text-xs text-orange-800">
+                {alert.itemName} – Table {alert.tableName}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <Kpi title="Total" value={orders.length} />
         <Kpi
-          title="New"
-          value={orders.filter((o) => o.orderStatus === "NEW").length}
+          title="Placed"
+          value={orders.filter((o) => getOrderLevelStatus(o) === "PLACED").length}
+          tone="neutral"
+        />
+        <Kpi
+          title="Preparing"
+          value={orders.filter((o) => getOrderLevelStatus(o) === "PREPARING").length}
           tone="orange"
         />
         <Kpi
-          title="In Progress"
-          value={orders.filter((o) => o.orderStatus === "IN_PROGRESS").length}
+          title="Serving"
+          value={orders.filter((o) => getOrderLevelStatus(o) === "SERVING").length}
           tone="blue"
         />
         <Kpi
           title="Ready"
-          value={orders.filter((o) => o.orderStatus === "READY").length}
+          value={orders.filter((o) => getOrderLevelStatus(o) === "READY").length}
+          tone="green"
+        />
+        <Kpi
+          title="Served"
+          value={orders.filter((o) => getOrderLevelStatus(o) === "SERVED").length}
           tone="green"
         />
       </div>
@@ -135,14 +213,16 @@ export default function WaiterOrders() {
         <div className="flex flex-wrap items-center gap-2">
           {[
             { label: "All", value: "ALL" },
-            { label: "New", value: "NEW" },
-            { label: "In Progress", value: "IN_PROGRESS" },
+            { label: "Placed", value: "PLACED" },
+            { label: "Preparing", value: "PREPARING" },
+            { label: "Serving", value: "SERVING" },
             { label: "Ready", value: "READY" },
+            { label: "Served", value: "SERVED" },
           ].map((f) => (
             <button
               key={f.value}
               onClick={() => setStatusFilter(f.value)}
-              className={`h-9 px-3 rounded-xl text-xs font-semibold border ${
+              className={`h-10 px-3 rounded-xl text-xs font-semibold border transition-colors ${
                 statusFilter === f.value
                   ? "bg-orange-500 text-white border-orange-500"
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"

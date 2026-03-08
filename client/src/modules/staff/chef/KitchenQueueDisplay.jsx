@@ -67,6 +67,7 @@ const KitchenQueueDisplay = () => {
         station: item.station,
         status: "NEW",
         placedAt: new Date(),
+        itemId: item._id, // store item _id for API calls
       }));
 
       setQueue((prev) => [...newItems, ...prev]);
@@ -84,6 +85,34 @@ const KitchenQueueDisplay = () => {
     });
 
     return () => socket.off("kitchen:order-new");
+  }, [socket]);
+
+  /**
+   * 3️⃣ Listen for item status updates (real-time sync)
+   */
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleItemStatusUpdate = (data) => {
+      console.log("📶 Kitchen: item status update", data);
+      const { orderId, itemId, itemName, itemStatus, chefName } = data;
+      setQueue((prev) =>
+        prev.map((item) =>
+          item.orderId === orderId && (item.itemName === itemName || String(item.itemId) === String(itemId))
+            ? { ...item, status: itemStatus, claimedBy: chefName }
+            : item,
+        ),
+      );
+    };
+
+    socket.on("order:item-status-updated", handleItemStatusUpdate);
+    // Fallback
+    socket.on("order:item-status", handleItemStatusUpdate);
+
+    return () => {
+      socket.off("order:item-status-updated", handleItemStatusUpdate);
+      socket.off("order:item-status", handleItemStatusUpdate);
+    };
   }, [socket]);
 
   /**
@@ -139,53 +168,40 @@ const KitchenQueueDisplay = () => {
   };
 
   /**
-   * 6️⃣ Claim item handler
+   * 6️⃣ Claim item handler (API)
    */
-  const handleClaimItem = async (orderId, itemIndex, itemName) => {
+  const handleClaimItem = async (orderId, itemId, itemName) => {
     try {
-      socket.emit("kitchen:claim-item", { orderId, itemIndex }, (response) => {
-        if (response.ok) {
-          toast.success(`You claimed ${itemName}`);
-          setQueue((prev) =>
-            prev.map((item) =>
-              item.orderId === orderId && item.itemName === itemName
-                ? { ...item, status: "IN_PROGRESS", claimedBy: user.name }
-                : item,
-            ),
-          );
-        } else {
-          toast.error(response.error || "Failed to claim item");
-        }
+      const res = await Axios({
+        url: `/api/kitchen/order/${orderId}/item/${itemId}/status`,
+        method: "PUT",
+        data: { status: "PREPARING" },
       });
+      if (res.data?.success) {
+        toast.success(`You started preparing ${itemName}`);
+        // Socket listener will update the queue; optimistic update optional
+      }
     } catch (err) {
-      toast.error("Error claiming item");
+      toast.error(err?.response?.data?.message || "Failed to claim item");
     }
   };
 
   /**
-   * 7️⃣ Mark ready handler
+   * 7️⃣ Mark ready handler (API)
    */
-  const handleMarkReady = async (orderId, itemIndex, itemName) => {
+  const handleMarkReady = async (orderId, itemId, itemName) => {
     try {
-      socket.emit("kitchen:mark-ready", { orderId, itemIndex }, (response) => {
-        if (response.ok) {
-          toast.success(`${itemName} marked as ready!`, {
-            icon: "✅",
-          });
-
-          setQueue((prev) =>
-            prev.map((item) =>
-              item.orderId === orderId && item.itemName === itemName
-                ? { ...item, status: "READY" }
-                : item,
-            ),
-          );
-        } else {
-          toast.error(response.error || "Failed to mark ready");
-        }
+      const res = await Axios({
+        url: `/api/kitchen/order/${orderId}/item/${itemId}/status`,
+        method: "PUT",
+        data: { status: "READY" },
       });
+      if (res.data?.success) {
+        toast.success(`${itemName} is ready!`, { icon: "✅" });
+        // Socket listener will update the queue
+      }
     } catch (err) {
-      toast.error("Error marking ready");
+      toast.error(err?.response?.data?.message || "Failed to mark ready");
     }
   };
 
@@ -294,7 +310,7 @@ const KitchenQueueDisplay = () => {
                       {item.status === "NEW" && (
                         <button
                           onClick={() =>
-                            handleClaimItem(item.orderId, 0, item.itemName)
+                            handleClaimItem(item.orderId, item.itemId, item.itemName)
                           }
                           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition transform hover:scale-105"
                         >
@@ -305,7 +321,7 @@ const KitchenQueueDisplay = () => {
                       {item.status === "IN_PROGRESS" && (
                         <button
                           onClick={() =>
-                            handleMarkReady(item.orderId, 0, item.itemName)
+                            handleMarkReady(item.orderId, item.itemId, item.itemName)
                           }
                           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition transform hover:scale-105"
                         >

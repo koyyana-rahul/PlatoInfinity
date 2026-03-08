@@ -211,8 +211,10 @@ export function initSocketServer(httpServer, options = {}) {
         socket.join(`restaurant:${restaurantId}:customers`);
         socket.join(`session:${sessionId}`);
         console.log(
-          `👥 Customer joined: session:${sessionId} | restaurant:${restaurantId}`,
+          `👥 Customer joined: session:${sessionId} | restaurant:${restaurantId} | socket:${socket.id}`,
         );
+        // Confirm room membership
+        console.log(`  🏠 Rooms after join:`, Array.from(socket.rooms));
       }
     });
 

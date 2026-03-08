@@ -297,6 +297,7 @@ export async function emitOrderItemStatusUpdate(updateData) {
   /**
    * 3️⃣ NOTIFY CUSTOMER (all item status changes)
    */
+  console.log(`📢 Emitting to session:${sessionId} - itemStatus: ${itemStatus}`);
   ioRef.to(`session:${sessionId}`).emit("order:item-status-updated", {
     ...basePayload,
     message:

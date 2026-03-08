@@ -79,11 +79,81 @@ export default function CustomerOrders() {
   const [tableName, setTableName] = useState("Table");
   const [requestingBill, setRequestingBill] = useState(false);
 
-  useCustomerSocket({
+  const customerSocket = useCustomerSocket({
     sessionId,
     restaurantId,
     tableId,
   });
+
+  // Listen for real-time item status updates
+  useEffect(() => {
+    if (!customerSocket) {
+      console.warn("⚠️ customerSocket is null, cannot listen for updates");
+      return;
+    }
+    console.log("🔧 CustomerOrders: setting up socket listeners", { sessionId, restaurantId, tableId });
+    const handleItemStatusUpdate = (data) => {
+      console.log("📶 Customer: item status update", data);
+      const { orderId, itemId, itemIndex, itemStatus, itemName } = data;
+      setOrders((prev) =>
+        prev.map((order) => {
+          if (String(order._id) !== String(orderId)) return order;
+          return {
+            ...order,
+            items: order.items.map((item, idx) => {
+              const matches =
+                String(item._id) === String(itemId) || idx === itemIndex;
+              if (!matches) return item;
+              console.log(`🔄 Updating item ${itemName} from ${item.itemStatus} to ${itemStatus}`);
+              return { ...item, itemStatus };
+            }),
+          };
+        }),
+      );
+      // Show toasts for major transitions
+      if (itemStatus === "READY") {
+        toast(`${itemName || "Item"} is ready!`, { icon: "✅", duration: 4000 });
+      }
+      if (itemStatus === "SERVED") {
+        toast(`${itemName || "Item"} has been served!`, { icon: "🍽️", duration: 3000 });
+      }
+    };
+    // Primary event from emitter
+    customerSocket.on("order:item-status-updated", handleItemStatusUpdate);
+    // Fallback in case of different event name
+    customerSocket.on("order:item-status", handleItemStatusUpdate);
+    // Explicit READY event (sometimes emitted separately)
+    customerSocket.on("order:item-ready", (data) => {
+      console.log("🔔 Customer: item ready", data);
+      // Apply the same state update
+      handleItemStatusUpdate({ ...data, itemStatus: "READY" });
+    });
+    // Also listen for generic order updates in case
+    customerSocket.on("order:updated", (data) => {
+      console.log("📶 Customer: order updated", data);
+      if (data.items) {
+        handleItemStatusUpdate(data);
+      }
+    });
+
+    // When any event arrives, ensure we are in the right room (defensive)
+    const ensureRoom = () => {
+      if (sessionId && restaurantId && tableId) {
+        console.log("🔁 Ensuring customer room membership...");
+        customerSocket.emit("join:customer", { sessionId, tableId, restaurantId });
+      }
+    };
+    customerSocket.on("order:item-status-updated", ensureRoom);
+    customerSocket.on("order:item-status", ensureRoom);
+    customerSocket.on("order:item-ready", ensureRoom);
+
+    return () => {
+      customerSocket.off("order:item-status-updated", handleItemStatusUpdate);
+      customerSocket.off("order:item-status", handleItemStatusUpdate);
+      customerSocket.off("order:item-ready");
+      customerSocket.off("order:updated");
+    };
+  }, [customerSocket, sessionId, restaurantId, tableId]);
 
   const normalizeStatus = (status) => String(status || "PENDING").toUpperCase();
 
@@ -497,7 +567,7 @@ export default function CustomerOrders() {
               const orderStatus = normalizeStatus(order.orderStatus);
 
               return (
-                <div key={order._id} className="overflow-hidden">
+                <div key={`${order._id}-${order.items.map(it => it.itemStatus).join(",")}`} className="overflow-hidden">
                   {/* ACCORDION TRIGGER */}
                   <button
                     onClick={() => toggleOrder(order._id)}
@@ -569,7 +639,7 @@ export default function CustomerOrders() {
                         <div className="p-4 sm:p-5 pt-0 space-y-4">
                           <div className="h-px bg-slate-50 w-full mb-4" />
 
-                          <OrderProgress status={orderStatus} />
+                          <OrderProgress status={orderStatus} items={order.items} />
 
                           {/* CUSTOMER LABEL (INDIVIDUAL MODE ONLY) */}
                           {order.meta?.customerMode === "INDIVIDUAL" &&
@@ -682,7 +752,7 @@ function Kpi({ label, value, tone = "neutral" }) {
   );
 }
 
-function OrderProgress({ status }) {
+function OrderProgress({ status, items = [] }) {
   const normalized = String(status || "PENDING").toUpperCase();
 
   const steps = [
@@ -703,7 +773,16 @@ function OrderProgress({ status }) {
     DELIVERED: 3,
   };
 
-  const activeIndex = indexMap[normalized] ?? 0;
+  // Derive active step from highest item status if items exist
+  let activeIndex = indexMap[normalized] ?? 0;
+  if (items && items.length > 0) {
+    const itemStatuses = items.map((it) => String(it.itemStatus || "NEW").toUpperCase());
+    if (itemStatuses.some((s) => s === "SERVED")) activeIndex = 3;
+    else if (itemStatuses.some((s) => s === "READY")) activeIndex = 2;
+    else if (itemStatuses.some((s) => s === "IN_PROGRESS")) activeIndex = 1;
+    else activeIndex = 0;
+  }
+
   const isCancelled = normalized === "CANCELLED";
 
   if (isCancelled) {
@@ -722,12 +801,12 @@ function OrderProgress({ status }) {
           return (
             <div key={step.key} className="flex-1 flex items-center gap-1.5">
               <div
-                className={`h-2.5 w-2.5 rounded-full ${
+                className={`h-2.5 w-2.5 rounded-full transition-colors ${
                   done ? "bg-emerald-500" : "bg-gray-300"
                 }`}
               />
               <span
-                className={`text-[10px] font-bold ${
+                className={`text-[10px] font-bold transition-colors ${
                   done ? "text-emerald-700" : "text-gray-500"
                 }`}
               >
@@ -735,7 +814,7 @@ function OrderProgress({ status }) {
               </span>
               {idx < steps.length - 1 && (
                 <div
-                  className={`h-[2px] flex-1 rounded ${
+                  className={`h-[2px] flex-1 rounded transition-colors ${
                     idx < activeIndex ? "bg-emerald-500" : "bg-gray-300"
                   }`}
                 />
