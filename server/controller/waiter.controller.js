@@ -1,5 +1,10 @@
 import Order from "../models/order.model.js";
-import { emitKitchenEvent } from "../socket/emitter.js";
+import { emitOrderItemStatusUpdate } from "../socket/emitter.js";
+
+console.log(
+  "✅ Waiter controller loaded; emitOrderItemStatusUpdate imported:",
+  emitOrderItemStatusUpdate,
+);
 
 /* ======================================================
    GET WAITER ORDERS (All orders in restaurant)
@@ -91,33 +96,35 @@ export async function serveOrderItemController(req, res) {
     const { orderId, itemId } = req.params;
     const { staffPin } = req.body;
     const waiterId = req.user._id;
-    const waiterPin = req.user.staffPin; // Assuming this is set on user from login
+    const restaurantId = req.user.restaurantId;
 
-    // 🔐 PIN VERIFICATION
-    if (!staffPin) {
-      return res.status(400).json({
-        success: false,
-        message: "Staff PIN required to mark items as served",
-      });
-    }
+    console.log(
+      `🍽️ Serve request for order ${orderId}, item ${itemId} by waiter ${waiterId}`,
+    );
 
-    // Simple PIN check
-    if (String(staffPin) !== String(waiterPin)) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid Staff PIN",
-        error: "INVALID_PIN",
-      });
+    // 🔐 PIN VERIFICATION (optional)
+    // If staffPin is provided, validate it; otherwise allow confirmation-only
+    if (staffPin !== null && staffPin !== undefined) {
+      const userWaiterPin = req.user.staffPin;
+      if (String(staffPin) !== String(userWaiterPin)) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid Staff PIN",
+          error: "INVALID_PIN",
+        });
+      }
     }
 
     // 🔍 Find order
     const order = await Order.findOne({
       _id: orderId,
+      restaurantId,
       orderStatus: "OPEN",
       "items._id": itemId,
     });
 
     if (!order) {
+      console.error(`❌ Order not found: ${orderId}, item: ${itemId}`);
       return res.status(404).json({
         success: false,
         message: "Order or item not found",
@@ -126,45 +133,99 @@ export async function serveOrderItemController(req, res) {
 
     const item = order.items.id(itemId);
 
-    // ❌ Only READY items can be served
-    if (item.itemStatus !== "READY") {
-      return res.status(400).json({
+    if (!item) {
+      console.error(`❌ Item not found in order: ${itemId}`);
+      return res.status(404).json({
         success: false,
-        message: "Item is not READY to be served",
+        message: "Item not found in order",
       });
     }
 
-    // ✅ Mark SERVED
-    item.itemStatus = "SERVED";
-    item.waiterId = waiterId;
-    item.servedAt = new Date();
-
-    // 🔄 Auto-complete order if all served
-    const remaining = order.items.some((i) => i.itemStatus !== "SERVED");
-
-    if (!remaining) {
-      order.meta = {
-        ...(order.meta || {}),
-        allItemsServedAt: new Date(),
-      };
+    // ❌ Only READY items can be served
+    if (item.itemStatus !== "READY") {
+      console.warn(`⚠️ Item ${itemId} is ${item.itemStatus}, not READY`);
+      return res.status(400).json({
+        success: false,
+        message: "Item is not READY to be served",
+        currentStatus: item.itemStatus,
+      });
     }
 
+    // ✅ Step 1: Mark SERVING (so UI shows "serve started")
+    item.itemStatus = "SERVING";
+    item.waiterId = waiterId;
+    item.servedAt = null; // Will be set when completed
     await order.save();
 
-    // 🔥 SOCKET EVENTS
-    emitKitchenEvent(
-      req.app.locals.io,
-      order.restaurantId,
-      item.station,
-      "order:served",
-      {
-        orderId,
-        itemId,
-        tableId: order.tableId,
-        tableName: order.tableName,
-        waiterId,
-      },
-    );
+    console.log(`✅ Item ${itemId} marked as SERVING`);
+
+    // Emit SERVING status (wrapped in try-catch to prevent crashes)
+    try {
+      await emitOrderItemStatusUpdate({
+        orderId: String(order._id),
+        restaurantId: String(order.restaurantId),
+        sessionId: String(order.sessionId),
+        tableId: String(order.tableId),
+        tableName: order.tableName || "Unknown",
+        itemId: String(itemId),
+        itemIndex: order.items.findIndex((it) => it._id.toString() === itemId),
+        itemName: item.name,
+        itemStatus: "SERVING",
+        chefId: null,
+        chefName: null,
+        waiterId: String(waiterId),
+        waiterName: req.user.name || "Waiter",
+        orderStatus: "IN_PROGRESS",
+        totalItems: order.items.length,
+        readyCount: order.items.filter((i) => i.itemStatus === "READY").length,
+        servedCount: order.items.filter((i) => i.itemStatus === "SERVED")
+          .length,
+        inProgressCount: order.items.filter((i) => i.itemStatus === "SERVING")
+          .length,
+        newCount: order.items.filter((i) => i.itemStatus === "NEW").length,
+        updatedAt: new Date(),
+      });
+    } catch (emitErr) {
+      console.error("⚠️ Failed to emit SERVING status:", emitErr.message);
+    }
+
+    // ✅ Step 2: Mark SERVED (completion) after a brief delay to show transition
+    await new Promise((resolve) => setTimeout(resolve, 800)); // 0.8s delay
+    item.itemStatus = "SERVED";
+    item.servedAt = new Date();
+    await order.save();
+
+    console.log(`✅ Item ${itemId} marked as SERVED`);
+
+    // Emit SERVED update (wrapped in try-catch to prevent crashes)
+    try {
+      await emitOrderItemStatusUpdate({
+        orderId: String(order._id),
+        restaurantId: String(order.restaurantId),
+        sessionId: String(order.sessionId),
+        tableId: String(order.tableId),
+        tableName: order.tableName || "Unknown",
+        itemId: String(itemId),
+        itemIndex: order.items.findIndex((it) => it._id.toString() === itemId),
+        itemName: item.name,
+        itemStatus: "SERVED",
+        chefId: null,
+        chefName: null,
+        waiterId: String(waiterId),
+        waiterName: req.user.name || "Waiter",
+        orderStatus: "SERVED",
+        totalItems: order.items.length,
+        readyCount: order.items.filter((i) => i.itemStatus === "READY").length,
+        servedCount: order.items.filter((i) => i.itemStatus === "SERVED")
+          .length,
+        inProgressCount: order.items.filter((i) => i.itemStatus === "SERVING")
+          .length,
+        newCount: order.items.filter((i) => i.itemStatus === "NEW").length,
+        updatedAt: new Date(),
+      });
+    } catch (emitErr) {
+      console.error("⚠️ Failed to emit SERVED status:", emitErr.message);
+    }
 
     return res.json({
       success: true,
@@ -172,10 +233,13 @@ export async function serveOrderItemController(req, res) {
       data: item,
     });
   } catch (err) {
-    console.error("serveOrderItemController:", err);
+    console.error("❌ serveOrderItemController ERROR:", err);
+    console.error("Error stack:", err.stack);
     res.status(500).json({
       success: false,
-      message: "Server error",
+      message: err.message || "Server error",
+      error:
+        process.env.NODE_ENV === "development" ? err.message : "Server error",
     });
   }
 }

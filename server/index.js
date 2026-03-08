@@ -7,7 +7,6 @@ import cookieParser from "cookie-parser";
 import http from "http";
 import path from "path";
 import { fileURLToPath } from "url";
-
 import connectDB from "./config/connectDB.js";
 
 // ROUTES

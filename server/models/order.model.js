@@ -19,7 +19,7 @@ const OrderItemSchema = new mongoose.Schema(
     },
     itemStatus: {
       type: String,
-      enum: ["NEW", "IN_PROGRESS", "READY", "SERVED", "CANCELLED"],
+      enum: ["NEW", "IN_PROGRESS", "READY", "SERVING", "SERVED", "CANCELLED"],
       default: "NEW",
       index: true,
     },

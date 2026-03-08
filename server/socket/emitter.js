@@ -209,6 +209,8 @@ export async function emitOrderPlaced(orderData) {
  * ==============================================
  * When chef updates item status (CLAIMED, IN_PROGRESS, READY)
  */
+// Attach to global for direct access by controllers
+global.emitOrderItemStatusUpdate = emitOrderItemStatusUpdate;
 export async function emitOrderItemStatusUpdate(updateData) {
   if (!ioRef) return;
 
