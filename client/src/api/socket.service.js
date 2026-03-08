@@ -20,7 +20,7 @@ class SocketService {
   }
 
   /* ========== CONNECTION ========== */
-  connect(sessionToken) {
+  connect(sessionTokenOrJWT) {
     if (this.socket?.connected) {
       console.log("✅ Socket already connected");
       return Promise.resolve();
@@ -30,10 +30,14 @@ class SocketService {
       try {
         const url = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
+        // Determine if this is a JWT token (for staff) or session token (for customers)
+        const isJWT =
+          sessionTokenOrJWT && sessionTokenOrJWT.split(".").length === 3;
+
         this.socket = io(url, {
-          auth: {
-            sessionToken,
-          },
+          auth: isJWT
+            ? { token: sessionTokenOrJWT }
+            : { sessionToken: sessionTokenOrJWT },
           reconnection: true,
           reconnectionDelay: 1000,
           reconnectionDelayMax: 5000,
@@ -86,6 +90,16 @@ class SocketService {
       this.socket = null;
       console.log("🔌 Socket disconnected");
     }
+  }
+
+  /* ========== USE EXISTING SOCKET (for staff using SocketProvider) ========== */
+  setSocket(socketInstance) {
+    this.socket = socketInstance;
+    console.log("🔌 Socket instance set from external provider");
+  }
+
+  isConnected() {
+    return this.socket && this.socket.connected;
   }
 
   /* ========== JOIN/LEAVE ROOMS ========== */
@@ -165,13 +179,40 @@ class SocketService {
   /* ========== ORDER ITEM UPDATES (KITCHEN) ========== */
   /**
    * Kitchen staff see real-time item status updates
+   * Listens to: order:item-status-updated (all restaurant staff)
    */
   onOrderItemStatusChanged(callback) {
-    this.on("order:itemStatusChanged", callback);
+    this.on("order:item-status-updated", callback);
   }
 
   offOrderItemStatusChanged() {
-    this.off("order:itemStatusChanged");
+    this.off("order:item-status-updated");
+  }
+
+  /* ========== WAITER ITEM STATUS UPDATES ========== */
+  /**
+   * Waiter sees real-time item status changes at their tables
+   * Listens to: table:item-status-changed
+   */
+  onTableItemStatusChanged(callback) {
+    this.on("table:item-status-changed", callback);
+  }
+
+  offTableItemStatusChanged() {
+    this.off("table:item-status-changed");
+  }
+
+  /* ========== CUSTOMER ITEM READY NOTIFICATIONS ========== */
+  /**
+   * Customer receives item ready notifications
+   * Listens to: order:item-ready
+   */
+  onItemReady(callback) {
+    this.on("order:item-ready", callback);
+  }
+
+  offItemReady() {
+    this.off("order:item-ready");
   }
 
   /* ========== NEW ORDER NOTIFICATION (KITCHEN) ========== */

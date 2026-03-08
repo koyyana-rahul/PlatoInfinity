@@ -4,6 +4,7 @@ import { useSocket } from "../../../socket/SocketProvider";
 import Axios from "../../../api/axios";
 import orderApi from "../../../api/order.api";
 import OrderCard from "../../../components/waiter/OrderCard";
+import toast from "react-hot-toast";
 
 export default function WaiterOrders() {
   const [orders, setOrders] = useState([]);
@@ -14,7 +15,7 @@ export default function WaiterOrders() {
 
   const load = async (silent = false) => {
     try {
-      if (silent) setRefreshing(true);
+      if (!silent) setRefreshing(true);
       const res = await Axios(orderApi.listActiveOrders());
       setOrders(res.data.data || []);
     } finally {
@@ -29,8 +30,20 @@ export default function WaiterOrders() {
   useEffect(() => {
     if (!socket) return;
 
-    const handleNewOrder = (newOrder) => {
-      setOrders((prevOrders) => [newOrder, ...prevOrders]);
+    const handleNewOrder = (data) => {
+      console.log("📦 New order received:", data);
+      toast.success(
+        `New order at Table ${data.tableName}: ${data.itemCount || 0} items`,
+        { duration: 4000 },
+      );
+      // Reload orders from API to get complete order data
+      load(true);
+    };
+
+    const handleTableOrderPlaced = (data) => {
+      console.log("🍽️ Table order placed:", data);
+      // Reload orders from API to get complete order data
+      load(true);
     };
 
     const handleStatusUpdate = (update) => {
@@ -48,12 +61,34 @@ export default function WaiterOrders() {
       );
     };
 
+    const handleItemStatusChanged = (data) => {
+      const { orderId, itemId, itemIndex, itemStatus } = data;
+      setOrders((prevOrders) =>
+        prevOrders.map((order) => {
+          if (String(order._id) !== String(orderId)) return order;
+          return {
+            ...order,
+            items: order.items.map((item, idx) => {
+              const matches =
+                String(item._id) === String(itemId) || idx === itemIndex;
+              if (!matches) return item;
+              return { ...item, itemStatus };
+            }),
+          };
+        }),
+      );
+    };
+
     socket.on("order:placed", handleNewOrder);
+    socket.on("table:order-placed", handleTableOrderPlaced);
     socket.on("order:itemStatus", handleStatusUpdate);
+    socket.on("table:item-status-changed", handleItemStatusChanged);
 
     return () => {
       socket.off("order:placed", handleNewOrder);
+      socket.off("table:order-placed", handleTableOrderPlaced);
       socket.off("order:itemStatus", handleStatusUpdate);
+      socket.off("table:item-status-changed", handleItemStatusChanged);
     };
   }, [socket]);
 

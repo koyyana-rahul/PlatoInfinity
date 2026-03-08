@@ -9,6 +9,7 @@ import { useSocket } from "../../socket/SocketProvider";
 import AuthAxios from "../../api/authAxios";
 import dashboardApi from "../../api/dashboard.api";
 import toast from "react-hot-toast";
+import Dropdown from "../../components/ui/DropDown";
 
 export default function ManagerDashboard() {
   const socket = useSocket();
@@ -85,11 +86,37 @@ export default function ManagerDashboard() {
     if (!socket) return;
 
     const handleOrderUpdate = (data) => {
+      const incomingId = data?._id || data?.orderId;
+      if (!incomingId) return;
+
       setOrders((prev) => {
-        const exists = prev.some((o) => o._id === data._id);
+        const exists = prev.some((o) => String(o._id) === String(incomingId));
         const updated = exists
-          ? prev.map((o) => (o._id === data._id ? { ...o, ...data } : o))
+          ? prev.map((o) => {
+              if (String(o._id) !== String(incomingId)) return o;
+
+              const nextItems = (o.items || []).map((item, idx) => {
+                const byId =
+                  data.itemId && String(item._id) === String(data.itemId);
+                const byIndex =
+                  data.itemIndex !== undefined &&
+                  data.itemIndex !== null &&
+                  idx === data.itemIndex;
+                return byId || byIndex
+                  ? { ...item, itemStatus: data.itemStatus || item.itemStatus }
+                  : item;
+              });
+
+              return {
+                ...o,
+                ...data,
+                _id: o._id,
+                orderStatus: data.orderStatus || o.orderStatus,
+                items: nextItems,
+              };
+            })
           : [data, ...prev];
+
         applyFilters(updated, filters);
         calculateStats(updated);
         return updated;
@@ -141,6 +168,8 @@ export default function ManagerDashboard() {
     switch (status) {
       case "SERVED":
         return "bg-green-50 text-green-700";
+      case "READY":
+        return "bg-emerald-50 text-emerald-700";
       case "IN_PROGRESS":
         return "bg-blue-50 text-blue-700";
       case "NEW":
@@ -203,28 +232,30 @@ export default function ManagerDashboard() {
             <h2 className="text-lg font-semibold text-gray-900">
               Recent Orders
             </h2>
-            <div className="flex gap-2">
-              <select
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:w-auto">
+              <Dropdown
                 value={filters.timeRange}
-                onChange={(e) =>
-                  handleFilterChange("timeRange", e.target.value)
-                }
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-              </select>
-              <select
+                onChange={(value) => handleFilterChange("timeRange", value)}
+                placeholder="Time Range"
+                options={[
+                  { value: "today", label: "Today" },
+                  { value: "week", label: "This Week" },
+                  { value: "month", label: "This Month" },
+                ]}
+              />
+
+              <Dropdown
                 value={filters.status}
-                onChange={(e) => handleFilterChange("status", e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value="all">All Status</option>
-                <option value="NEW">New</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="SERVED">Served</option>
-              </select>
+                onChange={(value) => handleFilterChange("status", value)}
+                placeholder="Status"
+                options={[
+                  { value: "all", label: "All Status" },
+                  { value: "NEW", label: "New" },
+                  { value: "IN_PROGRESS", label: "Preparing" },
+                  { value: "READY", label: "Ready" },
+                  { value: "SERVED", label: "Served" },
+                ]}
+              />
             </div>
           </div>
 
@@ -269,7 +300,9 @@ export default function ManagerDashboard() {
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-semibold ${statusClass(order.orderStatus)}`}
                         >
-                          {order.orderStatus?.replaceAll("_", " ")}
+                          {order.orderStatus === "IN_PROGRESS"
+                            ? "Preparing"
+                            : order.orderStatus?.replaceAll("_", " ")}
                         </span>
                       </td>
                       <td className="py-3 text-gray-500 text-sm">

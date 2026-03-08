@@ -128,33 +128,66 @@ export async function emitOrderPlaced(orderData) {
 
   /**
    * 3️⃣ SEND TO KITCHEN BY STATION
-   * Group items by station and send to respective chefs
+   * Group items by kitchenStationId (preferred) or station name (fallback)
    */
-  const stationGroups = {};
+  const stationGroups = {}; // Map of stationId -> items
+  const stationNameGroups = {}; // Map of station name -> items
+
   items.forEach((item) => {
-    const station = item.station || "DEFAULT";
-    if (!stationGroups[station]) {
-      stationGroups[station] = [];
+    // Emit by kitchenStationId if available
+    if (item.kitchenStationId) {
+      const stationId = String(item.kitchenStationId);
+      if (!stationGroups[stationId]) {
+        stationGroups[stationId] = [];
+      }
+      stationGroups[stationId].push(item);
     }
-    stationGroups[station].push(item);
+
+    // Also emit by station name for backward compatibility
+    const stationName = item.station || "DEFAULT";
+    if (!stationNameGroups[stationName]) {
+      stationNameGroups[stationName] = [];
+    }
+    stationNameGroups[stationName].push(item);
   });
 
-  Object.entries(stationGroups).forEach(([station, stationItems]) => {
+  // Emit to kitchen station IDs
+  Object.entries(stationGroups).forEach(([stationId, stationItems]) => {
     ioRef
-      .to(`restaurant:${restaurantId}:station:${station}`)
+      .to(`restaurant:${restaurantId}:station:${stationId}`)
       .emit("kitchen:order-new", {
         orderId,
         tableId,
         tableName,
         orderNumber,
         items: stationItems,
-        station,
+        stationId,
         totalItems: stationItems.length,
         placedAt,
       });
 
     console.log(
-      `  🍳 Sent to ${station} station: ${stationItems.length} items`,
+      `  🍳 Sent to station ${stationId}: ${stationItems.length} items`,
+    );
+  });
+
+  // Also emit by station name (backward compatibility)
+  Object.entries(stationNameGroups).forEach(([stationName, stationItems]) => {
+    ioRef
+      .to(`restaurant:${restaurantId}:station:${stationName}`)
+      .emit("kitchen:order-new", {
+        orderId,
+        tableId,
+        tableName,
+        orderNumber,
+        items: stationItems,
+        station: stationName,
+        totalItems: stationItems.length,
+        placedAt,
+      });
+
+    console.log(
+      `  🍳 Sent to ${stationName} station: ${stationItems.length} items`,
     );
   });
 
@@ -185,11 +218,20 @@ export async function emitOrderItemStatusUpdate(updateData) {
     sessionId,
     tableId,
     tableName,
+    itemId,
     itemIndex,
     itemName,
     itemStatus,
     chefId,
     chefName,
+    waiterId,
+    waiterName,
+    orderStatus,
+    totalItems,
+    readyCount,
+    servedCount,
+    inProgressCount,
+    newCount,
     updatedAt,
   } = updateData;
 
@@ -197,19 +239,33 @@ export async function emitOrderItemStatusUpdate(updateData) {
     `📍 ITEM STATUS UPDATE - ${itemName} → ${itemStatus} (Table: ${tableName})`,
   );
 
-  /**
-   * 1️⃣ NOTIFY ALL STAFF IN RESTAURANT
-   */
-  ioRef.to(`restaurant:${restaurantId}`).emit("order:item-status-updated", {
+  const basePayload = {
+    _id: orderId,
     orderId,
+    orderStatus,
+    tableId,
+    tableName,
+    itemId,
     itemIndex,
     itemName,
     itemStatus,
     chefName,
-    tableId,
-    tableName,
+    waiterId,
+    waiterName,
+    totalItems,
+    readyCount,
+    servedCount,
+    inProgressCount,
+    newCount,
     updatedAt,
-  });
+  };
+
+  /**
+   * 1️⃣ NOTIFY ALL STAFF IN RESTAURANT
+   */
+  ioRef
+    .to(`restaurant:${restaurantId}`)
+    .emit("order:item-status-updated", basePayload);
 
   /**
    * 2️⃣ NOTIFY WAITER
@@ -217,36 +273,52 @@ export async function emitOrderItemStatusUpdate(updateData) {
   ioRef
     .to(`restaurant:${restaurantId}:waiters`)
     .emit("table:item-status-changed", {
-      orderId,
-      tableId,
-      tableName,
-      itemName,
-      itemStatus,
-      updatedAt,
+      ...basePayload,
+      message: `${itemName} is now ${itemStatus.replaceAll("_", " ")}`,
     });
 
   /**
-   * 3️⃣ NOTIFY CUSTOMER
+   * 2.5️⃣ SEND ALERT TO WAITER WHEN ITEM IS READY
    */
-  ioRef.to(`session:${sessionId}`).emit("order:item-ready", {
-    orderId,
-    itemName,
-    itemStatus,
+  if (itemStatus === "READY") {
+    ioRef
+      .to(`restaurant:${restaurantId}:waiters`)
+      .emit("waiter:item-ready-alert", {
+        ...basePayload,
+        chefName: chefName || "Kitchen",
+        message: `${itemName} is ready for Table ${tableName}`,
+        timestamp: updatedAt,
+        type: "ITEM_READY",
+      });
+
+    console.log(`🔔 WAITER ALERT - ${itemName} ready for Table ${tableName}`);
+  }
+
+  /**
+   * 3️⃣ NOTIFY CUSTOMER (all item status changes)
+   */
+  ioRef.to(`session:${sessionId}`).emit("order:item-status-updated", {
+    ...basePayload,
     message:
       itemStatus === "READY"
         ? `${itemName} is ready!`
-        : `${itemName} is ${itemStatus}`,
+        : `${itemName} is ${itemStatus.replaceAll("_", " ")}`,
   });
+
+  // Backward-compatible ready event for older customer listeners
+  if (itemStatus === "READY") {
+    ioRef.to(`session:${sessionId}`).emit("order:item-ready", {
+      ...basePayload,
+      message: `${itemName} is ready!`,
+    });
+  }
 
   /**
    * 4️⃣ KITCHEN ACKNOWLEDGMENT (to claiming chef)
    */
   if (chefId) {
     ioRef.to(`user:${chefId}`).emit("kitchen:item-updated", {
-      orderId,
-      itemIndex,
-      itemName,
-      itemStatus,
+      ...basePayload,
     });
   }
 }

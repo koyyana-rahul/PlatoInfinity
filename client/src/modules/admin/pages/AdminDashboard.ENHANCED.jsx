@@ -336,18 +336,24 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Role Filter */}
-                <select
-                  value={filterRole}
-                  onChange={(e) => setFilterRole(e.target.value)}
-                  className="px-4 py-2 sm:py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 text-xs sm:text-sm"
-                >
-                  <option value="all">All Roles</option>
-                  <option value="ADMIN">Admin</option>
-                  <option value="MANAGER">Manager</option>
-                  <option value="WAITER">Waiter</option>
-                  <option value="CASHIER">Cashier</option>
-                  <option value="CUSTOMER">Customer</option>
-                </select>
+                <div className="relative">
+                  <Filter
+                    size={16}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#FC8019] pointer-events-none"
+                  />
+                  <select
+                    value={filterRole}
+                    onChange={(e) => setFilterRole(e.target.value)}
+                    className="h-11 sm:h-12 pl-9 pr-10 border border-slate-200 rounded-xl bg-white shadow-sm hover:shadow-md hover:border-[#FC8019]/40 focus:outline-none focus:ring-2 focus:ring-[#FC8019]/20 focus:border-[#FC8019] text-xs sm:text-sm font-medium text-slate-700 transition-all"
+                  >
+                    <option value="all">All Roles</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="MANAGER">Manager</option>
+                    <option value="WAITER">Waiter</option>
+                    <option value="CASHIER">Cashier</option>
+                    <option value="CUSTOMER">Customer</option>
+                  </select>
+                </div>
               </div>
 
               {/* USERS TABLE (DESKTOP) */}

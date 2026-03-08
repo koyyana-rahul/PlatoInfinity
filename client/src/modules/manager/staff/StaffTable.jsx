@@ -152,6 +152,17 @@ export default function StaffTable({
                     {s.mobile || "—"}
                   </p>
 
+                  {/* KITCHEN STATION (CHEF ONLY) */}
+                  {s.role === "CHEF" && (
+                    <p className="text-xs text-blue-700 flex items-center gap-1 font-medium">
+                      <FiCoffee className="text-blue-600" />
+                      {s.kitchenStationId
+                        ? s.kitchenStationId.displayName ||
+                          s.kitchenStationId.name
+                        : "No Station Assigned"}
+                    </p>
+                  )}
+
                   {/* SHIFT */}
                   <p className="text-xs text-gray-600">
                     In:{" "}

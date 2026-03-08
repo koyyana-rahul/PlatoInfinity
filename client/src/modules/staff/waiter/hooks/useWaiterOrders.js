@@ -70,16 +70,31 @@ export function useWaiterOrders() {
   useEffect(() => {
     if (!socket) return;
 
-    // New order placed
-    const handleNewOrder = (order) => {
-      setOrders((prev) => {
-        if (prev.some((o) => o._id === order._id)) return prev;
-        return [order, ...prev];
-      });
+    // New order placed - reload orders to get complete data
+    const handleNewOrder = (data) => {
+      console.log("📦 New order received:", data);
+      toast.success(
+        `New order at Table ${data.tableName}: ${data.itemCount} items`,
+        { duration: 4000 },
+      );
+      // Reload orders from API to get full order details
+      loadOrders();
+    };
+
+    // Table order placed event (alternative event name)
+    const handleTableOrderPlaced = (data) => {
+      console.log("🍽️ Table order placed:", data);
+      toast.success(
+        `New order at Table ${data.tableName}: ${data.itemCount || 0} items`,
+        { duration: 4000 },
+      );
+      // Reload orders from API to get full order details
+      loadOrders();
     };
 
     // Item ready for serving
-    const handleItemReady = ({ orderId, itemId }) => {
+    const handleItemReady = ({ orderId, itemId, itemName, tableName }) => {
+      console.log("✅ Item ready:", { orderId, itemId, itemName });
       setOrders((prev) =>
         prev.map((order) => {
           if (order._id !== orderId) return order;
@@ -93,7 +108,38 @@ export function useWaiterOrders() {
         }),
       );
       loadReadyItems();
-      toast("Item ready for pickup!");
+      toast.success(
+        `${itemName || "Item"} ready at Table ${tableName || ""}!`,
+        {
+          duration: 4000,
+        },
+      );
+    };
+
+    // Item status changed
+    const handleItemStatusChanged = (data) => {
+      console.log("🔄 Item status changed:", data);
+      const { orderId, itemId, itemIndex, itemStatus } = data;
+
+      setOrders((prev) =>
+        prev.map((order) => {
+          if (String(order._id) !== String(orderId)) return order;
+          return {
+            ...order,
+            items: order.items.map((item, idx) => {
+              const matches =
+                String(item._id) === String(itemId) || idx === itemIndex;
+              if (!matches) return item;
+              return { ...item, itemStatus };
+            }),
+          };
+        }),
+      );
+
+      // Reload ready items if status changed to READY
+      if (itemStatus === "READY") {
+        loadReadyItems();
+      }
     };
 
     // Customer needs attention
@@ -102,15 +148,19 @@ export function useWaiterOrders() {
     };
 
     socket.on("order:placed", handleNewOrder);
+    socket.on("table:order-placed", handleTableOrderPlaced);
     socket.on("waiter:item-ready-alert", handleItemReady);
+    socket.on("table:item-status-changed", handleItemStatusChanged);
     socket.on("table:alert", handleTableAlert);
 
     return () => {
       socket.off("order:placed", handleNewOrder);
+      socket.off("table:order-placed", handleTableOrderPlaced);
       socket.off("waiter:item-ready-alert", handleItemReady);
+      socket.off("table:item-status-changed", handleItemStatusChanged);
       socket.off("table:alert", handleTableAlert);
     };
-  }, [socket, loadReadyItems]);
+  }, [socket, loadOrders, loadReadyItems]);
 
   return {
     orders,

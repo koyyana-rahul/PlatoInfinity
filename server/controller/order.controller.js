@@ -138,6 +138,7 @@ export async function placeOrderController(req, res) {
         price: menuItem.price,
         quantity: cart.quantity,
         station: menuItem.station || "MAIN",
+        kitchenStationId: menuItem.kitchenStationId || null,
         itemStatus: "NEW",
         selectedModifiers: cart.meta?.selectedModifiers || [],
         meta: cart.meta || {},
@@ -463,20 +464,48 @@ export async function updateOrderItemStatusController(req, res) {
 
     await mongoSession.commitTransaction();
 
-    // 🔥 SOCKET EMIT
-    emitKitchenEvent(
-      req.app.locals.io,
-      order.restaurantId,
-      item.station,
-      "order:itemStatus",
-      {
-        type: "ORDER_ITEM_STATUS",
-        orderId,
-        itemId,
-        status: normalizedStatus,
-        tableId: order.tableId,
-      },
+    const itemIndex = order.items.findIndex(
+      (i) => String(i._id) === String(itemId),
     );
+
+    const totalItems = order.items.length;
+    const readyCount = order.items.filter(
+      (i) => i.itemStatus === "READY",
+    ).length;
+    const servedCount = order.items.filter(
+      (i) => i.itemStatus === "SERVED",
+    ).length;
+    const inProgressCount = order.items.filter(
+      (i) => i.itemStatus === "IN_PROGRESS",
+    ).length;
+    const newCount = order.items.filter((i) => i.itemStatus === "NEW").length;
+
+    let orderStatus = "NEW";
+    if (servedCount === totalItems && totalItems > 0) orderStatus = "SERVED";
+    else if (inProgressCount > 0) orderStatus = "IN_PROGRESS";
+    else if (readyCount > 0) orderStatus = "READY";
+
+    // 🔥 Unified socket emit for all roles
+    await emitOrderItemStatusUpdate({
+      orderId: String(orderId),
+      restaurantId: String(order.restaurantId),
+      sessionId: String(order.sessionId),
+      tableId: String(order.tableId),
+      tableName: order.tableName || "Unknown",
+      itemId: String(itemId),
+      itemIndex,
+      itemName: item.name,
+      itemStatus: normalizedStatus,
+      chefId: String(chefId),
+      chefName: req.user?.name || "Chef",
+      orderStatus,
+      totalItems,
+      readyCount,
+      servedCount,
+      inProgressCount,
+      newCount,
+      updatedAt: now,
+    });
 
     return res.json({
       success: true,

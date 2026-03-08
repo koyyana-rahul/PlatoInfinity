@@ -6,6 +6,7 @@ import {
   Boxes,
   ChevronLeft,
   ChevronRight,
+  Utensils,
 } from "lucide-react";
 
 import VegNonVegIcon from "../../../../components/ui/VegNonVegIcon";
@@ -35,6 +36,16 @@ export default function BranchItemCard({ item, refresh, onEdit, onStock }) {
   const isUnlimited = item.trackStock && stockQty === null;
   const isLowStock = item.trackStock && stockQty > 0 && stockQty <= 5;
   const isOutOfStock = item.trackStock && stockQty === 0;
+
+  /* --------------- KITCHEN STATION LOGIC --------------- */
+  const hasAssignedStation = !!(
+    item.kitchenStationId &&
+    (typeof item.kitchenStationId === "string" || item.kitchenStationId?._id)
+  );
+  const assignedStationName =
+    item.kitchenStationId?.displayName ||
+    item.kitchenStationId?.name ||
+    (hasAssignedStation ? "Assigned" : "Unassigned");
 
   return (
     <div
@@ -146,6 +157,14 @@ export default function BranchItemCard({ item, refresh, onEdit, onStock }) {
             <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide mt-1">
               {item.category?.name || "General"}
             </p>
+            <div className="mt-2 flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-semibold bg-blue-50 border-blue-200 text-blue-700 w-fit">
+              <Utensils size={11} />
+              <span className="truncate">
+                {hasAssignedStation
+                  ? `🍳 ${assignedStationName}`
+                  : "⚠️ Not Assigned"}
+              </span>
+            </div>
           </div>
           <div className="flex flex-col items-end">
             <p className="text-lg font-bold text-orange-600 tracking-tight">
@@ -174,10 +193,10 @@ export default function BranchItemCard({ item, refresh, onEdit, onStock }) {
 
           <button
             onClick={() => onEdit?.(item)}
-            className="w-full h-11 flex items-center justify-center gap-2 bg-orange-500 text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-600"
+            className="w-full h-10 sm:h-11 flex items-center justify-center gap-1.5 bg-orange-500 text-white rounded-lg text-sm font-semibold transition-all hover:bg-orange-600 active:scale-95"
           >
-            <Pencil size={14} />
-            <span className="text-[11px] font-semibold uppercase tracking-wide">
+            <Pencil size={13} />
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wide">
               Edit Details
             </span>
           </button>

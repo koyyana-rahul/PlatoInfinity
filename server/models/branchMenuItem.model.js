@@ -20,6 +20,11 @@ const branchMenuItemSchema = new mongoose.Schema(
     description: { type: String, default: "" },
     price: { type: Number, required: true, min: 0 },
     station: { type: String, default: null },
+    kitchenStationId: {
+      type: Schema.Types.ObjectId,
+      ref: "KitchenStation",
+      default: null,
+    },
     taxPercent: { type: Number, default: 0 },
 
     status: { type: String, enum: ["ON", "OFF"], default: "ON" },
@@ -45,12 +50,12 @@ const branchMenuItemSchema = new mongoose.Schema(
     isArchived: { type: Boolean, default: false },
     meta: { type: Schema.Types.Mixed, default: {} },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 branchMenuItemSchema.index(
   { restaurantId: 1, masterItemId: 1 },
-  { unique: true }
+  { unique: true },
 );
 branchMenuItemSchema.plugin(mongoosePaginate);
 

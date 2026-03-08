@@ -14,12 +14,23 @@ import Axios from "../api/axios";
 import orderApi from "../api/order.api";
 import toast from "react-hot-toast";
 import { socketService } from "../api/socket.service";
+import { useSocket } from "../socket/SocketProvider";
 
 export function useKitchenDisplay(restaurantId, stationFilter = null) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [updatingOrder, setUpdatingOrder] = useState(null);
   const [socketReady, setSocketReady] = useState(false);
+
+  const socket = useSocket(); // Get socket from SocketProvider
+
+  // Set socket instance in socketService when available
+  useEffect(() => {
+    if (socket && socket.connected) {
+      socketService.setSocket(socket);
+      setSocketReady(true);
+    }
+  }, [socket]);
 
   /* ========== FETCH KITCHEN ORDERS (NO PRICING) ========== */
   const fetchKitchenOrders = useCallback(async () => {
@@ -123,13 +134,24 @@ export function useKitchenDisplay(restaurantId, stationFilter = null) {
           if (order.orderId === itemUpdate.orderId) {
             const newItems = [...(order.items || [])];
             if (newItems[itemUpdate.itemIndex]) {
-              newItems[itemUpdate.itemIndex].status = itemUpdate.newStatus;
+              // Update the item status
+              newItems[itemUpdate.itemIndex] = {
+                ...newItems[itemUpdate.itemIndex],
+                itemStatus: itemUpdate.itemStatus,
+                status: itemUpdate.itemStatus,
+                updatedAt: itemUpdate.updatedAt,
+              };
             }
             return { ...order, items: newItems };
           }
           return order;
         });
       });
+
+      // Show toast notification for status changes
+      if (itemUpdate.itemStatus === "READY") {
+        playNotificationSound();
+      }
     });
   }, []);
 
@@ -177,8 +199,7 @@ export function useKitchenDisplay(restaurantId, stationFilter = null) {
 
   /* ========== SETUP SOCKET LISTENERS ========== */
   useEffect(() => {
-    if (socketService.isConnected()) {
-      setSocketReady(true);
+    if (socketReady && socketService.isConnected()) {
       listenForNewOrders();
       listenForItemUpdates();
       listenForSessionClose();
@@ -189,7 +210,12 @@ export function useKitchenDisplay(restaurantId, stationFilter = null) {
         socketService.offSessionClosed();
       };
     }
-  }, [listenForNewOrders, listenForItemUpdates, listenForSessionClose]);
+  }, [
+    socketReady,
+    listenForNewOrders,
+    listenForItemUpdates,
+    listenForSessionClose,
+  ]);
 
   /* ========== INITIAL LOAD ========== */
   useEffect(() => {

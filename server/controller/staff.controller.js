@@ -113,8 +113,9 @@ export async function listStaffController(req, res) {
       role: { $in: ["WAITER", "CHEF", "CASHIER"] },
     })
       .select(
-        "_id name role staffCode staffPin mobile isActive onDuty lastShiftIn lastShiftOut createdAt",
+        "_id name role staffCode staffPin mobile isActive onDuty lastShiftIn lastShiftOut kitchenStationId createdAt",
       )
+      .populate("kitchenStationId", "name displayName badge")
       .sort({ createdAt: -1 })
       .lean();
 

@@ -95,6 +95,9 @@ export function initSocketServer(httpServer, options = {}) {
             role: user.role,
             restaurantId: String(user.restaurantId),
             station: user.kitchenStation || null,
+            kitchenStationId: user.kitchenStationId
+              ? String(user.kitchenStationId)
+              : null,
           };
 
           console.log(`✅ Staff authenticated | socket.user:`, socket.user);
@@ -162,13 +165,29 @@ export function initSocketServer(httpServer, options = {}) {
       }
 
       /* ---------- CHEF ROOM ---------- */
-      if (user.role === "CHEF" && user.station) {
-        socket.join(`restaurant:${user.restaurantId}:station:${user.station}`);
+      if (user.role === "CHEF") {
         socket.join(`restaurant:${user.restaurantId}:kitchen`);
-        console.log(
-          `  ✓ Joined: restaurant:${user.restaurantId}:station:${user.station}`,
-        );
         console.log(`  ✓ Joined: restaurant:${user.restaurantId}:kitchen`);
+
+        // Join by kitchenStationId (preferred)
+        if (user.kitchenStationId) {
+          socket.join(
+            `restaurant:${user.restaurantId}:station:${user.kitchenStationId}`,
+          );
+          console.log(
+            `  ✓ Joined: restaurant:${user.restaurantId}:station:${user.kitchenStationId}`,
+          );
+        }
+
+        // Also join by string station name (backward compatibility)
+        if (user.station) {
+          socket.join(
+            `restaurant:${user.restaurantId}:station:${user.station}`,
+          );
+          console.log(
+            `  ✓ Joined: restaurant:${user.restaurantId}:station:${user.station}`,
+          );
+        }
       }
 
       /* ---------- CASHIER ROOM ---------- */
@@ -383,6 +402,26 @@ export function initSocketServer(httpServer, options = {}) {
 
         await order.save();
 
+        const totalItems = order.items.length;
+        const readyCount = order.items.filter(
+          (i) => i.itemStatus === "READY",
+        ).length;
+        const servedCount = order.items.filter(
+          (i) => i.itemStatus === "SERVED",
+        ).length;
+        const inProgressCount = order.items.filter(
+          (i) => i.itemStatus === "IN_PROGRESS",
+        ).length;
+        const newCount = order.items.filter(
+          (i) => i.itemStatus === "NEW",
+        ).length;
+
+        let orderStatus = "NEW";
+        if (servedCount === totalItems && totalItems > 0)
+          orderStatus = "SERVED";
+        else if (inProgressCount > 0) orderStatus = "IN_PROGRESS";
+        else if (readyCount > 0) orderStatus = "READY";
+
         // Emit comprehensive status update
         await emitOrderItemStatusUpdate({
           orderId: String(orderId),
@@ -390,11 +429,18 @@ export function initSocketServer(httpServer, options = {}) {
           sessionId: String(order.sessionId),
           tableId: String(order.tableId),
           tableName: order.tableName,
+          itemId: String(item._id),
           itemIndex,
           itemName: item.name,
           itemStatus: "IN_PROGRESS",
           chefId: user.id,
           chefName: user.name,
+          orderStatus,
+          totalItems,
+          readyCount,
+          servedCount,
+          inProgressCount,
+          newCount,
           updatedAt: new Date(),
         });
 
@@ -429,6 +475,26 @@ export function initSocketServer(httpServer, options = {}) {
 
         await order.save();
 
+        const totalItems = order.items.length;
+        const readyCount = order.items.filter(
+          (i) => i.itemStatus === "READY",
+        ).length;
+        const servedCount = order.items.filter(
+          (i) => i.itemStatus === "SERVED",
+        ).length;
+        const inProgressCount = order.items.filter(
+          (i) => i.itemStatus === "IN_PROGRESS",
+        ).length;
+        const newCount = order.items.filter(
+          (i) => i.itemStatus === "NEW",
+        ).length;
+
+        let orderStatus = "NEW";
+        if (servedCount === totalItems && totalItems > 0)
+          orderStatus = "SERVED";
+        else if (inProgressCount > 0) orderStatus = "IN_PROGRESS";
+        else if (readyCount > 0) orderStatus = "READY";
+
         // Emit comprehensive status update
         await emitOrderItemStatusUpdate({
           orderId: String(orderId),
@@ -436,11 +502,18 @@ export function initSocketServer(httpServer, options = {}) {
           sessionId: String(order.sessionId),
           tableId: String(order.tableId),
           tableName: order.tableName,
+          itemId: String(item._id),
           itemIndex,
           itemName: item.name,
           itemStatus: "READY",
           chefId: user.id,
           chefName: user.name,
+          orderStatus,
+          totalItems,
+          readyCount,
+          servedCount,
+          inProgressCount,
+          newCount,
           updatedAt: new Date(),
         });
 
@@ -558,23 +631,48 @@ export function initSocketServer(httpServer, options = {}) {
 
         await order.save();
 
-        // Emit order served event
-        io.to(`restaurant:${user.restaurantId}`).emit("order:item-served", {
-          orderId,
+        const totalItems = order.items.length;
+        const readyCount = order.items.filter(
+          (i) => i.itemStatus === "READY",
+        ).length;
+        const servedCount = order.items.filter(
+          (i) => i.itemStatus === "SERVED",
+        ).length;
+        const inProgressCount = order.items.filter(
+          (i) => i.itemStatus === "IN_PROGRESS",
+        ).length;
+        const newCount = order.items.filter(
+          (i) => i.itemStatus === "NEW",
+        ).length;
+
+        let orderStatus = "NEW";
+        if (servedCount === totalItems && totalItems > 0)
+          orderStatus = "SERVED";
+        else if (inProgressCount > 0) orderStatus = "IN_PROGRESS";
+        else if (readyCount > 0) orderStatus = "READY";
+
+        await emitOrderItemStatusUpdate({
+          orderId: String(orderId),
+          restaurantId: user.restaurantId,
+          sessionId: String(order.sessionId),
+          tableId: String(order.tableId),
+          tableName: order.tableName,
+          itemId: String(item._id),
           itemIndex,
           itemName: item.name,
-          tableId: order.tableId,
-          tableName: order.tableName,
-          allServed,
+          itemStatus: "SERVED",
+          waiterId: user.id,
+          waiterName: user.name,
+          orderStatus,
+          totalItems,
+          readyCount,
+          servedCount,
+          inProgressCount,
+          newCount,
+          updatedAt: new Date(),
         });
 
-        io.to(`session:${order.sessionId}`).emit("order:item-served", {
-          orderId,
-          itemName: item.name,
-          allServed,
-        });
-
-        ack({ ok: true });
+        ack({ ok: true, allServed });
       } catch (err) {
         console.error("waiter:serve-item error:", err);
         ack({ ok: false, error: err.message });

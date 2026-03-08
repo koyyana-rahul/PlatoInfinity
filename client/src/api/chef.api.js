@@ -7,7 +7,7 @@ const chefApi = {
 
   updateItemStatus: (orderId, itemId) => ({
     url: `/api/kitchen/order/${orderId}/item/${itemId}/status`,
-    method: "post",
+    method: "put",
   }),
 };
 

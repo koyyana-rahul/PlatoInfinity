@@ -1,5 +1,5 @@
 // src/components/address/IndiaAddressForm.jsx
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import IndiaStateDistrict from "india-state-district";
 import { search } from "india-pincode-search";
 import clsx from "clsx";
@@ -51,6 +51,8 @@ function SearchDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [openUp, setOpenUp] = useState(false);
+  const inputRef = useRef(null);
 
   const filtered = useMemo(() => {
     return (options || []).filter((o) =>
@@ -58,12 +60,22 @@ function SearchDropdown({
     );
   }, [query, options]);
 
+  useEffect(() => {
+    if (!open || !inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    const estimatedMenuHeight = Math.min((filtered.length || 1) * 42 + 8, 300);
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    setOpenUp(spaceBelow < estimatedMenuHeight && spaceAbove > spaceBelow);
+  }, [open, filtered.length]);
+
   return (
     <div className="relative w-full">
       <label className="text-xs font-medium text-gray-700 mb-1.5 block ml-1">
         {label}
       </label>
       <input
+        ref={inputRef}
         value={open ? query : value || ""}
         placeholder={placeholder}
         disabled={disabled}
@@ -76,14 +88,21 @@ function SearchDropdown({
         onBlur={() => setTimeout(() => setOpen(false), 200)}
         onChange={(e) => setQuery(e.target.value)}
         className={clsx(
-          "w-full h-11 rounded-lg border px-3.5 text-sm text-gray-900 focus:ring-2 focus:ring-[#FC8019] focus:border-[#FC8019] outline-none transition-all placeholder:text-gray-400",
+          "w-full h-11 rounded-xl border px-3.5 text-sm text-gray-900 focus:ring-2 focus:ring-[#FC8019]/30 focus:border-[#FC8019] outline-none transition-all placeholder:text-gray-400",
           disabled
             ? "bg-gray-100 border-gray-200 cursor-not-allowed opacity-60"
             : "bg-white border-gray-300",
         )}
       />
       {open && !disabled && (
-        <div className="absolute left-0 right-0 z-[300] mt-2 max-h-52 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-xl">
+        <div
+          className="absolute left-0 right-0 z-[400] max-h-[min(18rem,42vh)] overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl border border-gray-200 bg-white shadow-[0_16px_36px_-18px_rgba(2,6,23,0.4)]"
+          style={
+            openUp
+              ? { bottom: "calc(100% + 0.5rem)" }
+              : { top: "calc(100% + 0.5rem)" }
+          }
+        >
           {filtered.length === 0 ? (
             <div className="px-4 py-3 text-xs text-gray-500 italic">
               No matches found
@@ -98,8 +117,9 @@ function SearchDropdown({
                   setOpen(false);
                 }}
                 className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#FC8019] cursor-pointer transition-colors border-b border-gray-100 last:border-0"
+                title={opt}
               >
-                {opt}
+                <span className="block w-full truncate">{opt}</span>
               </div>
             ))
           )}

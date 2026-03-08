@@ -7,11 +7,9 @@ import Axios from "../../../api/axios";
 import sessionApi from "../../../api/session.api";
 import billApi from "../../../api/bill.api";
 import BillSummary from "../../../components/waiter/BillSummary";
-import { useSocket } from "../../../socket/SocketProvider";
 
 export default function WaiterBills() {
   const restaurantId = useSelector((s) => s.user.restaurantId);
-  const { socket } = useSocket();
 
   const [sessions, setSessions] = useState([]);
   const [selectedSessionId, setSelectedSessionId] = useState("");
@@ -64,41 +62,6 @@ export default function WaiterBills() {
   useEffect(() => {
     loadBill(selectedSessionId);
   }, [selectedSessionId]);
-
-  // ✅ Listen for session closure notifications (real-time)
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleSessionClosed = ({ sessionId, tableId }) => {
-      console.log("📭 Session closed notification received:", {
-        sessionId,
-        tableId,
-      });
-
-      toast.info(
-        `Table freed - Session ${String(sessionId).slice(-6)} closed`,
-        {
-          duration: 3000,
-          icon: "✅",
-        },
-      );
-
-      // Auto-unselect if closed session was selected
-      if (String(sessionId) === String(selectedSessionId)) {
-        setSelectedSessionId("");
-        setBill(null);
-      }
-
-      // Refresh sessions list
-      loadSessions(true);
-    };
-
-    socket.on("session:closed", handleSessionClosed);
-
-    return () => {
-      socket.off("session:closed", handleSessionClosed);
-    };
-  }, [socket, selectedSessionId]);
 
   const selectedSession = useMemo(
     () =>

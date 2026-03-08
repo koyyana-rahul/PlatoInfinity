@@ -9,20 +9,25 @@ import Order from "../models/order.model.js";
 
 const kitchenRouter = express.Router();
 
-// Match frontend API: /api/kitchen/:restaurantId/orders
-kitchenRouter.get("/:restaurantId/orders", listKitchenOrders);
-
-// Auth protected routes for staff
-kitchenRouter.use(requireAuth, requireRole("CHEF"));
-
+// ✅ SPECIFIC ROUTES FIRST - Status update routes must be defined before generic param routes
 kitchenRouter.put(
   "/order/:orderId/item/:itemId/status",
+  requireAuth,
+  requireRole("CHEF"),
   updateKitchenItemStatus,
 );
 kitchenRouter.post(
   "/order/:orderId/item/:itemId/status",
+  requireAuth,
+  requireRole("CHEF"),
   updateKitchenItemStatus,
 );
+
+// ✅ GENERIC ROUTES AFTER - Match frontend API: /api/kitchen/:restaurantId/orders
+kitchenRouter.get("/:restaurantId/orders", listKitchenOrders);
+
+// Auth protected routes for staff
+kitchenRouter.use(requireAuth, requireRole("CHEF"));
 
 /**
  * ===================================================

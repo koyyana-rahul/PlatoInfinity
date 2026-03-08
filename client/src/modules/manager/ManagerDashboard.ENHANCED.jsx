@@ -25,7 +25,6 @@ import {
   FiClock,
   FiCheckCircle,
   FiAlertCircle,
-  FiFilter,
   FiDownload,
   FiRefreshCw,
 } from "react-icons/fi";
@@ -48,6 +47,7 @@ import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import StatCard from "../../components/ui/StatCard";
 import AnalyticsDashboard from "../../components/advanced/AnalyticsDashboard";
 import ResponsiveText from "../../components/ui/ResponsiveText";
+import Dropdown from "../../components/ui/DropDown";
 
 /**
  * Manager Dashboard - Complete business analytics
@@ -161,10 +161,37 @@ export default function ManagerDashboard() {
     if (!socket) return;
 
     const handleOrderUpdate = (data) => {
+      const incomingId = data?._id || data?.orderId;
+      if (!incomingId) return;
+
       setOrders((prev) => {
-        const updated = prev.map((o) =>
-          o._id === data._id ? { ...o, ...data } : o,
-        );
+        const exists = prev.some((o) => String(o._id) === String(incomingId));
+        const updated = exists
+          ? prev.map((o) => {
+              if (String(o._id) !== String(incomingId)) return o;
+
+              const nextItems = (o.items || []).map((item, idx) => {
+                const byId =
+                  data.itemId && String(item._id) === String(data.itemId);
+                const byIndex =
+                  data.itemIndex !== undefined &&
+                  data.itemIndex !== null &&
+                  idx === data.itemIndex;
+                return byId || byIndex
+                  ? { ...item, itemStatus: data.itemStatus || item.itemStatus }
+                  : item;
+              });
+
+              return {
+                ...o,
+                ...data,
+                _id: o._id,
+                orderStatus: data.orderStatus || o.orderStatus,
+                items: nextItems,
+              };
+            })
+          : [data, ...prev];
+
         applyFilters(updated, filters);
         calculateStats(updated);
         return updated;
@@ -263,7 +290,7 @@ export default function ManagerDashboard() {
         <span
           className={`inline-block px-2 py-1 rounded text-xs font-semibold ${getStatusBadge(val)}`}
         >
-          {val}
+          {val === "IN_PROGRESS" ? "Preparing" : val?.replaceAll("_", " ")}
         </span>
       ),
     },
@@ -425,17 +452,18 @@ export default function ManagerDashboard() {
               <label className="text-xs sm:text-sm font-semibold text-slate-600 block mb-2">
                 Status
               </label>
-              <select
+              <Dropdown
                 value={filters.status}
-                onChange={(e) => handleFilterChange("status", e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-900"
-              >
-                <option value="all">All</option>
-                <option value="NEW">New</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="READY">Ready</option>
-                <option value="SERVED">Served</option>
-              </select>
+                onChange={(value) => handleFilterChange("status", value)}
+                placeholder="All"
+                options={[
+                  { value: "all", label: "All" },
+                  { value: "NEW", label: "New" },
+                  { value: "IN_PROGRESS", label: "Preparing" },
+                  { value: "READY", label: "Ready" },
+                  { value: "SERVED", label: "Served" },
+                ]}
+              />
             </div>
 
             {/* Time Range Filter */}
@@ -443,17 +471,16 @@ export default function ManagerDashboard() {
               <label className="text-xs sm:text-sm font-semibold text-slate-600 block mb-2">
                 Time Range
               </label>
-              <select
+              <Dropdown
                 value={filters.timeRange}
-                onChange={(e) =>
-                  handleFilterChange("timeRange", e.target.value)
-                }
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-900"
-              >
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-              </select>
+                onChange={(value) => handleFilterChange("timeRange", value)}
+                placeholder="Today"
+                options={[
+                  { value: "today", label: "Today" },
+                  { value: "week", label: "This Week" },
+                  { value: "month", label: "This Month" },
+                ]}
+              />
             </div>
 
             {/* Sort Filter */}
@@ -461,15 +488,16 @@ export default function ManagerDashboard() {
               <label className="text-xs sm:text-sm font-semibold text-slate-600 block mb-2">
                 Sort By
               </label>
-              <select
+              <Dropdown
                 value={filters.sortBy}
-                onChange={(e) => handleFilterChange("sortBy", e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-900"
-              >
-                <option value="recent">Most Recent</option>
-                <option value="oldest">Oldest</option>
-                <option value="amount-high">Highest Amount</option>
-              </select>
+                onChange={(value) => handleFilterChange("sortBy", value)}
+                placeholder="Most Recent"
+                options={[
+                  { value: "recent", label: "Most Recent" },
+                  { value: "oldest", label: "Oldest" },
+                  { value: "amount-high", label: "Highest Amount" },
+                ]}
+              />
             </div>
           </div>
         </motion.div>

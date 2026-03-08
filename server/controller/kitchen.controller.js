@@ -1,11 +1,15 @@
 import Order from "../models/order.model.js";
-import { emitKitchenEvent } from "../socket/emitter.js";
+import {
+  emitKitchenEvent,
+  emitOrderItemStatusUpdate,
+} from "../socket/emitter.js";
 
 export async function listKitchenOrders(req, res) {
   try {
     const { restaurantId } = req.params;
-    const { stationFilter } = req.query;
+    const { stationFilter, stationId } = req.query;
     const chefStation = req.user?.station; // Chef's assigned station from JWT
+    const chefStationId = req.user?.kitchenStationId; // Chef's assigned station ID from JWT
 
     if (!restaurantId) {
       return res.status(400).json({
@@ -14,10 +18,11 @@ export async function listKitchenOrders(req, res) {
       });
     }
 
-    // Use chef's assigned station, or query param if provided
+    // Use chef's assigned station ID, or query param if provided
+    const filterStationId = stationId || chefStationId;
     const filterStation = stationFilter || chefStation;
 
-    if (!filterStation) {
+    if (!filterStationId && !filterStation) {
       return res.status(400).json({
         success: false,
         message:
@@ -30,6 +35,28 @@ export async function listKitchenOrders(req, res) {
       restaurantId,
       orderStatus: { $ne: "SERVED" },
     };
+
+    // Build filter condition based on what's available
+    let itemFilterCond;
+    if (filterStationId) {
+      // Filter by kitchenStationId (ObjectId)
+      itemFilterCond = {
+        $and: [
+          {
+            $eq: ["$$item.kitchenStationId", { $toObjectId: filterStationId }],
+          },
+          { $ne: ["$$item.itemStatus", "SERVED"] },
+        ],
+      };
+    } else if (filterStation) {
+      // Fallback: filter by station name (string)
+      itemFilterCond = {
+        $and: [
+          { $eq: ["$$item.station", filterStation] },
+          { $ne: ["$$item.itemStatus", "SERVED"] },
+        ],
+      };
+    }
 
     const orders = await Order.aggregate([
       {
@@ -49,12 +76,7 @@ export async function listKitchenOrders(req, res) {
             $filter: {
               input: "$items",
               as: "item",
-              cond: {
-                $and: [
-                  { $eq: ["$$item.station", filterStation] },
-                  { $ne: ["$$item.itemStatus", "SERVED"] },
-                ],
-              },
+              cond: itemFilterCond,
             },
           },
         },
@@ -68,6 +90,7 @@ export async function listKitchenOrders(req, res) {
       data: {
         orders: orders,
         station: filterStation,
+        stationId: filterStationId,
       },
     });
   } catch (err) {
@@ -79,30 +102,8 @@ export async function listKitchenOrders(req, res) {
 export async function updateKitchenItemStatus(req, res) {
   try {
     const { orderId, itemId } = req.params;
-    const { status, staffPin } = req.body;
+    const { status } = req.body;
     const chefId = req.user._id;
-    const chefPin = req.user.staffPin; // Assuming this is set on user from login
-
-    // 🔐 PIN VERIFICATION FOR MARKING READY
-    if (status === "READY" || status === "ready") {
-      if (!staffPin) {
-        return res.status(400).json({
-          success: false,
-          message: "Staff PIN required to confirm ready items",
-        });
-      }
-
-      // Simple PIN check (in production, use bcrypt comparison)
-      // For now, assuming staffPin is validated during login
-      // This is a basic check - enhance with bcrypt if needed
-      if (String(staffPin) !== String(chefPin)) {
-        return res.status(401).json({
-          success: false,
-          message: "Invalid Staff PIN",
-          error: "INVALID_PIN",
-        });
-      }
-    }
 
     const normalizedStatus = status === "PREPARING" ? "IN_PROGRESS" : status;
 
@@ -135,31 +136,46 @@ export async function updateKitchenItemStatus(req, res) {
         .json({ success: false, message: "Item not found" });
 
     const item = order.items.find((i) => i._id.toString() === itemId);
+    const itemIndex = order.items.findIndex((i) => i._id.toString() === itemId);
 
-    // 🔥 SOCKET EVENTS
-    const stationName = item.station || "MAIN";
-    const payload = {
-      orderId,
-      itemId,
-      status: normalizedStatus,
-      tableId: order.tableId,
-      tableName: order.tableName,
-    };
+    const totalItems = order.items.length;
+    const readyCount = order.items.filter(
+      (i) => i.itemStatus === "READY",
+    ).length;
+    const servedCount = order.items.filter(
+      (i) => i.itemStatus === "SERVED",
+    ).length;
+    const inProgressCount = order.items.filter(
+      (i) => i.itemStatus === "IN_PROGRESS",
+    ).length;
+    const newCount = order.items.filter((i) => i.itemStatus === "NEW").length;
 
-    emitKitchenEvent(
-      req.app.locals.io,
-      order.restaurantId,
-      stationName,
-      "order:item-status-updated",
-      payload,
-    );
-    emitKitchenEvent(
-      req.app.locals.io,
-      order.restaurantId,
-      stationName,
-      "order:itemStatus",
-      payload,
-    );
+    let orderStatus = "NEW";
+    if (servedCount === totalItems && totalItems > 0) orderStatus = "SERVED";
+    else if (inProgressCount > 0) orderStatus = "IN_PROGRESS";
+    else if (readyCount > 0) orderStatus = "READY";
+
+    // 🔥 REAL-TIME SOCKET EVENTS TO ALL ROLES
+    await emitOrderItemStatusUpdate({
+      orderId: String(order._id),
+      restaurantId: String(order.restaurantId),
+      sessionId: String(order.sessionId),
+      tableId: String(order.tableId),
+      tableName: order.tableName || "Unknown",
+      itemId: String(itemId),
+      itemIndex,
+      itemName: item.name,
+      itemStatus: normalizedStatus,
+      chefId: String(req.user._id),
+      chefName: req.user.name || "Chef",
+      orderStatus,
+      totalItems,
+      readyCount,
+      servedCount,
+      inProgressCount,
+      newCount,
+      updatedAt: new Date(),
+    });
 
     // ✅ AUTO CLOSE ORDER
     const remaining = order.items.some((i) => i.itemStatus !== "SERVED");

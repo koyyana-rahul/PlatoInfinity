@@ -4,9 +4,12 @@ import Axios from "../../../../api/axios";
 import chefApi from "../../../../api/chef.api";
 import { useSelector } from "react-redux";
 import { FiRefreshCcw } from "react-icons/fi";
+import { useSocket } from "../../../../socket/SocketProvider";
+import toast from "react-hot-toast";
 
 export default function ChefHistory() {
   const station = useSelector((s) => s.user.station || "MAIN");
+  const socket = useSocket();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -38,10 +41,31 @@ export default function ChefHistory() {
     loadHistory();
   }, [station]);
 
+  // 🔥 REAL-TIME SOCKET LISTENER - Auto-refresh when items are marked SERVED
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleItemStatusUpdate = (data) => {
+      console.log("📡 Item status update in history:", data);
+
+      // If an item is marked as SERVED, refresh history silently
+      if (data.itemStatus === "SERVED") {
+        loadHistory(true);
+      }
+    };
+
+    socket.on("order:item-status-updated", handleItemStatusUpdate);
+
+    return () => {
+      socket.off("order:item-status-updated", handleItemStatusUpdate);
+    };
+  }, [socket, station]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadHistory(true);
     setRefreshing(false);
+    toast.success("History refreshed");
   };
 
   const itemCount = useMemo(

@@ -50,24 +50,25 @@ const WaiterOrderDisplay = () => {
   /**
    * 2️⃣ Load orders for selected table
    */
-  useEffect(() => {
+  const loadTableOrders = async () => {
     if (!selectedTable) return;
 
-    const loadTableOrders = async () => {
-      try {
-        const res = await Axios({
-          url: `/api/order/session/${selectedTable.sessionId}`,
-        });
+    try {
+      const res = await Axios({
+        url: `/api/order/session/${selectedTable.sessionId}`,
+      });
 
-        if (res.data?.success) {
-          setSelectedTableOrders(res.data.data);
-        }
-      } catch (err) {
-        console.error("Error loading table orders:", err);
+      if (res.data?.success) {
+        setSelectedTableOrders(res.data.data);
       }
-    };
+    } catch (err) {
+      console.error("Error loading table orders:", err);
+    }
+  };
 
+  useEffect(() => {
     loadTableOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTable]);
 
   /**
@@ -91,10 +92,18 @@ const WaiterOrderDisplay = () => {
             : table,
         ),
       );
+
+      // If this order is for the currently selected table, reload its orders
+      if (
+        selectedTable &&
+        String(selectedTable._id) === String(orderData.tableId)
+      ) {
+        loadTableOrders();
+      }
     });
 
     return () => socket.off("table:order-placed");
-  }, [socket]);
+  }, [socket, selectedTable]);
 
   /**
    * 4️⃣ Listen for items ready
@@ -115,16 +124,29 @@ const WaiterOrderDisplay = () => {
         );
       }
 
-      // Update selected table orders
-      if (selectedTable?._id === data.tableId) {
+      if (data.itemStatus === "SERVED") {
+        toast.info(`${data.itemName} served at Table ${data.tableName}`, {
+          icon: "🍽️",
+          duration: 3,
+        });
+      }
+
+      // Update selected table orders only when event belongs to selected table
+      if (selectedTable && String(selectedTable._id) === String(data.tableId)) {
         setSelectedTableOrders((prev) =>
           prev.map((order) =>
-            order._id === data.orderId
+            String(order._id) === String(data.orderId)
               ? {
                   ...order,
-                  items: order.items.map((item) =>
-                    item.name === data.itemName
-                      ? { ...item, itemStatus: data.itemStatus }
+                  orderStatus: data.orderStatus || order.orderStatus,
+                  items: order.items.map((item, idx) =>
+                    idx === data.itemIndex ||
+                    String(item._id) === String(data.itemId)
+                      ? {
+                          ...item,
+                          itemStatus: data.itemStatus,
+                          updatedAt: data.updatedAt,
+                        }
                       : item,
                   ),
                 }

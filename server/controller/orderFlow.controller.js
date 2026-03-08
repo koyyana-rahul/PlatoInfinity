@@ -170,6 +170,7 @@ export async function placeOrderController(req, res) {
         selectedModifiers: cartItem.selectedModifiers || [],
         itemStatus: "NEW",
         station: menuItem.category || "GENERAL",
+        kitchenStationId: menuItem.kitchenStationId || null,
         meta: {
           customization: cartItem.notes || {
             spiceLevel: cartItem.spiceLevel,
@@ -299,7 +300,18 @@ export async function placeOrderController(req, res) {
     );
 
     // ✅ 1️⃣2️⃣ BROADCAST TO STAFF
-    emitOrderPlaced(session.restaurantId, order);
+    emitOrderPlaced({
+      orderId: order._id,
+      restaurantId: session.restaurantId,
+      sessionId: session._id,
+      tableId: session.tableId,
+      tableName: session.tableName,
+      orderNumber: order.orderNumber,
+      items: order.items,
+      totalAmount: order.totalAmount,
+      placedBy: "CUSTOMER",
+      placedAt: order.createdAt,
+    });
 
     // Commit transaction
     await mongoSession.commitTransaction();
@@ -441,7 +453,7 @@ export async function approveOrderController(req, res) {
         isSuspicious: false,
       },
       { new: true },
-    );
+    ).lean();
 
     if (!order) {
       return res.status(404).json({
@@ -460,8 +472,19 @@ export async function approveOrderController(req, res) {
       },
     );
 
-    // Broadcast to kitchen
-    emitOrderPlaced(order.restaurantId, order);
+    // Broadcast to kitchen and staff
+    emitOrderPlaced({
+      orderId: order._id,
+      restaurantId: order.restaurantId,
+      sessionId: order.sessionId,
+      tableId: order.tableId,
+      tableName: order.tableName,
+      orderNumber: order.orderNumber,
+      items: order.items || [],
+      totalAmount: order.totalAmount,
+      placedBy: "MANAGER_APPROVED",
+      placedAt: order.createdAt,
+    });
 
     return res.status(200).json({
       success: true,

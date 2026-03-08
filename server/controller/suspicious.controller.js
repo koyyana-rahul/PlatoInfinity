@@ -243,6 +243,8 @@ export async function approveSuspiciousOrderController(req, res) {
           quantity: i.quantity,
           selectedModifiers: i.selectedModifiers || [],
           itemStatus: "PENDING",
+          station: i.station || null,
+          kitchenStationId: i.kitchenStationId || null,
         })),
         orderStatus: "OPEN",
         totalAmount: suspect.totalAmount || 0,

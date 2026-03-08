@@ -10,13 +10,16 @@ export default function useKitchenOrders(station) {
   const [loading, setLoading] = useState(true);
   const socket = useSocket();
 
-  const applyStatusUpdate = (orderId, itemId, status) => {
-    if (!orderId || !itemId || !status) return;
+  const applyStatusUpdate = (orderId, itemId, status, itemIndex = null) => {
+    if (!orderId || !status) return;
     setOrders((prevOrders) =>
       prevOrders.map((order) => {
-        if (order._id !== orderId) return order;
-        const newItems = order.items.map((item) => {
-          if (String(item._id) !== String(itemId)) return item;
+        if (String(order._id) !== String(orderId)) return order;
+        const newItems = (order.items || []).map((item, idx) => {
+          const matchById = itemId && String(item._id) === String(itemId);
+          const matchByIndex =
+            itemIndex !== null && itemIndex !== undefined && idx === itemIndex;
+          if (!matchById && !matchByIndex) return item;
           return { ...item, itemStatus: status };
         });
         return {
@@ -78,9 +81,10 @@ export default function useKitchenOrders(station) {
 
     const handleStatusUpdate = (update) => {
       const status = update.status || update.itemStatus;
-      const itemId = update.itemId || update.itemIndex;
-      const orderId = update.orderId;
-      applyStatusUpdate(orderId, itemId, status);
+      const itemId = update.itemId;
+      const itemIndex = update.itemIndex;
+      const orderId = update.orderId || update._id;
+      applyStatusUpdate(orderId, itemId, status, itemIndex);
     };
 
     socket.on("kitchen:order-new", handleNewOrder);

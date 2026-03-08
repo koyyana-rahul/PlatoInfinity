@@ -10,7 +10,7 @@ export default function Modal({ title, children, onClose }) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-2 sm:p-6">
       <div
         className="fixed inset-0 bg-black/45 backdrop-blur-sm"
         onClick={onClose}
@@ -18,8 +18,8 @@ export default function Modal({ title, children, onClose }) {
 
       <div
         className={clsx(
-          "relative bg-white w-full max-w-xl max-h-[85vh] rounded-2xl flex flex-col",
-          "shadow-[0_30px_80px_-40px_rgba(2,6,23,0.65)] border border-gray-200 overflow-hidden",
+          "relative bg-white w-full sm:max-w-xl max-h-[92vh] rounded-t-2xl sm:rounded-2xl flex flex-col",
+          "shadow-[0_30px_80px_-40px_rgba(2,6,23,0.65)] border border-gray-200 overflow-visible",
         )}
       >
         <div className="flex justify-between items-center px-5 sm:px-6 py-4 border-b border-gray-200 bg-white">
@@ -35,7 +35,7 @@ export default function Modal({ title, children, onClose }) {
           </button>
         </div>
 
-        <div className="p-5 sm:p-6 overflow-y-auto scrollbar-hide">
+        <div className="p-5 sm:p-6 overflow-y-auto overflow-x-visible scrollbar-hide">
           {children}
         </div>
       </div>

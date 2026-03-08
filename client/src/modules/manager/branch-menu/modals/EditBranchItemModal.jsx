@@ -10,10 +10,16 @@ import kitchenStationApi from "../../../../api/kitchenStation.api";
 export default function EditBranchItemModal({ item, onClose, onSuccess }) {
   const restaurantId = useSelector((s) => s.user.restaurantId);
 
+  // Extract station ID from the item
+  const initialStationId =
+    typeof item?.kitchenStationId === "string"
+      ? item.kitchenStationId
+      : item?.kitchenStationId?._id || "";
+
   const [form, setForm] = useState({
     name: item?.name || "",
     price: item?.price ?? 0,
-    station: item?.station || "",
+    kitchenStationId: initialStationId,
     status: item?.status || "ON",
   });
   const [stations, setStations] = useState([]);
@@ -23,7 +29,7 @@ export default function EditBranchItemModal({ item, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
 
   const filteredStations = stations.filter((s) =>
-    String(s?.name || "")
+    String(s?.displayName || s?.name || "")
       .toLowerCase()
       .includes(stationQuery.toLowerCase()),
   );
@@ -55,7 +61,7 @@ export default function EditBranchItemModal({ item, onClose, onSuccess }) {
         data: {
           name: form.name.trim(),
           price: Number(form.price),
-          station: form.station || null,
+          kitchenStationId: form.kitchenStationId || null,
           status: form.status,
         },
       });
@@ -85,7 +91,7 @@ export default function EditBranchItemModal({ item, onClose, onSuccess }) {
           <div>
             <h3 className="text-xl font-bold text-gray-900">Edit Menu Item</h3>
             <p className="text-sm text-gray-600 mt-1">
-              Update name, price, station and status.
+              Update name, price, kitchen station assignment and status.
             </p>
           </div>
 
@@ -129,7 +135,13 @@ export default function EditBranchItemModal({ item, onClose, onSuccess }) {
                 <span className="truncate text-gray-800">
                   {stationLoading
                     ? "Loading stations..."
-                    : form.station || "No Specific Station"}
+                    : form.kitchenStationId
+                      ? stations.find((s) => s._id === form.kitchenStationId)
+                          ?.displayName ||
+                        stations.find((s) => s._id === form.kitchenStationId)
+                          ?.name ||
+                        "Select Station"
+                      : "No Station Assigned"}
                 </span>
                 <ChevronDown
                   size={16}
@@ -155,35 +167,40 @@ export default function EditBranchItemModal({ item, onClose, onSuccess }) {
                     <button
                       type="button"
                       onClick={() => {
-                        setForm((p) => ({ ...p, station: "" }));
+                        setForm((p) => ({ ...p, kitchenStationId: "" }));
                         setStationOpen(false);
                       }}
                       className="w-full px-3 py-2.5 text-left text-sm hover:bg-orange-50 flex items-center justify-between"
                     >
-                      <span className="truncate text-gray-700">
-                        No Specific Station
-                      </span>
-                      {!form.station && (
+                      <span className="truncate text-gray-700">No Station</span>
+                      {!form.kitchenStationId && (
                         <Check size={14} className="text-orange-500" />
                       )}
                     </button>
 
                     {filteredStations.length ? (
                       filteredStations.map((s) => {
-                        const selected = form.station === s.name;
+                        const selected = form.kitchenStationId === s._id;
+                        const stationLabel = s.displayName || s.name;
                         return (
                           <button
-                            key={s._id || s.name}
+                            key={s._id}
                             type="button"
                             onClick={() => {
-                              setForm((p) => ({ ...p, station: s.name }));
+                              setForm((p) => ({
+                                ...p,
+                                kitchenStationId: s._id,
+                              }));
                               setStationOpen(false);
                             }}
                             className="w-full px-3 py-2.5 text-left text-sm hover:bg-orange-50 flex items-center justify-between"
                           >
-                            <span className="truncate text-gray-800">
-                              {s.name}
-                            </span>
+                            <div className="flex items-center gap-2 truncate">
+                              {s.badge && <span>{s.badge}</span>}
+                              <span className="truncate text-gray-800">
+                                {stationLabel}
+                              </span>
+                            </div>
                             {selected && (
                               <Check size={14} className="text-orange-500" />
                             )}

@@ -3,6 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Axios from "../../../api/axios";
 import customerApi from "../../../api/customer.api";
+import { socketService } from "../../../api/socket.service";
+import { useCustomerSocket } from "../hooks/useCustomerSocket";
+import toast from "react-hot-toast";
 import {
   ChevronLeft,
   Loader2,
@@ -30,10 +33,18 @@ export default function CustomerOrderStatus() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(null);
+  const [restaurantId, setRestaurantId] = useState(null);
 
   const sessionKey = `plato:customerSession:${tableId}`;
   const sessionId = localStorage.getItem(sessionKey);
   const base = `/${useParams().brandSlug}/${useParams().restaurantSlug}/table/${tableId}`;
+
+  // Join customer socket room for real-time updates
+  useCustomerSocket({
+    sessionId,
+    restaurantId,
+    tableId,
+  });
 
   // Fetch orders
   const fetchOrders = async () => {
@@ -41,13 +52,44 @@ export default function CustomerOrderStatus() {
       if (!sessionId) return;
 
       const res = await Axios(customerApi.order.listBySession(sessionId));
-      setOrders(res.data?.data || []);
+      const ordersData = res.data?.data || [];
+      setOrders(ordersData);
+
+      // Extract restaurantId from first order if available
+      if (
+        ordersData.length > 0 &&
+        ordersData[0].restaurantId &&
+        !restaurantId
+      ) {
+        setRestaurantId(ordersData[0].restaurantId);
+      }
     } catch (err) {
       console.error("Failed to fetch orders:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Fetch table data to get restaurantId
+  useEffect(() => {
+    const fetchTableData = async () => {
+      try {
+        const res = await Axios({
+          url: `/api/table/${tableId}`,
+          method: "GET",
+        });
+        if (res.data?.data?.restaurantId) {
+          setRestaurantId(res.data.data.restaurantId);
+        }
+      } catch (err) {
+        console.error("Failed to fetch table data:", err);
+      }
+    };
+
+    if (tableId) {
+      fetchTableData();
+    }
+  }, [tableId]);
 
   useEffect(() => {
     if (!sessionId) {
@@ -57,9 +99,70 @@ export default function CustomerOrderStatus() {
 
     fetchOrders();
 
-    // Refresh every 5 seconds
-    const interval = setInterval(fetchOrders, 5000);
-    return () => clearInterval(interval);
+    // 🔥 REAL-TIME SOCKET LISTENERS
+    const applyLiveItemStatus = (data) => {
+      console.log("📡 Customer received status update:", data);
+      if (!data?.orderId) return;
+
+      if (data.itemStatus === "READY") {
+        toast.success(`${data.itemName || "Item"} is ready! 🎉`, {
+          icon: "🟢",
+          duration: 5000,
+        });
+      }
+
+      if (data.itemStatus === "IN_PROGRESS") {
+        toast(`Chef is preparing ${data.itemName || "your item"}...`, {
+          icon: "👨‍🍳",
+          duration: 3000,
+        });
+      }
+
+      if (data.itemStatus === "SERVED") {
+        toast.success(`${data.itemName || "Item"} has been served. Enjoy!`, {
+          icon: "🍽️",
+          duration: 4000,
+        });
+      }
+
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          String(order._id) === String(data.orderId)
+            ? {
+                ...order,
+                orderStatus: data.orderStatus || order.orderStatus,
+                items: order.items.map((item, idx) => {
+                  const byId =
+                    data.itemId && String(item._id) === String(data.itemId);
+                  const byIndex =
+                    data.itemIndex !== undefined &&
+                    data.itemIndex !== null &&
+                    idx === data.itemIndex;
+                  return byId || byIndex
+                    ? {
+                        ...item,
+                        itemStatus: data.itemStatus,
+                        updatedAt: data.updatedAt,
+                      }
+                    : item;
+                }),
+              }
+            : order,
+        ),
+      );
+    };
+
+    socketService.onItemReady(applyLiveItemStatus);
+    socketService.onOrderItemStatusChanged(applyLiveItemStatus);
+
+    // Fallback polling
+    const interval = setInterval(fetchOrders, 30000);
+
+    return () => {
+      clearInterval(interval);
+      socketService.offItemReady();
+      socketService.offOrderItemStatusChanged();
+    };
   }, [sessionId]);
 
   const getItemStatusBadge = (status) => {
@@ -74,7 +177,7 @@ export default function CustomerOrderStatus() {
       case "IN_PROGRESS":
         return {
           badge: "🟠",
-          label: "In Kitchen",
+          label: "Preparing",
           color: "bg-orange-50 border-orange-200",
           textColor: "text-orange-900",
         };

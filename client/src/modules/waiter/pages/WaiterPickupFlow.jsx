@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { Clock, CheckCircle, Truck, AlertCircle, Loader2 } from "lucide-react";
 import Axios from "../../../api/axios";
 import WaiterPinConfirmationModal from "../components/WaiterPinConfirmationModal";
+import { useSocket } from "../../../socket/SocketProvider";
 
 /**
  * WaiterPickupFlow.jsx
@@ -19,6 +20,7 @@ import WaiterPinConfirmationModal from "../components/WaiterPinConfirmationModal
  */
 export default function WaiterPickupFlow() {
   const { restaurantId } = useParams();
+  const socket = useSocket();
   const [readyItems, setReadyItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pickingUp, setPickingUp] = useState(false);
@@ -48,10 +50,37 @@ export default function WaiterPickupFlow() {
 
   useEffect(() => {
     fetchReadyItems();
-    // Refresh every 5 seconds
-    const interval = setInterval(fetchReadyItems, 5000);
+    // Fallback polling
+    const interval = setInterval(fetchReadyItems, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  // Real-time waiter updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleReadyAlert = (payload) => {
+      toast.success(payload?.message || "New item ready for pickup", {
+        icon: "🔔",
+      });
+      fetchReadyItems();
+    };
+
+    const handleItemStatusUpdate = (payload) => {
+      if (!payload?.itemStatus) return;
+      if (payload.itemStatus === "READY" || payload.itemStatus === "SERVED") {
+        fetchReadyItems();
+      }
+    };
+
+    socket.on("waiter:item-ready-alert", handleReadyAlert);
+    socket.on("table:item-status-changed", handleItemStatusUpdate);
+
+    return () => {
+      socket.off("waiter:item-ready-alert", handleReadyAlert);
+      socket.off("table:item-status-changed", handleItemStatusUpdate);
+    };
+  }, [socket]);
 
   const handlePickupClick = (orderId, itemId, itemName, tableName) => {
     setPendingAction({

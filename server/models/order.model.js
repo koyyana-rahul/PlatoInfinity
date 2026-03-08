@@ -12,6 +12,11 @@ const OrderItemSchema = new mongoose.Schema(
     quantity: { type: Number, required: true, min: 1 },
     selectedModifiers: [{ title: String, optionName: String, price: Number }],
     station: { type: String, default: null },
+    kitchenStationId: {
+      type: Schema.Types.ObjectId,
+      ref: "KitchenStation",
+      default: null,
+    },
     itemStatus: {
       type: String,
       enum: ["NEW", "IN_PROGRESS", "READY", "SERVED", "CANCELLED"],
@@ -25,7 +30,7 @@ const OrderItemSchema = new mongoose.Schema(
     servedAt: Date,
     meta: { type: Schema.Types.Mixed, default: {} },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const orderSchema = new mongoose.Schema(
@@ -70,7 +75,7 @@ const orderSchema = new mongoose.Schema(
     clientRequestId: { type: String, default: null }, // idempotency
     meta: { type: Schema.Types.Mixed, default: {} },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 orderSchema.pre("save", function () {
@@ -81,7 +86,7 @@ orderSchema.pre("save", function () {
       if (it.itemStatus === "CANCELLED") continue;
       const mods = (it.selectedModifiers || []).reduce(
         (s, m) => s + (m.price || 0),
-        0
+        0,
       );
       total += (it.price + mods) * (it.quantity || 1);
     }

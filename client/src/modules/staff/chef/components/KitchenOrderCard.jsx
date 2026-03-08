@@ -51,6 +51,7 @@ export default function KitchenOrderCard({ order, reload, onStatusUpdate }) {
             key={item._id}
             item={item}
             orderId={order._id}
+            tableName={order.tableName || order.tableId || "Unknown"}
             onUpdated={reload}
             onStatusUpdate={onStatusUpdate}
           />

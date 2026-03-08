@@ -178,13 +178,22 @@ export function useOrders(sessionId, restaurantId, tableId) {
       // Update order item status in local state
       setOrders((prevOrders) => {
         return prevOrders.map((order) => {
-          if (order._id === itemUpdate.orderId) {
+          if (
+            String(order._id) === String(itemUpdate.orderId || itemUpdate._id)
+          ) {
             const newItems = [...(order.items || [])];
-            newItems[itemUpdate.itemIndex] = {
-              ...newItems[itemUpdate.itemIndex],
-              itemStatus: itemUpdate.newStatus,
+            const idx = itemUpdate.itemIndex;
+            if (idx !== undefined && idx !== null && newItems[idx]) {
+              newItems[idx] = {
+                ...newItems[idx],
+                itemStatus: itemUpdate.itemStatus || itemUpdate.status,
+              };
+            }
+            return {
+              ...order,
+              orderStatus: itemUpdate.orderStatus || order.orderStatus,
+              items: newItems,
             };
-            return { ...order, items: newItems };
           }
           return order;
         });

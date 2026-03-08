@@ -109,6 +109,7 @@ export async function listBranchMenu(req, res) {
       isArchived: false,
     })
       .populate("masterItemId", "isVeg image images categoryId subcategoryId")
+      .populate("kitchenStationId", "name displayName badge")
       .sort({ name: 1 })
       .lean();
 
@@ -157,6 +158,7 @@ export async function listBranchMenuGrouped(req, res) {
         path: "masterItemId",
         select: "categoryId subcategoryId isVeg image images",
       })
+      .populate("kitchenStationId", "name displayName badge")
       .lean();
 
     // Fetch stock data for all items
@@ -225,6 +227,7 @@ export async function updateBranchMenuItem(req, res) {
       "description",
       "price",
       "station",
+      "kitchenStationId",
       "status",
       "trackStock",
       "autoHideWhenZero",
@@ -239,7 +242,7 @@ export async function updateBranchMenuItem(req, res) {
       { _id: itemId, restaurantId },
       { $set: safeUpdate },
       { new: true },
-    );
+    ).populate("kitchenStationId", "name displayName badge");
 
     if (!item) {
       return res.status(404).json({ message: "Item not found" });
