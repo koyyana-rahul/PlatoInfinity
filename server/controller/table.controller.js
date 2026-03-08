@@ -161,6 +161,33 @@ export async function listTablesController(req, res) {
         .json({ success: false, message: "Restaurant ID is required" });
     }
 
+    const restaurant = await restaurantModel
+      .findById(restaurantId)
+      .select("_id name slug brandId")
+      .lean();
+
+    if (!restaurant) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Restaurant not found" });
+    }
+
+    let brandSlug = "brand";
+    let brandLogoUrl = null;
+
+    if (restaurant.brandId) {
+      const brand = await brandModel
+        .findById(restaurant.brandId)
+        .select("slug logoUrl")
+        .lean();
+
+      if (brand?.slug) brandSlug = brand.slug;
+      if (brand?.logoUrl) brandLogoUrl = brand.logoUrl;
+    }
+
+    const restaurantSlug =
+      restaurant.slug || restaurant.name.toLowerCase().replace(/\s+/g, "-");
+
     const tables = await Table.find({
       restaurantId,
       isActive: true,
@@ -170,9 +197,61 @@ export async function listTablesController(req, res) {
       .sort({ tableNumber: 1 })
       .lean();
 
+    const updatedTables = await Promise.all(
+      tables.map(async (table) => {
+        const expectedQrUrl = generateFrontendUrl(
+          `/${brandSlug}/${restaurantSlug}/table/${table._id}`,
+        );
+
+        const currentQrUrl = String(table.qrUrl || "").trim();
+        const needsQrUpdate =
+          !currentQrUrl ||
+          currentQrUrl !== expectedQrUrl ||
+          currentQrUrl.includes("localhost") ||
+          currentQrUrl.includes("127.0.0.1");
+
+        if (!needsQrUpdate) {
+          return { ...table, qrUrl: expectedQrUrl };
+        }
+
+        let qrImageUrl = table.qrImageUrl;
+
+        try {
+          const qrBase64 = await generateTableQR({
+            url: expectedQrUrl,
+            tableNumber: table.tableNumber,
+            brandLogoUrl,
+          });
+
+          const upload = await uploadQrToCloudinary(
+            qrBase64,
+            `table-${table._id}`,
+          );
+
+          qrImageUrl = upload.secure_url;
+
+          await Table.findByIdAndUpdate(table._id, {
+            qrUrl: expectedQrUrl,
+            qrImageUrl,
+          });
+        } catch (qrErr) {
+          console.error(
+            `Failed to refresh QR for table ${table._id}:`,
+            qrErr?.message || qrErr,
+          );
+        }
+
+        return {
+          ...table,
+          qrUrl: expectedQrUrl,
+          qrImageUrl,
+        };
+      }),
+    );
+
     return res.json({
       success: true,
-      data: tables,
+      data: updatedTables,
     });
   } catch (err) {
     console.error("listTablesController:", err);
