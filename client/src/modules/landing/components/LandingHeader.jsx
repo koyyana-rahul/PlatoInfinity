@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 
 const LandingHeader = ({ scrollToSection }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [logoLoadError, setLogoLoadError] = useState(false);
   const user = useSelector((state) => state.auth.user);
 
   return (
@@ -13,9 +14,19 @@ const LandingHeader = ({ scrollToSection }) => {
           {/* Logo */}
           <div className="flex-shrink-0">
             <div className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">P</span>
-              </div>
+              {logoLoadError ? (
+                <div className="w-10 h-10 bg-gradient-to-br from-[#FC8019] to-[#FF6B35] rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">P</span>
+                </div>
+              ) : (
+                <img
+                  src="/plato.png"
+                  alt="Plato Logo"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg object-contain"
+                  loading="eager"
+                  onError={() => setLogoLoadError(true)}
+                />
+              )}
               <h1 className="text-xl font-bold text-gray-900 hidden sm:block">
                 Plato Menu
               </h1>

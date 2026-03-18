@@ -13,12 +13,20 @@ export const useSocketUpdates = (
   useEffect(() => {
     if (!socket) return;
 
+    const getTotalQuantity = (items = []) =>
+      (Array.isArray(items) ? items : []).reduce(
+        (sum, item) => sum + Number(item?.quantity || 0),
+        0,
+      );
+
     const handleOrderPlaced = (data) => {
       if (addRecentOrder) addRecentOrder(data);
 
       setStats((prev) => ({
         ...prev,
         ordersToday: (prev.ordersToday || 0) + 1,
+        totalQuantity:
+          (prev.totalQuantity || 0) + getTotalQuantity(data?.items),
         totalSales: (prev.totalSales || 0) + (data?.totalAmount || 0),
       }));
     };

@@ -149,6 +149,12 @@ export async function dashboardStatsController(req, res) {
 
     const totalSales = bills.reduce((sum, b) => sum + (b.total || 0), 0);
     const completedOrders = orders.filter((o) => o.orderStatus === "SERVED");
+    const totalQuantity = orders.reduce((sum, order) => {
+      const itemQuantity = (
+        Array.isArray(order.items) ? order.items : []
+      ).reduce((itemSum, item) => itemSum + Number(item?.quantity || 0), 0);
+      return sum + itemQuantity;
+    }, 0);
     const completionRate =
       orders.length > 0 ? (completedOrders.length / orders.length) * 100 : 0;
 
@@ -158,6 +164,7 @@ export async function dashboardStatsController(req, res) {
       data: {
         totalSales: Math.round(totalSales),
         ordersToday: orders.length,
+        totalQuantity,
         activeTables: tables.filter((t) => t.status === "OCCUPIED").length,
         activeUsers: activeSessions,
         averageOrderValue:

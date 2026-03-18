@@ -75,6 +75,7 @@ export default function ManagerDashboard() {
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [stats, setStats] = useState({
     totalOrders: 0,
+    totalQuantity: 0,
     completedOrders: 0,
     pendingOrders: 0,
     totalRevenue: 0,
@@ -98,6 +99,10 @@ export default function ManagerDashboard() {
 
   const calculateStats = (orderList) => {
     const normalized = orderList.map((o) => normalizeOrder(o));
+    const totalQuantity = normalized.reduce(
+      (sum, order) => sum + getTotalQuantity(order.items),
+      0,
+    );
     const completed = normalized.filter(
       (o) => o.orderStatus === "SERVED",
     ).length;
@@ -110,6 +115,7 @@ export default function ManagerDashboard() {
     ).length;
     setStats({
       totalOrders: normalized.length,
+      totalQuantity,
       completedOrders: completed,
       pendingOrders: pending,
       totalRevenue: normalized.reduce(
@@ -347,11 +353,17 @@ export default function ManagerDashboard() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
             <p className="text-sm text-gray-600">Total Orders</p>
             <p className="text-3xl font-bold text-gray-900 mt-2">
               {stats.totalOrders}
+            </p>
+          </div>
+          <div className="bg-red-50 rounded-lg p-6 border border-red-200">
+            <p className="text-sm text-red-700">Total Quantity</p>
+            <p className="text-3xl font-bold text-red-600 mt-2">
+              {stats.totalQuantity}
             </p>
           </div>
           <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">

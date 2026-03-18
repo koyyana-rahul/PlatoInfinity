@@ -11,6 +11,7 @@ export function useKPIMetrics(timeRange = "today", restaurantId = null) {
     totalSales: 0,
     revenueTrend: 0,
     ordersToday: 0,
+    totalQuantity: 0,
     ordersTrend: 0,
     averageOrderValue: 0,
     avgTrend: 0,

@@ -134,6 +134,12 @@ export async function kpiMetricsController(req, res) {
         : 0;
 
     const ordersToday = currentOrders.length;
+    const totalQuantity = currentOrders.reduce((sum, order) => {
+      const itemQuantity = (
+        Array.isArray(order.items) ? order.items : []
+      ).reduce((itemSum, item) => itemSum + Number(item?.quantity || 0), 0);
+      return sum + itemQuantity;
+    }, 0);
     const prevOrdersCount = prevOrders.length;
     const ordersTrend =
       prevOrdersCount > 0
@@ -189,6 +195,7 @@ export async function kpiMetricsController(req, res) {
         totalSales: Math.round(totalSales),
         revenueTrend,
         ordersToday,
+        totalQuantity,
         ordersTrend,
         averageOrderValue: avgOrderValue,
         avgTrend,

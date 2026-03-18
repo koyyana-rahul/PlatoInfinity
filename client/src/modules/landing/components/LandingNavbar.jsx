@@ -16,6 +16,7 @@ import { Menu, X, ShieldAlert } from "lucide-react";
  */
 const LandingNavbar = ({ scrollToSection }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [logoLoadError, setLogoLoadError] = useState(false);
   const user = useSelector((state) => state.auth?.user);
 
   return (
@@ -26,13 +27,23 @@ const LandingNavbar = ({ scrollToSection }) => {
           {/* Logo */}
           <Link to="/" className="flex-shrink-0 group">
             <div className="flex items-center space-x-2">
-              <div className="w-11 h-11 bg-gradient-to-br from-[#FC8019] to-[#FF6B35] rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-all">
-                <ShieldAlert
-                  className="text-white"
-                  size={24}
-                  strokeWidth={2.5}
+              {logoLoadError ? (
+                <div className="w-11 h-11 bg-gradient-to-br from-[#FC8019] to-[#FF6B35] rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-all">
+                  <ShieldAlert
+                    className="text-white"
+                    size={24}
+                    strokeWidth={2.5}
+                  />
+                </div>
+              ) : (
+                <img
+                  src="/plato.png"
+                  alt="Plato Logo"
+                  className="w-11 h-11 rounded-lg object-contain shadow-md group-hover:shadow-lg transition-all"
+                  loading="eager"
+                  onError={() => setLogoLoadError(true)}
                 />
-              </div>
+              )}
               <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-[#FC8019] to-[#FF6B35] bg-clip-text text-transparent hidden sm:block">
                 Plato OS
               </h1>

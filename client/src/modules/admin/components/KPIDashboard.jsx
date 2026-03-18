@@ -1,10 +1,10 @@
 import React from "react";
 import {
   FiTrendingUp,
-  FiAlertCircle,
   FiClock,
   FiCheckCircle,
   FiUsers,
+  FiShoppingBag,
 } from "react-icons/fi";
 
 /**
@@ -81,7 +81,7 @@ export const KPIDashboard = ({ stats, loading }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
       {/* Total Revenue */}
       <KPICard
         title="Total Revenue"
@@ -100,6 +100,16 @@ export const KPIDashboard = ({ stats, loading }) => {
         color="blue"
         icon={FiCheckCircle}
         trend={stats.ordersTrend || 8}
+        loading={loading}
+      />
+
+      {/* Total Quantity */}
+      <KPICard
+        title="Total Quantity"
+        value={stats.totalQuantity || 0}
+        unit="items"
+        color="red"
+        icon={FiShoppingBag}
         loading={loading}
       />
 
