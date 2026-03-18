@@ -48,6 +48,12 @@ const formatOrderTime = (timestamp) => {
  * Displays list of recent orders with status badges
  */
 export const RecentOrdersTable = ({ orders, loading }) => {
+  const getTotalQuantity = (items = []) =>
+    (Array.isArray(items) ? items : []).reduce(
+      (sum, item) => sum + Number(item?.quantity || 0),
+      0,
+    );
+
   if (loading && (!orders || orders.length === 0)) {
     return (
       <div className="space-y-4">
@@ -96,6 +102,9 @@ export const RecentOrdersTable = ({ orders, loading }) => {
                   Items
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
+                  Qty
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
                   Amount
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">
@@ -125,6 +134,9 @@ export const RecentOrdersTable = ({ orders, loading }) => {
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600">
                     {order.items?.length || 0} items
+                  </td>
+                  <td className="px-4 py-3 text-sm text-slate-600 font-semibold">
+                    {getTotalQuantity(order.items)}
                   </td>
                   <td className="px-4 py-3 text-sm font-semibold text-emerald-600">
                     ₹{order.totalAmount?.toLocaleString("en-IN") || "0"}

@@ -79,6 +79,12 @@ const OrderStatusTimeline = ({ order }) => {
  * Active Orders Card
  */
 const ActiveOrderCard = ({ order }) => {
+  const getTotalQuantity = (items = []) =>
+    (Array.isArray(items) ? items : []).reduce(
+      (sum, item) => sum + Number(item?.quantity || 0),
+      0,
+    );
+
   const getUrgency = (createdAt) => {
     const mins = Math.floor((new Date() - new Date(createdAt)) / 60000);
     if (mins > 20) return "high";
@@ -113,6 +119,9 @@ const ActiveOrderCard = ({ order }) => {
           </p>
           <p className="text-xs text-slate-600">
             {order.items?.length || 0} items
+          </p>
+          <p className="text-xs text-slate-600 font-semibold">
+            Qty: {getTotalQuantity(order.items)}
           </p>
         </div>
       </div>

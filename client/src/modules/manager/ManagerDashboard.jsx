@@ -16,6 +16,12 @@ export default function ManagerDashboard() {
   const socket = useSocket();
   const restaurantId = useSelector((s) => s.user?.restaurantId);
 
+  const getTotalQuantity = (items = []) =>
+    (Array.isArray(items) ? items : []).reduce(
+      (sum, item) => sum + Number(item?.quantity || 0),
+      0,
+    );
+
   const normalizeStatus = (status) =>
     String(status || "").toUpperCase() || "NEW";
 
@@ -261,11 +267,12 @@ export default function ManagerDashboard() {
 
   const exportOrders = () => {
     const csv = [
-      ["Order #", "Table", "Items", "Amount", "Status", "Time"],
+      ["Order #", "Table", "Items", "Quantity", "Amount", "Status", "Time"],
       ...filteredOrders.map((o) => [
         o.orderNumber,
         o.tableName || "Takeaway",
         o.items?.length || 0,
+        getTotalQuantity(o.items),
         o.totalAmount,
         o.orderStatus,
         new Date(o.placedAt).toLocaleString(),
@@ -417,6 +424,7 @@ export default function ManagerDashboard() {
                     <th className="py-3 pr-3">Order #</th>
                     <th className="py-3 pr-3">Table</th>
                     <th className="py-3 pr-3">Items</th>
+                    <th className="py-3 pr-3">Qty</th>
                     <th className="py-3 pr-3">Amount</th>
                     <th className="py-3 pr-3">Status</th>
                     <th className="py-3">Time</th>
@@ -433,6 +441,9 @@ export default function ManagerDashboard() {
                       </td>
                       <td className="py-3 pr-3 text-gray-700">
                         {order.items?.length || 0}
+                      </td>
+                      <td className="py-3 pr-3 text-gray-700 font-semibold">
+                        {getTotalQuantity(order.items)}
                       </td>
                       <td className="py-3 pr-3 text-gray-700">
                         ₹{order.totalAmount || 0}
@@ -473,7 +484,7 @@ export default function ManagerDashboard() {
                   {filteredOrders.length === 0 && (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={7}
                         className="py-8 text-center text-gray-500"
                       >
                         No orders found.
