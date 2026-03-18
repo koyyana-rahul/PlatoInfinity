@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
+import { useSocket } from "../../../socket/SocketProvider";
 
 import Axios from "../../../api/axios";
 import sessionApi from "../../../api/session.api";
@@ -8,6 +9,7 @@ import billApi from "../../../api/bill.api";
 
 export default function CashierDashboard() {
   const restaurantId = useSelector((s) => s.user.restaurantId);
+  const socket = useSocket();
 
   const [sessions, setSessions] = useState([]);
   const [selectedSessionId, setSelectedSessionId] = useState("");
@@ -53,6 +55,38 @@ export default function CashierDashboard() {
   useEffect(() => {
     loadBill(selectedSessionId);
   }, [selectedSessionId]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleRealtimeSync = () => {
+      loadSessions();
+      if (selectedSessionId) {
+        loadBill(selectedSessionId);
+      }
+    };
+
+    const events = [
+      "order:placed",
+      "order:item-status-updated",
+      "order:status-changed",
+      "order:served",
+      "order:cancelled",
+      "session:opened",
+      "session:closed",
+      "bill:generated",
+      "bill:ready-for-payment",
+      "cashier:bill-settled",
+    ];
+
+    events.forEach((eventName) => socket.on(eventName, handleRealtimeSync));
+    socket.on("connect", handleRealtimeSync);
+
+    return () => {
+      events.forEach((eventName) => socket.off(eventName, handleRealtimeSync));
+      socket.off("connect", handleRealtimeSync);
+    };
+  }, [socket, selectedSessionId]);
 
   const selectedSession = useMemo(
     () =>

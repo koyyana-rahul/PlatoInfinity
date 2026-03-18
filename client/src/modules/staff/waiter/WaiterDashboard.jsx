@@ -85,6 +85,10 @@ export default function WaiterDashboard() {
     socket.on("order:cancelled", handleOrderLifecycle);
     socket.on("table:status-changed", handleOrderLifecycle);
     socket.on("table:status-updated", handleOrderLifecycle);
+    socket.on("table:status_changed", handleOrderLifecycle);
+    socket.on("table:availability", handleOrderLifecycle);
+    socket.on("table:update", handleOrderLifecycle);
+    socket.on("session:update", handleOrderLifecycle);
     socket.on("connect", handleOrderLifecycle);
 
     return () => {
@@ -96,6 +100,10 @@ export default function WaiterDashboard() {
       socket.off("order:cancelled", handleOrderLifecycle);
       socket.off("table:status-changed", handleOrderLifecycle);
       socket.off("table:status-updated", handleOrderLifecycle);
+      socket.off("table:status_changed", handleOrderLifecycle);
+      socket.off("table:availability", handleOrderLifecycle);
+      socket.off("table:update", handleOrderLifecycle);
+      socket.off("session:update", handleOrderLifecycle);
       socket.off("connect", handleOrderLifecycle);
     };
   }, [socket, load]);

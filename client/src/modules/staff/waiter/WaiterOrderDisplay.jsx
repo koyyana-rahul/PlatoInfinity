@@ -1,11 +1,17 @@
 /**
  * ======================================================
- * WAITER ORDER DISPLAY
+ * WAITER ORDER DISPLAY (v2 - Real-time)
  * ======================================================
  * Shows table orders with real-time updates for waiters
+ *
+ * Features:
+ * - Real-time order updates via WebSockets.
+ * - Smooth UI updates without full reloads.
+ * - Toast notifications for key events.
+ * - Cleaner, more efficient state management.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import Axios from "../../../api/axios";
@@ -23,217 +29,186 @@ const WaiterOrderDisplay = () => {
   const [loading, setLoading] = useState(true);
 
   /**
-   * 1️⃣ Load tables and active orders
+   * 1️⃣ Load initial data: tables with active sessions
    */
-  useEffect(() => {
-    const loadTables = async () => {
-      try {
-        setLoading(true);
-        const res = await Axios({
-          ...SummaryApi.getTables,
-          params: { restaurantId, status: "OCCUPIED" },
-        });
-
-        if (res.data?.success) {
-          setTables(res.data.data);
-        }
-      } catch (err) {
-        console.error("Error loading tables:", err);
-      } finally {
-        setLoading(false);
+  const loadTables = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await Axios({
+        ...SummaryApi.getTables,
+        params: { restaurantId, status: "OCCUPIED" },
+      });
+      if (res.data?.success) {
+        setTables(res.data.data);
       }
-    };
-
-    loadTables();
+    } catch (err) {
+      console.error("Error loading tables:", err);
+      toast.error("Failed to load tables.");
+    } finally {
+      setLoading(false);
+    }
   }, [restaurantId]);
 
+  useEffect(() => {
+    loadTables();
+  }, [loadTables]);
+
   /**
-   * 2️⃣ Load orders for selected table
+   * 2️⃣ Load orders for the selected table
    */
-  const loadTableOrders = async () => {
+  const loadTableOrders = useCallback(async () => {
     if (!selectedTable) return;
 
     try {
       const res = await Axios({
         url: `/api/order/session/${selectedTable.sessionId}`,
       });
-
       if (res.data?.success) {
         setSelectedTableOrders(res.data.data);
+      } else {
+        toast.error(`Failed to load orders for ${selectedTable.tableName}`);
       }
     } catch (err) {
       console.error("Error loading table orders:", err);
     }
-  };
+  }, [selectedTable]);
 
   useEffect(() => {
     loadTableOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTable]);
+  }, [loadTableOrders]);
 
   /**
-   * 3️⃣ Listen for new orders at tables
+   * 3️⃣ Centralized WebSocket Event Handling
    */
   useEffect(() => {
     if (!socket) return;
 
-    const handleOrderPlaced = (orderData) => {
-      console.log("🆕 New order at table:", orderData);
-      toast.success(
-        `New order at Table ${orderData.tableName}: ${orderData.itemCount} items`,
-        { icon: "📦", duration: 4 },
-      );
+    // A. New order placed
+    const handleOrderPlaced = (order) => {
+      console.log("🆕 New order received:", order);
+      toast.success(`New order at Table ${order.tableName}`, { icon: "📦" });
 
-      // Update tables list
-      setTables((prev) =>
-        prev.map((table) =>
-          table._id === orderData.tableId
-            ? { ...table, hasNewOrders: true }
-            : table,
-        ),
-      );
-
-      // If this order is for the currently selected table, reload its orders
-      if (
-        selectedTable &&
-        String(selectedTable._id) === String(orderData.tableId)
-      ) {
-        loadTableOrders();
-      }
-    };
-
-    const handleLifecycleReload = () => {
-      if (selectedTable) {
-        loadTableOrders();
-      }
-    };
-
-    socket.on("table:order-placed", handleOrderPlaced);
-    socket.on("order:placed", handleOrderPlaced);
-    socket.on("order:status-changed", handleLifecycleReload);
-    socket.on("order:served", handleLifecycleReload);
-    socket.on("order:cancelled", handleLifecycleReload);
-    socket.on("connect", handleLifecycleReload);
-
-    return () => {
-      socket.off("table:order-placed", handleOrderPlaced);
-      socket.off("order:placed", handleOrderPlaced);
-      socket.off("order:status-changed", handleLifecycleReload);
-      socket.off("order:served", handleLifecycleReload);
-      socket.off("order:cancelled", handleLifecycleReload);
-      socket.off("connect", handleLifecycleReload);
-    };
-  }, [socket, selectedTable]);
-
-  /**
-   * 4️⃣ Listen for items ready
-   */
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleTableItemStatusChanged = (data) => {
-      console.log("📍 Item status changed:", data);
-
-      if (data.itemStatus === "READY") {
-        toast.success(
-          `${data.itemName} is ready for Table ${data.tableName}!`,
-          {
-            icon: "✅",
-            duration: 5,
-          },
-        );
-      }
-
-      if (data.itemStatus === "SERVED") {
-        toast.info(`${data.itemName} served at Table ${data.tableName}`, {
-          icon: "🍽️",
-          duration: 3,
-        });
-      }
-
-      // Update selected table orders only when event belongs to selected table
-      if (selectedTable && String(selectedTable._id) === String(data.tableId)) {
-        setSelectedTableOrders((prev) =>
-          prev.map((order) =>
-            String(order._id) === String(data.orderId)
-              ? {
-                  ...order,
-                  orderStatus: data.orderStatus || order.orderStatus,
-                  items: order.items.map((item, idx) =>
-                    idx === data.itemIndex ||
-                    String(item._id) === String(data.itemId)
-                      ? {
-                          ...item,
-                          itemStatus: data.itemStatus,
-                          updatedAt: data.updatedAt,
-                        }
-                      : item,
-                  ),
-                }
-              : order,
+      // If it's for the selected table, add it to the view
+      if (selectedTable && order.tableId === selectedTable._id) {
+        setSelectedTableOrders((prev) => [...prev, order]);
+      } else {
+        // Otherwise, mark the table as having new orders
+        setTables((prev) =>
+          prev.map((t) =>
+            t._id === order.tableId ? { ...t, hasNewOrders: true } : t,
           ),
         );
       }
     };
 
-    socket.on("table:item-status-changed", handleTableItemStatusChanged);
-    socket.on("order:item-status-updated", handleTableItemStatusChanged);
+    // B. Item status changed (claimed, ready, served, etc.)
+    const handleItemStatusUpdate = (update) => {
+      console.log("📍 Item status changed:", update);
+      setSelectedTableOrders((prevOrders) =>
+        prevOrders.map((order) => {
+          if (order._id !== update.orderId) return order;
 
-    return () => {
-      socket.off("table:item-status-changed", handleTableItemStatusChanged);
-      socket.off("order:item-status-updated", handleTableItemStatusChanged);
-    };
-  }, [socket, selectedTable]);
+          const updatedItems = order.items.map((item) =>
+            item._id === update.itemId
+              ? { ...item, itemStatus: update.itemStatus }
+              : item,
+          );
 
-  /**
-   * 5️⃣ Listen for order ready
-   */
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleOrderReady = (data) => {
-      console.log("✅ Order ready at table:", data);
-
-      toast.success(
-        `Order #${data.orderNumber} at Table ${data.tableName} is ready!`,
-        {
-          duration: 5,
-          icon: "🔔",
-        },
+          return { ...order, items: updatedItems, orderStatus: update.orderStatus };
+        }),
       );
 
-      // Highlight the table
+      // Notify waiter if item is ready or served
+      if (update.itemStatus === "READY") {
+        toast.success(
+          `${update.itemName} is ready for Table ${update.tableName}!`,
+          { icon: "✅" },
+        );
+      } else if (update.itemStatus === "SERVED") {
+        toast.info(`${update.itemName} served at Table ${update.tableName}`, {
+          icon: "🍽️",
+        });
+      }
+    };
+
+    // C. Entire order is ready for pickup
+    const handleOrderReady = (order) => {
+      console.log("✅ Order ready:", order);
+      toast.success(`Order #${order.orderNumber} is ready for pickup!`, {
+        icon: "🔔",
+      });
+
       setTables((prev) =>
-        prev.map((table) =>
-          table._id === data.tableId ? { ...table, readyOrders: true } : table,
+        prev.map((t) =>
+          t._id === order.tableId ? { ...t, readyOrders: true } : t,
         ),
       );
     };
 
-    socket.on("table:order-ready", handleOrderReady);
-    socket.on("order:ready", handleOrderReady);
-
-    return () => {
-      socket.off("table:order-ready", handleOrderReady);
-      socket.off("order:ready", handleOrderReady);
+    // D. Order is fully served
+    const handleOrderServed = (order) => {
+      console.log("🍽️ Order served:", order);
+      // Optionally remove from view or mark as complete
+      setSelectedTableOrders((prev) =>
+        prev.map((o) =>
+          o._id === order.orderId ? { ...o, orderStatus: "SERVED" } : o,
+        ),
+      );
     };
-  }, [socket]);
+
+    // E. Order is cancelled
+    const handleOrderCancelled = (order) => {
+      console.log("❌ Order cancelled:", order);
+      toast.error(`Order #${order.orderNumber} was cancelled.`);
+      setSelectedTableOrders((prev) =>
+        prev.map((o) =>
+          o._id === order.orderId ? { ...o, orderStatus: "CANCELLED" } : o,
+        ),
+      );
+    };
+
+    // F. Table status changes
+    const handleTableStatusChange = ({ tableId, status }) => {
+        if (status === "AVAILABLE") {
+            setTables(prev => prev.filter(t => t._id !== tableId));
+            if (selectedTable?._id === tableId) {
+                setSelectedTable(null);
+            }
+        }
+    }
+
+    // Subscribe to events
+    socket.on("order:placed", handleOrderPlaced);
+    socket.on("order:item-status-updated", handleItemStatusUpdate);
+    socket.on("order:ready-for-serving", handleOrderReady);
+    socket.on("order:served", handleOrderServed);
+    socket.on("order:cancelled", handleOrderCancelled);
+    socket.on("table:status-changed", handleTableStatusChange)
+    socket.on("connect", loadTableOrders); // Reload on reconnect
+
+    // Unsubscribe on cleanup
+    return () => {
+      socket.off("order:placed", handleOrderPlaced);
+      socket.off("order:item-status-updated", handleItemStatusUpdate);
+      socket.off("order:ready-for-serving", handleOrderReady);
+      socket.off("order:served", handleOrderServed);
+      socket.off("order:cancelled", handleOrderCancelled);
+      socket.off("table:status-changed", handleTableStatusChange)
+      socket.off("connect", loadTableOrders);
+    };
+  }, [socket, selectedTable, loadTableOrders]);
 
   /**
-   * 6️⃣ Serve item handler
+   * 4️⃣ Serve item handler
    */
-  const handleServeItem = async (orderId, itemIndex, itemName) => {
-    try {
-      socket.emit("waiter:serve-item", { orderId, itemIndex }, (response) => {
-        if (response.ok) {
-          toast.success(`${itemName} served!`);
-        } else {
-          toast.error(response.error || "Failed to mark as served");
-        }
-      });
-    } catch (err) {
-      toast.error("Error serving item");
-    }
+  const handleServeItem = (orderId, itemId, itemName) => {
+    socket.emit("waiter:serve-item", { orderId, itemId }, (ack) => {
+      if (ack.ok) {
+        toast.success(`${itemName} marked as SERVED!`);
+      } else {
+        toast.error(ack.error || "Failed to serve item.");
+      }
+    });
   };
 
   /**

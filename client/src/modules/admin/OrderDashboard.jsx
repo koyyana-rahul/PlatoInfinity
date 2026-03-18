@@ -57,7 +57,7 @@ const OrderDashboard = () => {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("order:placed", (orderData) => {
+    const handleOrderPlaced = (orderData) => {
       console.log("🆕 New order placed:", orderData);
       toast.success(
         `New Order #${orderData.orderNumber} at Table ${orderData.tableName}`,
@@ -70,20 +70,22 @@ const OrderDashboard = () => {
       // Add to orders list
       setOrders((prev) => [
         {
-          _id: orderData.orderId,
+          _id: orderData.orderId || orderData._id,
           orderNumber: orderData.orderNumber,
           tableName: orderData.tableName,
-          totalAmount: orderData.totalAmount,
-          itemCount: orderData.itemCount,
-          status: "NEW",
+          totalAmount: Number(orderData.totalAmount || 0),
+          itemCount: Number(orderData.itemCount || orderData.items?.length || 0),
+          status: orderData.orderStatus || orderData.status || "NEW",
           placedAt: orderData.placedAt,
-          items: [],
+          items: Array.isArray(orderData.items) ? orderData.items : [],
         },
         ...prev,
       ]);
-    });
+    };
 
-    return () => socket.off("order:placed");
+    socket.on("order:placed", handleOrderPlaced);
+
+    return () => socket.off("order:placed", handleOrderPlaced);
   }, [socket]);
 
   /**
@@ -92,14 +94,21 @@ const OrderDashboard = () => {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("order:item-status-updated", (updateData) => {
+    const handleItemStatusUpdated = (updateData) => {
       console.log("📍 Item status updated:", updateData);
+
+      const targetId = updateData.orderId || updateData._id;
 
       setOrders((prev) =>
         prev.map((order) =>
-          order._id === updateData.orderId
+          String(order._id) === String(targetId)
             ? {
                 ...order,
+                status:
+                  updateData.orderStatus || updateData.status || order.status,
+                itemCount:
+                  order.itemCount ||
+                  (Array.isArray(order.items) ? order.items.length : 0),
                 items: order.items.map((item, idx) =>
                   idx === updateData.itemIndex
                     ? { ...item, itemStatus: updateData.itemStatus }
@@ -113,36 +122,63 @@ const OrderDashboard = () => {
       toast.success(`${updateData.itemName} → ${updateData.itemStatus}`, {
         icon: "👨‍🍳",
       });
-    });
+    };
 
-    return () => socket.off("order:item-status-updated");
+    socket.on("order:item-status-updated", handleItemStatusUpdated);
+    socket.on("order:item-status", handleItemStatusUpdated);
+
+    return () => {
+      socket.off("order:item-status-updated", handleItemStatusUpdated);
+      socket.off("order:item-status", handleItemStatusUpdated);
+    };
   }, [socket]);
 
-  /**
-   * 4️⃣ Listen for order ready
-   */
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("order:ready-for-serving", (data) => {
-      console.log("✅ Order ready for serving:", data);
-
-      toast.success(
-        `Order #${data.orderNumber} ready for Table ${data.tableName}!`,
-        {
-          duration: 5,
-          icon: "✅",
-        },
-      );
+    const handleOrderLifecycle = (data) => {
+      const targetId = data?.orderId || data?._id;
+      if (!targetId) return;
 
       setOrders((prev) =>
         prev.map((order) =>
-          order._id === data.orderId ? { ...order, status: "READY" } : order,
+          String(order._id) === String(targetId)
+            ? {
+                ...order,
+                status: data.orderStatus || data.status || order.status,
+              }
+            : order,
         ),
       );
-    });
 
-    return () => socket.off("order:ready-for-serving");
+      if (data?.status === "READY" || data?.orderStatus === "READY") {
+        toast.success(
+          `Order #${data.orderNumber || "-"} ready for Table ${data.tableName || "-"}!`,
+          {
+            duration: 5,
+            icon: "✅",
+          },
+        );
+      }
+    };
+
+    const events = [
+      "order:status-changed",
+      "manager:order-status-changed",
+      "order:ready-for-serving",
+      "order:ready",
+      "order:served",
+      "order:cancelled",
+      "order:updated",
+    ];
+
+    events.forEach((eventName) => socket.on(eventName, handleOrderLifecycle));
+
+    return () => {
+      events.forEach((eventName) =>
+        socket.off(eventName, handleOrderLifecycle),
+      );
+    };
   }, [socket]);
 
   /**
@@ -226,22 +262,25 @@ const OrderDashboard = () => {
                     <h3 className="text-lg font-bold text-gray-900">
                       Order #{order.orderNumber}
                     </h3>
-                    <p className="text-sm text-gray-600 mt-1">📍 {order.tableName}</p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      📍 {order.tableName}
+                    </p>
                   </div>
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}
                   >
-                    {order.status}
+                    {order.status || order.orderStatus || "NEW"}
                   </span>
                 </div>
 
                 {/* Details */}
                 <div className="space-y-2 mb-4 text-sm text-gray-700 pb-4 border-b border-gray-100">
                   <p>
-                    <strong>Items:</strong> {order.itemCount}
+                    <strong>Items:</strong>{" "}
+                    {order.itemCount || (Array.isArray(order.items) ? order.items.length : 0)}
                   </p>
                   <p>
-                    <strong>Total:</strong> ₹{order.totalAmount.toFixed(2)}
+                    <strong>Total:</strong> ₹{Number(order.totalAmount || 0).toFixed(2)}
                   </p>
                   <p>
                     <strong>Time:</strong>{" "}
@@ -252,7 +291,9 @@ const OrderDashboard = () => {
                 {/* Items Status */}
                 {order.items?.length > 0 && (
                   <div className="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                    <h4 className="font-semibold text-xs text-gray-900 mb-2">Items:</h4>
+                    <h4 className="font-semibold text-xs text-gray-900 mb-2">
+                      Items:
+                    </h4>
                     <div className="space-y-1">
                       {order.items.slice(0, 3).map((item, idx) => (
                         <div
@@ -261,7 +302,8 @@ const OrderDashboard = () => {
                         >
                           <span>{item.name}</span>
                           <span>
-                            {getItemStatusIcon(item.itemStatus)} {item.itemStatus}
+                            {getItemStatusIcon(item.itemStatus)}{" "}
+                            {item.itemStatus}
                           </span>
                         </div>
                       ))}
@@ -284,7 +326,9 @@ const OrderDashboard = () => {
         ) : (
           <div className="bg-gray-50 rounded-xl border border-gray-200 p-12 text-center">
             <p className="text-gray-500 text-lg">No orders found</p>
-            <p className="text-gray-400 text-sm mt-2">Orders will appear here when placed</p>
+            <p className="text-gray-400 text-sm mt-2">
+              Orders will appear here when placed
+            </p>
           </div>
         )}
       </div>

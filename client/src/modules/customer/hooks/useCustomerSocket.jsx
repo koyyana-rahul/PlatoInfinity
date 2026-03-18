@@ -93,23 +93,29 @@ export function useCustomerSocket({
     setSocketInstance(socket);
 
     const joinCustomerRoom = () => {
-      if (resolved.sessionId && resolved.tableId) {
+      // Server accepts either sessionId OR restaurantId for join:customer.
+      // Keep this permissive so customer clients still receive fallback
+      // broadcasts even if one identifier is temporarily unavailable.
+      if (resolved.sessionId || resolved.restaurantId) {
         socket.emit("join:customer", {
-          sessionId: resolved.sessionId,
-          tableId: resolved.tableId,
+          sessionId: resolved.sessionId || undefined,
+          tableId: resolved.tableId || undefined,
           restaurantId: resolved.restaurantId || undefined,
         });
         console.log("📤 Emitted join:customer", {
-          sessionId: resolved.sessionId,
-          tableId: resolved.tableId,
-          restaurantId: resolved.restaurantId || "(fallback-pending)",
+          sessionId: resolved.sessionId || "(none)",
+          tableId: resolved.tableId || "(none)",
+          restaurantId: resolved.restaurantId || "(none)",
         });
       } else {
-        console.warn("⚠️ Missing sessionId/tableId for customer socket join", {
-          sessionId: resolved.sessionId,
-          restaurantId: resolved.restaurantId,
-          tableId: resolved.tableId,
-        });
+        console.warn(
+          "⚠️ Missing sessionId/restaurantId for customer socket join",
+          {
+            sessionId: resolved.sessionId,
+            restaurantId: resolved.restaurantId,
+            tableId: resolved.tableId,
+          },
+        );
       }
     };
 

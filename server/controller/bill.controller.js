@@ -127,10 +127,19 @@ export async function payBillController(req, res) {
       await Table.findByIdAndUpdate(session.tableId, { status: "FREE" });
 
       const io = req.app.locals.io;
-      io.to(`restaurant:${session.restaurantId}`).emit("session:closed", {
+      const payload = {
         tableId: session.tableId,
         sessionId: session._id,
-      });
+      };
+
+      io.to(`restaurant:${session.restaurantId}`).emit(
+        "session:closed",
+        payload,
+      );
+      io.to(`restaurant:${session.restaurantId}:waiters`).emit(
+        "session:closed",
+        payload,
+      );
     }
 
     return res.json({

@@ -272,7 +272,14 @@ export async function placeOrderController(req, res) {
       { new: true, session: mongoSession },
     );
 
-    emitTableStatusChanged(session.restaurantId, table);
+    await emitTableStatusChanged({
+      restaurantId: String(session.restaurantId),
+      tableId: String(table._id),
+      tableName: table.tableNumber || table.name || "Table",
+      status: table.status,
+      occupiedBy: null,
+      changedAt: new Date(),
+    });
 
     // ✅ 9️⃣ ESTIMATE PREP TIME
     const prepTime = await estimatePrepTime(orderItems, session.restaurantId);

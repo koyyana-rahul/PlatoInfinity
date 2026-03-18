@@ -314,11 +314,17 @@ export async function emitOrderItemStatusUpdate(updateData) {
     .to(`restaurant:${restaurantId}`)
     .emit("order:item-status-updated", basePayload);
 
+  ioRef.to(`restaurant:${restaurantId}`).emit("order:item-status", basePayload);
+
   // Ensure waiter-only clients also receive canonical order item event even
   // if they are not subscribed to the broader restaurant room in some flows.
   ioRef
     .to(`restaurant:${restaurantId}:waiters`)
     .emit("order:item-status-updated", basePayload);
+
+  ioRef
+    .to(`restaurant:${restaurantId}:waiters`)
+    .emit("order:item-status", basePayload);
 
   // Customer fallback channel for clients that temporarily miss session room join.
   ioRef
@@ -331,12 +337,30 @@ export async function emitOrderItemStatusUpdate(updateData) {
           : `${itemName} is ${itemStatus.replaceAll("_", " ")}`,
     });
 
+  ioRef.to(`restaurant:${restaurantId}:customers`).emit("order:item-status", {
+    ...basePayload,
+    message:
+      itemStatus === "READY"
+        ? `${itemName} is ready!`
+        : `${itemName} is ${itemStatus.replaceAll("_", " ")}`,
+  });
+
   ioRef.to(`restaurant:${restaurantId}`).emit("order:status-changed", {
     ...basePayload,
     status: orderStatus,
   });
 
+  ioRef.to(`restaurant:${restaurantId}`).emit("order:updated", {
+    ...basePayload,
+    status: orderStatus,
+  });
+
   ioRef.to(`restaurant:${restaurantId}:waiters`).emit("order:status-changed", {
+    ...basePayload,
+    status: orderStatus,
+  });
+
+  ioRef.to(`restaurant:${restaurantId}:waiters`).emit("order:updated", {
     ...basePayload,
     status: orderStatus,
   });
@@ -347,6 +371,11 @@ export async function emitOrderItemStatusUpdate(updateData) {
       ...basePayload,
       status: orderStatus,
     });
+
+  ioRef.to(`restaurant:${restaurantId}:customers`).emit("order:updated", {
+    ...basePayload,
+    status: orderStatus,
+  });
 
   /**
    * 2️⃣ NOTIFY WAITER
@@ -387,6 +416,24 @@ export async function emitOrderItemStatusUpdate(updateData) {
       itemStatus === "READY"
         ? `${itemName} is ready!`
         : `${itemName} is ${itemStatus.replaceAll("_", " ")}`,
+  });
+
+  ioRef.to(`session:${sessionId}`).emit("order:item-status", {
+    ...basePayload,
+    message:
+      itemStatus === "READY"
+        ? `${itemName} is ready!`
+        : `${itemName} is ${itemStatus.replaceAll("_", " ")}`,
+  });
+
+  ioRef.to(`session:${sessionId}`).emit("order:status-changed", {
+    ...basePayload,
+    status: orderStatus,
+  });
+
+  ioRef.to(`session:${sessionId}`).emit("order:updated", {
+    ...basePayload,
+    status: orderStatus,
   });
 
   // Backward-compatible ready event for older customer listeners
@@ -784,22 +831,33 @@ export async function emitTableStatusChanged(tableData) {
   /**
    * 1️⃣ NOTIFY ALL STAFF
    */
-  ioRef.to(`restaurant:${restaurantId}`).emit("table:status-updated", {
+  const payload = {
     tableId,
     tableName,
     status,
     occupiedBy,
     changedAt,
-  });
+  };
+
+  ioRef.to(`restaurant:${restaurantId}`).emit("table:status-updated", payload);
+  ioRef.to(`restaurant:${restaurantId}`).emit("table:status-changed", payload);
 
   /**
    * 2️⃣ NOTIFY WAITERS SPECIFICALLY
    */
+  ioRef
+    .to(`restaurant:${restaurantId}:waiters`)
+    .emit("table:status-updated", payload);
+  ioRef
+    .to(`restaurant:${restaurantId}:waiters`)
+    .emit("table:status-changed", payload);
   ioRef.to(`restaurant:${restaurantId}:waiters`).emit("table:availability", {
     tableId,
     tableName,
     status,
+    changedAt,
   });
+  ioRef.to(`restaurant:${restaurantId}:waiters`).emit("table:update", payload);
 }
 
 /**

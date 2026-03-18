@@ -116,6 +116,10 @@ export async function openTableSessionController(req, res) {
       "session:opened",
       populatedSession,
     );
+    io.to(`restaurant:${restaurantId}:waiters`).emit(
+      "session:opened",
+      populatedSession,
+    );
 
     return res.status(201).json({
       success: true,

@@ -104,6 +104,20 @@ export default function CustomerOrders() {
   const applyOrderLevelStatusToItems = (items = [], status) => {
     const normalizedStatus = String(status || "").toUpperCase();
 
+    if (normalizedStatus === "READY") {
+      return (Array.isArray(items) ? items : []).map((item) => ({
+        ...item,
+        itemStatus: item.itemStatus === "SERVED" ? "SERVED" : "READY",
+      }));
+    }
+
+    if (normalizedStatus === "SERVING") {
+      return (Array.isArray(items) ? items : []).map((item) => ({
+        ...item,
+        itemStatus: item.itemStatus === "SERVED" ? "SERVED" : "SERVING",
+      }));
+    }
+
     if (normalizedStatus === "SERVED") {
       return (Array.isArray(items) ? items : []).map((item) => ({
         ...item,
@@ -195,12 +209,11 @@ export default function CustomerOrders() {
       // Apply the same state update
       handleItemStatusUpdate({ ...data, itemStatus: "READY" });
     });
-    // Also listen for generic order updates in case
+    // Also listen for generic order updates in case payload comes from
+    // order-level lifecycle events with sparse item information.
     customerSocket.on("order:updated", (data) => {
       console.log("📶 Customer: order updated", data);
-      if (data.items) {
-        handleItemStatusUpdate(data);
-      }
+      handleItemStatusUpdate(data || {});
     });
 
     return () => {
@@ -317,6 +330,38 @@ export default function CustomerOrders() {
       );
     };
 
+    const onOrderUpdated = (data) => {
+      const incomingId = data?._id || data?.orderId;
+      if (!incomingId) {
+        refreshFromSocket("order:updated:sparse");
+        return;
+      }
+
+      const incomingStatus = String(
+        data?.orderStatus || data?.status || "",
+      ).toUpperCase();
+
+      setOrders((prev) =>
+        prev.map((order) => {
+          if (String(order._id) !== String(incomingId)) return order;
+
+          const mergedItems = Array.isArray(data?.items)
+            ? data.items
+            : applyOrderLevelStatusToItems(order.items || [], incomingStatus);
+
+          return {
+            ...order,
+            ...data,
+            _id: order._id,
+            items: mergedItems,
+            orderStatus:
+              incomingStatus ||
+              deriveOrderStatusFromItems(mergedItems, order.orderStatus),
+          };
+        }),
+      );
+    };
+
     customerSocket.on("order:confirmed", onOrderConfirmed);
     customerSocket.on("order:placed", onOrderPlaced);
     customerSocket.on("order:status-changed", onOrderStatusChanged);
@@ -324,6 +369,7 @@ export default function CustomerOrders() {
     customerSocket.on("order:ready-for-serving", onOrderReadyForServing);
     customerSocket.on("order:served", onOrderServed);
     customerSocket.on("order:cancelled", onOrderCancelled);
+    customerSocket.on("order:updated", onOrderUpdated);
     customerSocket.on("connect", onConnect);
     customerSocket.on("reconnect", onReconnect);
 
@@ -335,6 +381,7 @@ export default function CustomerOrders() {
       customerSocket.off("order:ready-for-serving", onOrderReadyForServing);
       customerSocket.off("order:served", onOrderServed);
       customerSocket.off("order:cancelled", onOrderCancelled);
+      customerSocket.off("order:updated", onOrderUpdated);
       customerSocket.off("connect", onConnect);
       customerSocket.off("reconnect", onReconnect);
     };
@@ -505,7 +552,7 @@ export default function CustomerOrders() {
   const formatItemStatus = (status) => {
     const normalized = String(status || "PENDING").toUpperCase();
     if (normalized === "NEW" || normalized === "PENDING") return "Pending";
-    if (normalized === "IN_PROGRESS") return "Sent";
+    if (normalized === "IN_PROGRESS") return "Preparing";
     if (normalized === "READY") return "Ready";
     if (normalized === "SERVING") return "Serving";
     if (normalized === "SERVED") return "Served";
@@ -901,7 +948,9 @@ function OrderProgress({ status, items = [] }) {
     DELIVERED: 4,
   };
 
-  // Derive active step from highest item status if items exist
+  // Derive active step from both order-level status and item-level status.
+  // We take the farthest progressed stage to avoid stale UI when one payload
+  // arrives before the other.
   let activeIndex = indexMap[normalized] ?? 0;
   if (items && items.length > 0) {
     const itemStatuses = items.map((it) =>
@@ -910,12 +959,15 @@ function OrderProgress({ status, items = [] }) {
     const totalItems = itemStatuses.length;
     const servedCount = itemStatuses.filter((s) => s === "SERVED").length;
 
-    if (totalItems > 0 && servedCount === totalItems) activeIndex = 4;
+    let itemIndex = 0;
+
+    if (totalItems > 0 && servedCount === totalItems) itemIndex = 4;
     else if (itemStatuses.some((s) => s === "SERVING") || servedCount > 0)
-      activeIndex = 3;
-    else if (itemStatuses.some((s) => s === "READY")) activeIndex = 2;
-    else if (itemStatuses.some((s) => s === "IN_PROGRESS")) activeIndex = 1;
-    else activeIndex = 0;
+      itemIndex = 3;
+    else if (itemStatuses.some((s) => s === "READY")) itemIndex = 2;
+    else if (itemStatuses.some((s) => s === "IN_PROGRESS")) itemIndex = 1;
+
+    activeIndex = Math.max(activeIndex, itemIndex);
   }
 
   const isCancelled = normalized === "CANCELLED";

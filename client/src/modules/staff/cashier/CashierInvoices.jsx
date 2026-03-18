@@ -4,9 +4,11 @@ import toast from "react-hot-toast";
 import { FiDownload, FiRefreshCcw } from "react-icons/fi";
 import Axios from "../../../api/axios";
 import billApi from "../../../api/bill.api";
+import { useSocket } from "../../../socket/SocketProvider";
 
 export default function CashierInvoices() {
   const restaurantId = useSelector((s) => s.user.restaurantId);
+  const socket = useSocket();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -27,6 +29,32 @@ export default function CashierInvoices() {
   useEffect(() => {
     loadInvoices();
   }, [restaurantId]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleRealtimeSync = () => {
+      loadInvoices(true);
+    };
+
+    const events = [
+      "order:status-changed",
+      "order:served",
+      "session:closed",
+      "bill:generated",
+      "bill:paid",
+      "cashier:payment-processed",
+      "cashier:bill-settled",
+    ];
+
+    events.forEach((eventName) => socket.on(eventName, handleRealtimeSync));
+    socket.on("connect", handleRealtimeSync);
+
+    return () => {
+      events.forEach((eventName) => socket.off(eventName, handleRealtimeSync));
+      socket.off("connect", handleRealtimeSync);
+    };
+  }, [socket, restaurantId]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
