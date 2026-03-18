@@ -7,12 +7,15 @@ import { FiSearch, FiFilter, FiRefreshCcw } from "react-icons/fi";
 
 export default function ChefDashboard() {
   const station = useSelector((s) => s.user.station || "MAIN");
+  const kitchenStationId = useSelector((s) => s.user.kitchenStationId || null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL"); // ALL | NEW | IN_PROGRESS | READY
   const [refreshing, setRefreshing] = useState(false);
 
-  const { orders, loading, reload, updateOrderItemStatus } =
-    useKitchenOrders(station);
+  const { orders, loading, reload, updateOrderItemStatus } = useKitchenOrders(
+    station,
+    kitchenStationId,
+  );
 
   const visibleOrders = useMemo(() => {
     return orders.filter((order) => {

@@ -3,7 +3,7 @@
  * Real-time table management, order tracking, and bill settlement
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,6 +27,7 @@ import {
 
 import Axios from "../../../api/axios";
 import waiterApi from "../../../api/waiter.api";
+import { useSocket } from "../../../socket/SocketProvider";
 
 /**
  * Table status configuration
@@ -68,6 +69,7 @@ export default function WaiterDashboard() {
   const { restaurantSlug } = useParams();
   const auth = useSelector((state) => state.auth);
   const user = auth.user;
+  const socket = useSocket();
 
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,40 +81,9 @@ export default function WaiterDashboard() {
   /**
    * Fetch waiter data
    */
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [tablesRes, statsRes] = await Promise.all([
-          Axios(waiterApi.getWaiterTables()),
-          Axios(waiterApi.getWaiterStats()),
-        ]);
-
-        if (tablesRes.data?.success) {
-          setTables(tablesRes.data.data || []);
-        }
-        if (statsRes.data?.success) {
-          setStats(statsRes.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to load waiter data:", error);
-        toast.error("Failed to load dashboard");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-    const interval = setInterval(loadData, 15000);
-    return () => clearInterval(interval);
-  }, []);
-
-  /**
-   * Manual refresh
-   */
-  const handleRefresh = async () => {
+  const loadData = useCallback(async () => {
     try {
-      setRefreshing(true);
+      setLoading(true);
       const [tablesRes, statsRes] = await Promise.all([
         Axios(waiterApi.getWaiterTables()),
         Axios(waiterApi.getWaiterStats()),
@@ -124,6 +95,56 @@ export default function WaiterDashboard() {
       if (statsRes.data?.success) {
         setStats(statsRes.data.data);
       }
+    } catch (error) {
+      console.error("Failed to load waiter data:", error);
+      toast.error("Failed to load dashboard");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 15000);
+    return () => clearInterval(interval);
+  }, [loadData]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleLiveUpdate = () => {
+      loadData();
+    };
+
+    const events = [
+      "order:placed",
+      "order:item-status-updated",
+      "order:status-changed",
+      "order:ready",
+      "order:served",
+      "order:cancelled",
+      "table:item-status-changed",
+      "table:status-changed",
+      "table:status-updated",
+      "waiter:item-ready-alert",
+    ];
+
+    events.forEach((eventName) => socket.on(eventName, handleLiveUpdate));
+    socket.on("connect", handleLiveUpdate);
+
+    return () => {
+      events.forEach((eventName) => socket.off(eventName, handleLiveUpdate));
+      socket.off("connect", handleLiveUpdate);
+    };
+  }, [socket, loadData]);
+
+  /**
+   * Manual refresh
+   */
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await loadData();
       toast.success("Dashboard updated");
     } catch (error) {
       toast.error("Failed to refresh");

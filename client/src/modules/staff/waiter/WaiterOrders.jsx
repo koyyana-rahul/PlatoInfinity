@@ -14,6 +14,42 @@ export default function WaiterOrders() {
 
   const socket = useSocket();
 
+  const updateOrderItemFromSocket = (data) => {
+    const { orderId, _id, itemId, itemIndex, itemStatus, status, orderStatus } =
+      data || {};
+
+    const resolvedOrderId = orderId || _id;
+    const resolvedItemStatus = itemStatus || status;
+
+    if (!resolvedOrderId) return;
+
+    setOrders((prevOrders) =>
+      prevOrders.map((order) => {
+        if (String(order._id) !== String(resolvedOrderId)) return order;
+
+        const nextItems = (order.items || []).map((item, idx) => {
+          const matches =
+            (itemId && String(item._id) === String(itemId)) ||
+            (itemIndex !== undefined &&
+              itemIndex !== null &&
+              idx === itemIndex);
+
+          if (!matches) return item;
+          return {
+            ...item,
+            itemStatus: resolvedItemStatus || item.itemStatus,
+          };
+        });
+
+        return {
+          ...order,
+          orderStatus: orderStatus || status || order.orderStatus,
+          items: nextItems,
+        };
+      }),
+    );
+  };
+
   const load = async (silent = false) => {
     try {
       if (!silent) setRefreshing(true);
@@ -37,49 +73,52 @@ export default function WaiterOrders() {
         `New order at Table ${data.tableName}: ${data.itemCount || 0} items`,
         { duration: 4000 },
       );
-      // Reload orders from API to get complete order data
+      // Auto-sync full order data for waiter UI
       load(true);
     };
 
     const handleTableOrderPlaced = (data) => {
       console.log("🍽️ Table order placed:", data);
-      // Reload orders from API to get complete order data
+      // Auto-sync full order data for waiter UI
       load(true);
-    };
-
-    const handleStatusUpdate = (update) => {
-      setOrders((prevOrders) =>
-        prevOrders.map((order) => {
-          if (order._id !== update.orderId) return order;
-          return {
-            ...order,
-            items: order.items.map((item) => {
-              if (item._id !== update.itemId) return item;
-              return { ...item, itemStatus: update.status };
-            }),
-          };
-        }),
-      );
     };
 
     const handleItemStatusChanged = (data) => {
       console.log("📶 WaiterOrders: item status changed", data);
-      const { orderId, itemId, itemIndex, itemStatus } = data;
-      setOrders((prevOrders) =>
-        prevOrders.map((order) => {
-          if (String(order._id) !== String(orderId)) return order;
-          return {
-            ...order,
-            items: order.items.map((item, idx) => {
-              const matches =
-                String(item._id) === String(itemId) || idx === itemIndex;
-              if (!matches) return item;
-              console.log(`🔄 Waiter: updating item ${item.name} to ${itemStatus}`);
-              return { ...item, itemStatus };
-            }),
-          };
-        }),
-      );
+
+      if (!data?.orderId && !data?._id) {
+        load(true);
+        return;
+      }
+
+      updateOrderItemFromSocket(data);
+    };
+
+    const handleOrderLifecycle = (data) => {
+      // Sparse payloads are common for order-level events; refetch for consistency.
+      if (!data?._id && !data?.orderId) {
+        load(true);
+        return;
+      }
+
+      if (!data?.itemId && data?.status && !data?.items) {
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            String(order._id) === String(data._id || data.orderId)
+              ? { ...order, orderStatus: data.orderStatus || data.status }
+              : order,
+          ),
+        );
+      } else {
+        updateOrderItemFromSocket(data);
+      }
+
+      load(true);
+    };
+
+    const handleConnect = () => {
+      // Re-sync after reconnect to avoid missing events during downtime
+      load(true);
     };
 
     // Listen for READY alerts from kitchen
@@ -98,38 +137,50 @@ export default function WaiterOrders() {
     socket.on("order:item-status", handleItemStatusChanged);
     socket.on("order:placed", handleNewOrder);
     socket.on("table:order-placed", handleTableOrderPlaced);
-    socket.on("order:itemStatus", handleStatusUpdate);
+    socket.on("order:itemStatus", handleItemStatusChanged);
     socket.on("table:item-status-changed", handleItemStatusChanged);
+    socket.on("order:status-changed", handleOrderLifecycle);
+    socket.on("manager:order-status-changed", handleOrderLifecycle);
+    socket.on("order:ready", handleOrderLifecycle);
+    socket.on("order:served", handleOrderLifecycle);
+    socket.on("order:cancelled", handleOrderLifecycle);
     socket.on("waiter:item-ready-alert", handleItemReadyAlert);
+    socket.on("connect", handleConnect);
 
     return () => {
       socket.off("order:item-status-updated", handleItemStatusChanged);
       socket.off("order:item-status", handleItemStatusChanged);
       socket.off("order:placed", handleNewOrder);
       socket.off("table:order-placed", handleTableOrderPlaced);
-      socket.off("order:itemStatus", handleStatusUpdate);
+      socket.off("order:itemStatus", handleItemStatusChanged);
       socket.off("table:item-status-changed", handleItemStatusChanged);
+      socket.off("order:status-changed", handleOrderLifecycle);
+      socket.off("manager:order-status-changed", handleOrderLifecycle);
+      socket.off("order:ready", handleOrderLifecycle);
+      socket.off("order:served", handleOrderLifecycle);
+      socket.off("order:cancelled", handleOrderLifecycle);
       socket.off("waiter:item-ready-alert", handleItemReadyAlert);
+      socket.off("connect", handleConnect);
     };
   }, [socket]);
 
   // Helper to compute order-level status from items (same as OrderCard)
   const getOrderLevelStatus = (order) => {
     if (!order.items || order.items.length === 0) return "PLACED";
-    const statuses = order.items.map(it => String(it.itemStatus || "NEW").toUpperCase());
-    if (statuses.some(s => s === "SERVING")) return "SERVING";
-    if (statuses.some(s => s === "SERVED")) return "SERVED";
-    if (statuses.some(s => s === "READY")) return "READY";
-    if (statuses.some(s => s === "IN_PROGRESS")) return "PREPARING";
+    const statuses = order.items.map((it) =>
+      String(it.itemStatus || "NEW").toUpperCase(),
+    );
+    if (statuses.some((s) => s === "SERVING")) return "SERVING";
+    if (statuses.some((s) => s === "SERVED")) return "SERVED";
+    if (statuses.some((s) => s === "READY")) return "READY";
+    if (statuses.some((s) => s === "IN_PROGRESS")) return "PREPARING";
     return "PLACED";
   };
 
   const visibleOrders =
     statusFilter === "ALL"
       ? orders
-      : orders.filter(
-          (o) => getOrderLevelStatus(o) === statusFilter,
-        );
+      : orders.filter((o) => getOrderLevelStatus(o) === statusFilter);
 
   return (
     <div className="space-y-4">
@@ -180,27 +231,37 @@ export default function WaiterOrders() {
         <Kpi title="Total" value={orders.length} />
         <Kpi
           title="Placed"
-          value={orders.filter((o) => getOrderLevelStatus(o) === "PLACED").length}
+          value={
+            orders.filter((o) => getOrderLevelStatus(o) === "PLACED").length
+          }
           tone="neutral"
         />
         <Kpi
           title="Preparing"
-          value={orders.filter((o) => getOrderLevelStatus(o) === "PREPARING").length}
+          value={
+            orders.filter((o) => getOrderLevelStatus(o) === "PREPARING").length
+          }
           tone="orange"
         />
         <Kpi
           title="Serving"
-          value={orders.filter((o) => getOrderLevelStatus(o) === "SERVING").length}
+          value={
+            orders.filter((o) => getOrderLevelStatus(o) === "SERVING").length
+          }
           tone="blue"
         />
         <Kpi
           title="Ready"
-          value={orders.filter((o) => getOrderLevelStatus(o) === "READY").length}
+          value={
+            orders.filter((o) => getOrderLevelStatus(o) === "READY").length
+          }
           tone="green"
         />
         <Kpi
           title="Served"
-          value={orders.filter((o) => getOrderLevelStatus(o) === "SERVED").length}
+          value={
+            orders.filter((o) => getOrderLevelStatus(o) === "SERVED").length
+          }
           tone="green"
         />
       </div>

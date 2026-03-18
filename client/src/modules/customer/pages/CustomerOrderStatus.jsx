@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
 import Axios from "../../../api/axios";
 import customerApi from "../../../api/customer.api";
-import { socketService } from "../../../api/socket.service";
 import { useCustomerSocket } from "../hooks/useCustomerSocket";
 import toast from "react-hot-toast";
 import {
@@ -36,11 +34,26 @@ export default function CustomerOrderStatus() {
   const [restaurantId, setRestaurantId] = useState(null);
 
   const sessionKey = `plato:customerSession:${tableId}`;
-  const sessionId = localStorage.getItem(sessionKey);
+  const rawSession = localStorage.getItem(sessionKey);
+  const parsedSession = (() => {
+    if (!rawSession) return null;
+    try {
+      return JSON.parse(rawSession);
+    } catch {
+      return null;
+    }
+  })();
+
+  const sessionId =
+    parsedSession?.sessionId ||
+    parsedSession?._id ||
+    parsedSession?.id ||
+    rawSession ||
+    null;
   const base = `/${useParams().brandSlug}/${useParams().restaurantSlug}/table/${tableId}`;
 
   // Join customer socket room for real-time updates
-  useCustomerSocket({
+  const customerSocket = useCustomerSocket({
     sessionId,
     restaurantId,
     tableId,
@@ -102,7 +115,12 @@ export default function CustomerOrderStatus() {
     // 🔥 REAL-TIME SOCKET LISTENERS
     const applyLiveItemStatus = (data) => {
       console.log("📡 Customer received status update:", data);
-      if (!data?.orderId) return;
+      const resolvedOrderId = data?.orderId || data?._id;
+      if (!resolvedOrderId) return;
+
+      const normalizedIncomingStatus = String(
+        data?.orderStatus || data?.status || "",
+      ).toUpperCase();
 
       if (data.itemStatus === "READY") {
         toast.success(`${data.itemName || "Item"} is ready! 🎉`, {
@@ -127,24 +145,32 @@ export default function CustomerOrderStatus() {
 
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
-          String(order._id) === String(data.orderId)
+          String(order._id) === String(resolvedOrderId)
             ? {
                 ...order,
-                orderStatus: data.orderStatus || order.orderStatus,
-                items: order.items.map((item, idx) => {
+                orderStatus: normalizedIncomingStatus || order.orderStatus,
+                items: (order.items || []).map((item, idx) => {
                   const byId =
                     data.itemId && String(item._id) === String(data.itemId);
                   const byIndex =
                     data.itemIndex !== undefined &&
                     data.itemIndex !== null &&
                     idx === data.itemIndex;
-                  return byId || byIndex
-                    ? {
-                        ...item,
-                        itemStatus: data.itemStatus,
-                        updatedAt: data.updatedAt,
-                      }
-                    : item;
+                  // If event is order-level (e.g. order:served), item references can be absent.
+                  const applyOrderLevelServed =
+                    !data.itemId &&
+                    (data.itemIndex === undefined || data.itemIndex === null) &&
+                    normalizedIncomingStatus === "SERVED";
+
+                  if (!byId && !byIndex && !applyOrderLevelServed) return item;
+
+                  return {
+                    ...item,
+                    itemStatus:
+                      data.itemStatus ||
+                      (applyOrderLevelServed ? "SERVED" : item.itemStatus),
+                    updatedAt: data.updatedAt || item.updatedAt,
+                  };
                 }),
               }
             : order,
@@ -152,18 +178,32 @@ export default function CustomerOrderStatus() {
       );
     };
 
-    socketService.onItemReady(applyLiveItemStatus);
-    socketService.onOrderItemStatusChanged(applyLiveItemStatus);
+    if (customerSocket) {
+      customerSocket.on("order:item-ready", applyLiveItemStatus);
+      customerSocket.on("order:item-status-updated", applyLiveItemStatus);
+      customerSocket.on("order:item-status", applyLiveItemStatus);
+      customerSocket.on("order:status-changed", applyLiveItemStatus);
+      customerSocket.on("order:ready", applyLiveItemStatus);
+      customerSocket.on("order:served", applyLiveItemStatus);
+      customerSocket.on("order:cancelled", applyLiveItemStatus);
+    }
 
     // Fallback polling
     const interval = setInterval(fetchOrders, 30000);
 
     return () => {
       clearInterval(interval);
-      socketService.offItemReady();
-      socketService.offOrderItemStatusChanged();
+      if (customerSocket) {
+        customerSocket.off("order:item-ready", applyLiveItemStatus);
+        customerSocket.off("order:item-status-updated", applyLiveItemStatus);
+        customerSocket.off("order:item-status", applyLiveItemStatus);
+        customerSocket.off("order:status-changed", applyLiveItemStatus);
+        customerSocket.off("order:ready", applyLiveItemStatus);
+        customerSocket.off("order:served", applyLiveItemStatus);
+        customerSocket.off("order:cancelled", applyLiveItemStatus);
+      }
     };
-  }, [sessionId]);
+  }, [sessionId, customerSocket]);
 
   const getItemStatusBadge = (status) => {
     switch (status) {

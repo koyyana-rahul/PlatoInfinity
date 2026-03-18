@@ -70,7 +70,8 @@ export default function AdminDashboard() {
   const {
     recentOrders,
     loading: ordersLoading,
-    addRecentOrder,
+    upsertRecentOrder,
+    refetch: refetchRecentOrders,
   } = useRecentOrders(timeRange, selectedBranch);
   const { branches, loading: branchesLoading } = useBranches();
   const { notifications, dismissNotification } = useNotifications(socket);
@@ -90,7 +91,54 @@ export default function AdminDashboard() {
   );
 
   // Real-time Updates
-  useSocketUpdates(socket, setStats, addRecentOrder);
+  useSocketUpdates(socket, setStats, upsertRecentOrder, refetchRecentOrders);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const isMultiBranchAdmin = ["BRAND_ADMIN", "ADMIN", "OWNER"].includes(
+      user?.role,
+    );
+
+    const joinTargets = selectedBranch
+      ? [selectedBranch]
+      : user?.restaurantId
+        ? [user.restaurantId]
+        : isMultiBranchAdmin
+          ? (branches || []).map((b) => b?._id).filter(Boolean)
+          : [];
+
+    if (!joinTargets.length) return;
+
+    let resyncTimer = null;
+
+    const emitJoin = () => {
+      joinTargets.forEach((restaurantId) => {
+        socket.emit("join:restaurant", { restaurantId });
+      });
+
+      // Recover any events missed before room join completed.
+      clearTimeout(resyncTimer);
+      resyncTimer = setTimeout(() => {
+        refetchRecentOrders?.({ silent: true });
+      }, 150);
+    };
+
+    emitJoin();
+    socket.on("connect", emitJoin);
+
+    return () => {
+      clearTimeout(resyncTimer);
+      socket.off("connect", emitJoin);
+    };
+  }, [
+    socket,
+    selectedBranch,
+    branches,
+    user?.restaurantId,
+    user?.role,
+    refetchRecentOrders,
+  ]);
 
   // Fetch fraud alerts
   useEffect(() => {

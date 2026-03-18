@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import {
@@ -27,27 +27,30 @@ export default function WaiterDashboard() {
   const [filter, setFilter] = useState("ALL");
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = async (silent = false) => {
-    try {
-      if (silent) setRefreshing(true);
-      const [t, s] = await Promise.all([
-        Axios(tableApi.list(restaurantId)),
-        Axios(sessionApi.list(restaurantId, { status: "OPEN" })),
-      ]);
-      setTables(t.data.data || []);
-      setSessions(s.data.data || []);
-    } catch {
-      toast.error("Unable to load table sessions");
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  const load = useCallback(
+    async (silent = false) => {
+      try {
+        if (silent) setRefreshing(true);
+        const [t, s] = await Promise.all([
+          Axios(tableApi.list(restaurantId)),
+          Axios(sessionApi.list(restaurantId, { status: "OPEN" })),
+        ]);
+        setTables(t.data.data || []);
+        setSessions(s.data.data || []);
+      } catch {
+        toast.error("Unable to load table sessions");
+      } finally {
+        setRefreshing(false);
+      }
+    },
+    [restaurantId],
+  );
 
   const socket = useSocket();
 
   useEffect(() => {
     load();
-  }, [restaurantId]);
+  }, [load]);
 
   useEffect(() => {
     if (!socket) return;
@@ -71,11 +74,31 @@ export default function WaiterDashboard() {
     socket.on("session:opened", handleSessionOpened);
     socket.on("session:closed", handleSessionClosed);
 
+    const handleOrderLifecycle = () => {
+      // Keep table/session grid in sync with order-driven session/table transitions.
+      load(true);
+    };
+
+    socket.on("order:placed", handleOrderLifecycle);
+    socket.on("order:status-changed", handleOrderLifecycle);
+    socket.on("order:served", handleOrderLifecycle);
+    socket.on("order:cancelled", handleOrderLifecycle);
+    socket.on("table:status-changed", handleOrderLifecycle);
+    socket.on("table:status-updated", handleOrderLifecycle);
+    socket.on("connect", handleOrderLifecycle);
+
     return () => {
       socket.off("session:opened", handleSessionOpened);
       socket.off("session:closed", handleSessionClosed);
+      socket.off("order:placed", handleOrderLifecycle);
+      socket.off("order:status-changed", handleOrderLifecycle);
+      socket.off("order:served", handleOrderLifecycle);
+      socket.off("order:cancelled", handleOrderLifecycle);
+      socket.off("table:status-changed", handleOrderLifecycle);
+      socket.off("table:status-updated", handleOrderLifecycle);
+      socket.off("connect", handleOrderLifecycle);
     };
-  }, [socket]);
+  }, [socket, load]);
 
   const sessionByTable = useMemo(() => {
     const map = new Map();

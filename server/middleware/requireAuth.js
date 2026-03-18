@@ -71,7 +71,7 @@ export async function requireAuth(req, res, next) {
 
     // 4️⃣ Load user (ADMIN / MANAGER / WAITER / CHEF)
     const user = await UserModel.findById(userId)
-      .select("_id name role restaurantId brandId isActive")
+      .select("_id name role restaurantId brandId isActive kitchenStationId")
       .lean();
 
     if (!user || user.isActive === false) {
@@ -90,6 +90,7 @@ export async function requireAuth(req, res, next) {
       role: user.role, // BRAND_ADMIN / MANAGER / WAITER / CHEF
       restaurantId: user.restaurantId || null,
       brandId: user.brandId || null,
+      kitchenStationId: user.kitchenStationId || null,
       isStaff: ["WAITER", "CHEF"].includes(user.role),
     };
 

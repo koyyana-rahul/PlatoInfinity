@@ -2,7 +2,39 @@ import Order from "../models/order.model.js";
 import {
   emitKitchenEvent,
   emitOrderItemStatusUpdate,
+  emitOrderReady,
 } from "../socket/emitter.js";
+
+function deriveLiveOrderStatusFromItems(items = []) {
+  const safeItems = Array.isArray(items) ? items : [];
+  const totalItems = safeItems.length;
+
+  const newCount = safeItems.filter((i) => i.itemStatus === "NEW").length;
+  const inProgressCount = safeItems.filter(
+    (i) => i.itemStatus === "IN_PROGRESS",
+  ).length;
+  const readyCount = safeItems.filter((i) => i.itemStatus === "READY").length;
+  const servingCount = safeItems.filter(
+    (i) => i.itemStatus === "SERVING",
+  ).length;
+  const servedCount = safeItems.filter((i) => i.itemStatus === "SERVED").length;
+
+  let orderStatus = "NEW";
+  if (totalItems > 0 && servedCount === totalItems) orderStatus = "SERVED";
+  else if (servingCount > 0 || servedCount > 0) orderStatus = "SERVING";
+  else if (readyCount > 0) orderStatus = "READY";
+  else if (inProgressCount > 0) orderStatus = "IN_PROGRESS";
+
+  return {
+    orderStatus,
+    totalItems,
+    newCount,
+    inProgressCount,
+    readyCount,
+    servingCount,
+    servedCount,
+  };
+}
 
 export async function listKitchenOrders(req, res) {
   try {
@@ -138,22 +170,15 @@ export async function updateKitchenItemStatus(req, res) {
     const item = order.items.find((i) => i._id.toString() === itemId);
     const itemIndex = order.items.findIndex((i) => i._id.toString() === itemId);
 
-    const totalItems = order.items.length;
-    const readyCount = order.items.filter(
-      (i) => i.itemStatus === "READY",
-    ).length;
-    const servedCount = order.items.filter(
-      (i) => i.itemStatus === "SERVED",
-    ).length;
-    const inProgressCount = order.items.filter(
-      (i) => i.itemStatus === "IN_PROGRESS",
-    ).length;
-    const newCount = order.items.filter((i) => i.itemStatus === "NEW").length;
-
-    let orderStatus = "NEW";
-    if (servedCount === totalItems && totalItems > 0) orderStatus = "SERVED";
-    else if (inProgressCount > 0) orderStatus = "IN_PROGRESS";
-    else if (readyCount > 0) orderStatus = "READY";
+    const {
+      orderStatus,
+      totalItems,
+      readyCount,
+      servedCount,
+      servingCount,
+      inProgressCount,
+      newCount,
+    } = deriveLiveOrderStatusFromItems(order.items);
 
     // 🔥 REAL-TIME SOCKET EVENTS TO ALL ROLES
     await emitOrderItemStatusUpdate({
@@ -172,10 +197,29 @@ export async function updateKitchenItemStatus(req, res) {
       totalItems,
       readyCount,
       servedCount,
+      servingCount,
       inProgressCount,
       newCount,
       updatedAt: new Date(),
     });
+
+    // Emit explicit order-ready lifecycle event when all non-served items
+    // have reached READY state.
+    const allReadyForServing =
+      totalItems > 0 &&
+      order.items.every((i) => ["READY", "SERVED"].includes(i.itemStatus));
+
+    if (allReadyForServing) {
+      await emitOrderReady({
+        orderId: String(order._id),
+        restaurantId: String(order.restaurantId),
+        sessionId: String(order.sessionId),
+        tableId: String(order.tableId),
+        tableName: order.tableName || "Unknown",
+        orderNumber: order.orderNumber,
+        readyAt: new Date(),
+      });
+    }
 
     // ✅ AUTO CLOSE ORDER
     const remaining = order.items.some((i) => i.itemStatus !== "SERVED");

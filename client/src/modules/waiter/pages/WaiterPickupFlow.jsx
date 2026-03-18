@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Clock, CheckCircle, Truck, AlertCircle, Loader2 } from "lucide-react";
@@ -31,7 +31,7 @@ export default function WaiterPickupFlow() {
   const [isPinLoading, setIsPinLoading] = useState(false);
 
   // Fetch ready items
-  const fetchReadyItems = async () => {
+  const fetchReadyItems = useCallback(async () => {
     try {
       setLoading(true);
       const res = await Axios({
@@ -46,14 +46,11 @@ export default function WaiterPickupFlow() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchReadyItems();
-    // Fallback polling
-    const interval = setInterval(fetchReadyItems, 10000);
-    return () => clearInterval(interval);
-  }, []);
+  }, [fetchReadyItems]);
 
   // Real-time waiter updates
   useEffect(() => {
@@ -68,19 +65,43 @@ export default function WaiterPickupFlow() {
 
     const handleItemStatusUpdate = (payload) => {
       if (!payload?.itemStatus) return;
-      if (payload.itemStatus === "READY" || payload.itemStatus === "SERVED") {
+      if (
+        ["READY", "SERVING", "SERVED", "CANCELLED"].includes(
+          String(payload.itemStatus).toUpperCase(),
+        )
+      ) {
         fetchReadyItems();
       }
     };
 
+    const handleOrderLifecycle = () => {
+      fetchReadyItems();
+    };
+
+    const handleConnect = () => {
+      fetchReadyItems();
+    };
+
     socket.on("waiter:item-ready-alert", handleReadyAlert);
     socket.on("table:item-status-changed", handleItemStatusUpdate);
+    socket.on("order:item-status-updated", handleItemStatusUpdate);
+    socket.on("order:status-changed", handleOrderLifecycle);
+    socket.on("order:ready", handleOrderLifecycle);
+    socket.on("order:served", handleOrderLifecycle);
+    socket.on("order:cancelled", handleOrderLifecycle);
+    socket.on("connect", handleConnect);
 
     return () => {
       socket.off("waiter:item-ready-alert", handleReadyAlert);
       socket.off("table:item-status-changed", handleItemStatusUpdate);
+      socket.off("order:item-status-updated", handleItemStatusUpdate);
+      socket.off("order:status-changed", handleOrderLifecycle);
+      socket.off("order:ready", handleOrderLifecycle);
+      socket.off("order:served", handleOrderLifecycle);
+      socket.off("order:cancelled", handleOrderLifecycle);
+      socket.off("connect", handleConnect);
     };
-  }, [socket]);
+  }, [socket, fetchReadyItems]);
 
   const handlePickupClick = (orderId, itemId, itemName, tableName) => {
     setPendingAction({

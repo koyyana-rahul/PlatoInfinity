@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   FiBarChart2,
   FiClock,
@@ -6,6 +6,7 @@ import {
   FiDownload,
 } from "react-icons/fi";
 import { useSocket } from "../../socket/SocketProvider";
+import { useSelector } from "react-redux";
 import AuthAxios from "../../api/authAxios";
 import dashboardApi from "../../api/dashboard.api";
 import toast from "react-hot-toast";
@@ -13,6 +14,56 @@ import Dropdown from "../../components/ui/DropDown";
 
 export default function ManagerDashboard() {
   const socket = useSocket();
+  const restaurantId = useSelector((s) => s.user?.restaurantId);
+
+  const normalizeStatus = (status) =>
+    String(status || "").toUpperCase() || "NEW";
+
+  const applyOrderLevelStatusToItems = (items = [], status) => {
+    const normalized = normalizeStatus(status);
+
+    if (normalized === "SERVED") {
+      return (Array.isArray(items) ? items : []).map((item) => ({
+        ...item,
+        itemStatus: "SERVED",
+      }));
+    }
+
+    return Array.isArray(items) ? items : [];
+  };
+
+  const deriveOrderStatus = (order = {}) => {
+    const fallback = normalizeStatus(
+      order?.orderStatus || order?.status || "NEW",
+    );
+
+    if (["SERVED", "CANCELLED", "PAID"].includes(fallback)) {
+      return fallback;
+    }
+
+    const items = Array.isArray(order?.items) ? order.items : [];
+    const itemStatuses = items.map((it) =>
+      String(it?.itemStatus || "").toUpperCase(),
+    );
+    const totalItems = itemStatuses.length;
+    const servedCount = itemStatuses.filter((s) => s === "SERVED").length;
+
+    if (totalItems > 0 && servedCount === totalItems) return "SERVED";
+    if (itemStatuses.some((s) => s === "SERVING") || servedCount > 0)
+      return "SERVING";
+    if (itemStatuses.some((s) => s === "READY")) return "READY";
+    if (itemStatuses.some((s) => s === "IN_PROGRESS")) return "IN_PROGRESS";
+
+    return fallback;
+  };
+
+  const normalizeOrder = (order = {}) => ({
+    ...order,
+    _id: order._id || order.orderId,
+    items: Array.isArray(order.items) ? order.items : [],
+    orderStatus: deriveOrderStatus(order),
+    placedAt: order.placedAt || order.createdAt || order.updatedAt,
+  });
 
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
@@ -29,10 +80,10 @@ export default function ManagerDashboard() {
   const [loading, setLoading] = useState(true);
 
   const applyFilters = (orderList, filterSettings) => {
-    let filtered = [...orderList];
+    let filtered = orderList.map((o) => normalizeOrder(o));
     if (filterSettings.status !== "all") {
       filtered = filtered.filter(
-        (o) => o.orderStatus === filterSettings.status,
+        (o) => String(o.orderStatus) === String(filterSettings.status),
       );
     }
     filtered.sort((a, b) => new Date(b.placedAt) - new Date(a.placedAt));
@@ -40,54 +91,88 @@ export default function ManagerDashboard() {
   };
 
   const calculateStats = (orderList) => {
-    const completed = orderList.filter(
+    const normalized = orderList.map((o) => normalizeOrder(o));
+    const completed = normalized.filter(
       (o) => o.orderStatus === "SERVED",
     ).length;
-    const pending = orderList.filter(
-      (o) => o.orderStatus === "NEW" || o.orderStatus === "IN_PROGRESS",
+    const pending = normalized.filter(
+      (o) =>
+        o.orderStatus === "NEW" ||
+        o.orderStatus === "IN_PROGRESS" ||
+        o.orderStatus === "SERVING" ||
+        o.orderStatus === "READY",
     ).length;
     setStats({
-      totalOrders: orderList.length,
+      totalOrders: normalized.length,
       completedOrders: completed,
       pendingOrders: pending,
-      totalRevenue: orderList.reduce((sum, o) => sum + (o.totalAmount || 0), 0),
+      totalRevenue: normalized.reduce(
+        (sum, o) => sum + (o.totalAmount || 0),
+        0,
+      ),
     });
   };
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        const config = dashboardApi.getRecentOrders(100, filters.timeRange);
-        const res = await AuthAxios.get(config.url, { params: config.params });
-        if (res.data?.success) {
-          const list = res.data.data || [];
-          setOrders(list);
-          applyFilters(list, filters);
-          calculateStats(list);
-        }
-      } catch (error) {
-        console.error(
-          "Failed to fetch orders:",
-          error.response?.data?.message || error.message,
-        );
-        toast.error(error.response?.data?.message || "Failed to fetch orders");
-      } finally {
-        setLoading(false);
+  const fetchOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      const config = dashboardApi.getRecentOrders(100, filters.timeRange);
+      const res = await AuthAxios.get(config.url, { params: config.params });
+      if (res.data?.success) {
+        const list = (res.data.data || []).map((o) => normalizeOrder(o));
+        setOrders(list);
+        applyFilters(list, filters);
+        calculateStats(list);
       }
-    };
+    } catch (error) {
+      console.error(
+        "Failed to fetch orders:",
+        error.response?.data?.message || error.message,
+      );
+      toast.error(error.response?.data?.message || "Failed to fetch orders");
+    } finally {
+      setLoading(false);
+    }
+  }, [filters.timeRange, filters.status]);
 
+  useEffect(() => {
     fetchOrders();
     const interval = setInterval(fetchOrders, 30000);
     return () => clearInterval(interval);
-  }, [filters.timeRange]);
+  }, [fetchOrders]);
+
+  useEffect(() => {
+    if (!socket || !restaurantId) return;
+
+    let resyncTimer = null;
+
+    const emitJoin = () => {
+      socket.emit("join:restaurant", { restaurantId });
+
+      clearTimeout(resyncTimer);
+      resyncTimer = setTimeout(() => {
+        fetchOrders();
+      }, 150);
+    };
+
+    emitJoin();
+    socket.on("connect", emitJoin);
+
+    return () => {
+      clearTimeout(resyncTimer);
+      socket.off("connect", emitJoin);
+    };
+  }, [socket, restaurantId, fetchOrders]);
 
   useEffect(() => {
     if (!socket) return;
 
     const handleOrderUpdate = (data) => {
       const incomingId = data?._id || data?.orderId;
-      if (!incomingId) return;
+      if (!incomingId) {
+        fetchOrders();
+        return;
+      }
 
       setOrders((prev) => {
         const exists = prev.some((o) => String(o._id) === String(incomingId));
@@ -107,15 +192,29 @@ export default function ManagerDashboard() {
                   : item;
               });
 
+              const incomingOrderStatus =
+                data.orderStatus || data.status || o.orderStatus;
+              const patchedItems =
+                !data.itemId &&
+                (data.itemIndex === undefined || data.itemIndex === null)
+                  ? applyOrderLevelStatusToItems(nextItems, incomingOrderStatus)
+                  : nextItems;
+
               return {
                 ...o,
                 ...data,
                 _id: o._id,
-                orderStatus: data.orderStatus || o.orderStatus,
-                items: nextItems,
+                orderStatus: deriveOrderStatus({
+                  ...o,
+                  ...data,
+                  orderStatus: incomingOrderStatus,
+                  status: incomingOrderStatus,
+                  items: patchedItems,
+                }),
+                items: patchedItems,
               };
             })
-          : [data, ...prev];
+          : [normalizeOrder(data), ...prev];
 
         applyFilters(updated, filters);
         calculateStats(updated);
@@ -123,16 +222,36 @@ export default function ManagerDashboard() {
       });
     };
 
+    const handleSocketReconnect = () => {
+      fetchOrders();
+    };
+
     socket.on("order:placed", handleOrderUpdate);
     socket.on("order:item-status-updated", handleOrderUpdate);
+    socket.on("order:status-changed", handleOrderUpdate);
+    socket.on("manager:order-status-changed", handleOrderUpdate);
+    socket.on("order:ready", handleOrderUpdate);
+    socket.on("order:ready-for-serving", handleOrderUpdate);
     socket.on("order:served", handleOrderUpdate);
+    socket.on("order:cancelled", handleOrderUpdate);
+    socket.on("table:item-status-changed", handleOrderUpdate);
+    socket.on("waiter:item-ready-alert", handleOrderUpdate);
+    socket.on("connect", handleSocketReconnect);
 
     return () => {
       socket.off("order:placed", handleOrderUpdate);
       socket.off("order:item-status-updated", handleOrderUpdate);
+      socket.off("order:status-changed", handleOrderUpdate);
+      socket.off("manager:order-status-changed", handleOrderUpdate);
+      socket.off("order:ready", handleOrderUpdate);
+      socket.off("order:ready-for-serving", handleOrderUpdate);
       socket.off("order:served", handleOrderUpdate);
+      socket.off("order:cancelled", handleOrderUpdate);
+      socket.off("table:item-status-changed", handleOrderUpdate);
+      socket.off("waiter:item-ready-alert", handleOrderUpdate);
+      socket.off("connect", handleSocketReconnect);
     };
-  }, [socket, filters]);
+  }, [socket, filters, fetchOrders]);
 
   const handleFilterChange = (field, value) => {
     const next = { ...filters, [field]: value };
@@ -168,6 +287,8 @@ export default function ManagerDashboard() {
     switch (status) {
       case "SERVED":
         return "bg-green-50 text-green-700";
+      case "SERVING":
+        return "bg-indigo-50 text-indigo-700";
       case "READY":
         return "bg-emerald-50 text-emerald-700";
       case "IN_PROGRESS":
@@ -177,6 +298,25 @@ export default function ManagerDashboard() {
       default:
         return "bg-gray-50 text-gray-700";
     }
+  };
+
+  const getStatusProgress = (status) => {
+    const normalized = String(status || "NEW").toUpperCase();
+    const progressMap = {
+      NEW: { percent: 20, color: "bg-orange-500", label: "PLACED" },
+      IN_PROGRESS: { percent: 40, color: "bg-blue-500", label: "PREPARING" },
+      SERVING: { percent: 60, color: "bg-indigo-500", label: "SERVING" },
+      READY: { percent: 80, color: "bg-emerald-500", label: "READY" },
+      SERVED: { percent: 100, color: "bg-green-600", label: "SERVED" },
+      CANCELLED: { percent: 0, color: "bg-slate-400", label: "CANCELLED" },
+    };
+    return (
+      progressMap[normalized] || {
+        percent: 20,
+        color: "bg-slate-500",
+        label: normalized.replaceAll("_", " "),
+      }
+    );
   };
 
   return (
@@ -250,8 +390,9 @@ export default function ManagerDashboard() {
                 placeholder="Status"
                 options={[
                   { value: "all", label: "All Status" },
-                  { value: "NEW", label: "New" },
+                  { value: "NEW", label: "Placed" },
                   { value: "IN_PROGRESS", label: "Preparing" },
+                  { value: "SERVING", label: "Serving" },
                   { value: "READY", label: "Ready" },
                   { value: "SERVED", label: "Served" },
                 ]}
@@ -297,13 +438,29 @@ export default function ManagerDashboard() {
                         ₹{order.totalAmount || 0}
                       </td>
                       <td className="py-3 pr-3">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-semibold ${statusClass(order.orderStatus)}`}
-                        >
-                          {order.orderStatus === "IN_PROGRESS"
-                            ? "Preparing"
-                            : order.orderStatus?.replaceAll("_", " ")}
-                        </span>
+                        {(() => {
+                          const progress = getStatusProgress(order.orderStatus);
+                          return (
+                            <div className="space-y-1">
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-semibold ${statusClass(order.orderStatus)}`}
+                              >
+                                {progress.label}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <div className="w-24 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full ${progress.color} transition-all duration-500`}
+                                    style={{ width: `${progress.percent}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] font-semibold text-gray-600">
+                                  {progress.percent}%
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="py-3 text-gray-500 text-sm">
                         {new Date(order.placedAt).toLocaleTimeString([], {

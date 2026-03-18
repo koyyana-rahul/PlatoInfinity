@@ -5,7 +5,7 @@ import Axios from "../../../../api/axios";
 import chefApi from "../../../../api/chef.api";
 import toast from "react-hot-toast";
 
-export default function useKitchenOrders(station) {
+export default function useKitchenOrders(station, stationId = null) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const socket = useSocket();
@@ -30,27 +30,30 @@ export default function useKitchenOrders(station) {
     );
   };
 
-  const loadOrders = async () => {
+  const loadOrders = async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await Axios({
         ...chefApi.listOrders,
-        params: { station },
+        params: {
+          ...(station ? { station } : {}),
+          ...(stationId ? { stationId } : {}),
+        },
       });
       setOrders(res.data.data || []);
     } catch {
       toast.error("Failed to load kitchen orders");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (station) loadOrders();
-  }, [station]);
+    if (station || stationId) loadOrders();
+  }, [station, stationId]);
 
   useEffect(() => {
-    if (!socket || !station) return;
+    if (!socket || (!station && !stationId)) return;
 
     const handleNewOrder = (payload) => {
       const orderPayload = payload.orderId
@@ -66,12 +69,26 @@ export default function useKitchenOrders(station) {
 
       if (!orderPayload?.items?.length) return;
 
-      const hasItemForStation = orderPayload.items.some(
-        (item) => item.station === station,
-      );
+      const hasItemForStation = orderPayload.items.some((item) => {
+        const matchesStationId =
+          stationId &&
+          item?.kitchenStationId &&
+          String(item.kitchenStationId) === String(stationId);
+
+        const matchesStationName =
+          station && item?.station && String(item.station) === String(station);
+
+        // If backend already scoped event by room and fields are absent/misaligned,
+        // allow event through rather than dropping valid new orders.
+        const noRoutingMetadata = !item?.kitchenStationId && !item?.station;
+
+        return matchesStationId || matchesStationName || noRoutingMetadata;
+      });
       if (hasItemForStation) {
         setOrders((prevOrders) => {
-          if (prevOrders.some((o) => o._id === orderPayload._id)) {
+          if (
+            prevOrders.some((o) => String(o._id) === String(orderPayload._id))
+          ) {
             return prevOrders;
           }
           return [orderPayload, ...prevOrders];
@@ -84,19 +101,49 @@ export default function useKitchenOrders(station) {
       const itemId = update.itemId;
       const itemIndex = update.itemIndex;
       const orderId = update.orderId || update._id;
+
+      if (!orderId) {
+        loadOrders();
+        return;
+      }
+
       applyStatusUpdate(orderId, itemId, status, itemIndex);
+    };
+
+    const handleConnect = () => {
+      loadOrders({ silent: true });
+    };
+
+    const handleLifecycleRefresh = () => {
+      // Fallback path: even if station-room event is missed, chef still receives
+      // restaurant-level lifecycle events and can sync instantly.
+      loadOrders({ silent: true });
     };
 
     socket.on("kitchen:order-new", handleNewOrder);
     socket.on("order:item-status-updated", handleStatusUpdate);
     socket.on("order:itemStatus", handleStatusUpdate);
+    socket.on("order:placed", handleLifecycleRefresh);
+    socket.on("order:status-changed", handleLifecycleRefresh);
+    socket.on("manager:order-status-changed", handleLifecycleRefresh);
+    socket.on("order:ready", handleLifecycleRefresh);
+    socket.on("order:served", handleLifecycleRefresh);
+    socket.on("order:cancelled", handleLifecycleRefresh);
+    socket.on("connect", handleConnect);
 
     return () => {
       socket.off("kitchen:order-new", handleNewOrder);
       socket.off("order:item-status-updated", handleStatusUpdate);
       socket.off("order:itemStatus", handleStatusUpdate);
+      socket.off("order:placed", handleLifecycleRefresh);
+      socket.off("order:status-changed", handleLifecycleRefresh);
+      socket.off("manager:order-status-changed", handleLifecycleRefresh);
+      socket.off("order:ready", handleLifecycleRefresh);
+      socket.off("order:served", handleLifecycleRefresh);
+      socket.off("order:cancelled", handleLifecycleRefresh);
+      socket.off("connect", handleConnect);
     };
-  }, [socket, station]);
+  }, [socket, station, stationId]);
 
   return {
     orders,

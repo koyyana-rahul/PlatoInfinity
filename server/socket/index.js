@@ -13,6 +13,66 @@ import {
 
 let io;
 
+function parseCookieHeader(cookieHeader = "") {
+  return String(cookieHeader)
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .reduce((acc, pair) => {
+      const eqIndex = pair.indexOf("=");
+      if (eqIndex === -1) return acc;
+      const key = decodeURIComponent(pair.slice(0, eqIndex).trim());
+      const value = decodeURIComponent(pair.slice(eqIndex + 1).trim());
+      acc[key] = value;
+      return acc;
+    }, {});
+}
+
+function deriveLiveOrderStatusFromItems(items = []) {
+  const normalizedItems = Array.isArray(items) ? items : [];
+  const totalItems = normalizedItems.length;
+
+  const counts = {
+    newCount: normalizedItems.filter((i) => i.itemStatus === "NEW").length,
+    inProgressCount: normalizedItems.filter(
+      (i) => i.itemStatus === "IN_PROGRESS",
+    ).length,
+    readyCount: normalizedItems.filter((i) => i.itemStatus === "READY").length,
+    servingCount: normalizedItems.filter((i) => i.itemStatus === "SERVING")
+      .length,
+    servedCount: normalizedItems.filter((i) => i.itemStatus === "SERVED")
+      .length,
+    cancelledCount: normalizedItems.filter((i) => i.itemStatus === "CANCELLED")
+      .length,
+  };
+
+  let orderStatus = "NEW";
+
+  if (totalItems > 0 && counts.servedCount === totalItems) {
+    orderStatus = "SERVED";
+  } else if (counts.servingCount > 0 || counts.servedCount > 0) {
+    // Partial served state should surface as serving in flow-based UIs.
+    orderStatus = "SERVING";
+  } else if (counts.readyCount > 0) {
+    orderStatus = "READY";
+  } else if (counts.inProgressCount > 0) {
+    orderStatus = "IN_PROGRESS";
+  } else if (counts.newCount > 0) {
+    orderStatus = "NEW";
+  } else if (
+    counts.cancelledCount > 0 &&
+    counts.cancelledCount === totalItems
+  ) {
+    orderStatus = "CANCELLED";
+  }
+
+  return {
+    orderStatus,
+    totalItems,
+    ...counts,
+  };
+}
+
 /* =====================================================
    INIT SOCKET SERVER
 ===================================================== */
@@ -23,24 +83,46 @@ export function initSocketServer(httpServer, options = {}) {
     "http://localhost:3000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
+    "https://platoinfinity.xyz",
+    "https://www.platoinfinity.xyz",
     process.env.CLIENT_URL,
+    process.env.FRONTEND_URL,
+    process.env.CLIENT_ORIGIN,
   ].filter(Boolean);
+
+  const normalizeOrigin = (origin) =>
+    String(origin || "")
+      .trim()
+      .replace(/\/$/, "");
+
+  const normalizedAllowedOrigins = allowedOrigins.map(normalizeOrigin);
 
   io = new SocketIOServer(httpServer, {
     path: options.path || "/socket.io",
     cors: {
       origin: (origin, callback) => {
+        const normalizedOrigin = normalizeOrigin(origin);
+
         // In development, allow all localhost origins
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin || normalizedAllowedOrigins.includes(normalizedOrigin)) {
           callback(null, true);
         } else if (process.env.NODE_ENV !== "production") {
           // Development: be permissive with localhost variants
-          if (origin?.includes("localhost") || origin?.includes("127.0.0.1")) {
+          if (
+            normalizedOrigin.includes("localhost") ||
+            normalizedOrigin.includes("127.0.0.1")
+          ) {
             callback(null, true);
           } else {
+            console.warn(
+              `⛔ Socket CORS blocked origin (dev): ${normalizedOrigin}`,
+            );
             callback(new Error("CORS not allowed"));
           }
         } else {
+          console.warn(
+            `⛔ Socket CORS blocked origin (prod): ${normalizedOrigin}`,
+          );
           callback(new Error("CORS not allowed"));
         }
       },
@@ -60,9 +142,13 @@ export function initSocketServer(httpServer, options = {}) {
   /* ================= SOCKET AUTH ================= */
   io.use(async (socket, next) => {
     try {
+      const cookieHeader = socket.handshake.headers?.cookie || "";
+      const cookies = parseCookieHeader(cookieHeader);
+
       const token =
         socket.handshake.auth?.token ||
-        socket.handshake.headers?.authorization?.split(" ")[1];
+        socket.handshake.headers?.authorization?.split(" ")[1] ||
+        cookies?.accessToken;
 
       console.log(
         `🔐 Socket auth attempt | uuid=${socket.id} | has_token=${!!token}`,
@@ -93,7 +179,7 @@ export function initSocketServer(httpServer, options = {}) {
             id: String(user._id),
             name: user.name,
             role: user.role,
-            restaurantId: String(user.restaurantId),
+            restaurantId: user.restaurantId ? String(user.restaurantId) : null,
             station: user.kitchenStation || null,
             kitchenStationId: user.kitchenStationId
               ? String(user.kitchenStationId)
@@ -129,6 +215,40 @@ export function initSocketServer(httpServer, options = {}) {
   io.on("connection", (socket) => {
     const user = socket.user;
 
+    const joinStaffRooms = (targetRestaurantId) => {
+      if (!targetRestaurantId || user.role === "CUSTOMER") return;
+
+      socket.join(`restaurant:${targetRestaurantId}`);
+
+      if (["MANAGER", "BRAND_ADMIN", "ADMIN", "OWNER"].includes(user.role)) {
+        socket.join(`restaurant:${targetRestaurantId}:managers`);
+      }
+
+      if (["WAITER", "MANAGER"].includes(user.role)) {
+        socket.join(`restaurant:${targetRestaurantId}:waiters`);
+      }
+
+      if (user.role === "CHEF") {
+        socket.join(`restaurant:${targetRestaurantId}:kitchen`);
+
+        if (user.kitchenStationId) {
+          socket.join(
+            `restaurant:${targetRestaurantId}:station:${user.kitchenStationId}`,
+          );
+        }
+
+        if (user.station) {
+          socket.join(
+            `restaurant:${targetRestaurantId}:station:${user.station}`,
+          );
+        }
+      }
+
+      if (user.role === "CASHIER") {
+        socket.join(`restaurant:${targetRestaurantId}:cashier`);
+      }
+    };
+
     console.log(`
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🔌 SOCKET CONNECTED
@@ -142,79 +262,81 @@ export function initSocketServer(httpServer, options = {}) {
     `);
 
     // Skip base room for customers (they'll join explicitly)
-    if (user.role !== "CUSTOMER" && user.restaurantId) {
-      console.log(`✅ Staff member - joining rooms...`);
-
-      /* ---------- BASE ROOM ---------- */
-      socket.join(`restaurant:${user.restaurantId}`);
-      console.log(`  ✓ Joined: restaurant:${user.restaurantId}`);
-
-      /* ---------- MANAGER ROOM ---------- */
-      if (user.role === "MANAGER" || user.role === "BRAND_ADMIN") {
-        socket.join(`restaurant:${user.restaurantId}:managers`);
-        console.log(`  ✓ Joined: restaurant:${user.restaurantId}:managers`);
-      }
-
-      /* ---------- WAITER ROOM ---------- */
-      if (user.role === "WAITER" || user.role === "MANAGER") {
-        socket.join(`restaurant:${user.restaurantId}:waiters`);
-        console.log(`  ✓ Joined: restaurant:${user.restaurantId}:waiters`);
-        console.log(
-          `  📊 Waiters in room: ${io.sockets.adapter.rooms.get(`restaurant:${user.restaurantId}:waiters`)?.size || 0}`,
-        );
-      }
-
-      /* ---------- CHEF ROOM ---------- */
-      if (user.role === "CHEF") {
-        socket.join(`restaurant:${user.restaurantId}:kitchen`);
-        console.log(`  ✓ Joined: restaurant:${user.restaurantId}:kitchen`);
-
-        // Join by kitchenStationId (preferred)
-        if (user.kitchenStationId) {
-          socket.join(
-            `restaurant:${user.restaurantId}:station:${user.kitchenStationId}`,
-          );
-          console.log(
-            `  ✓ Joined: restaurant:${user.restaurantId}:station:${user.kitchenStationId}`,
-          );
-        }
-
-        // Also join by string station name (backward compatibility)
-        if (user.station) {
-          socket.join(
-            `restaurant:${user.restaurantId}:station:${user.station}`,
-          );
-          console.log(
-            `  ✓ Joined: restaurant:${user.restaurantId}:station:${user.station}`,
-          );
-        }
-      }
-
-      /* ---------- CASHIER ROOM ---------- */
-      if (user.role === "CASHIER") {
-        socket.join(`restaurant:${user.restaurantId}:cashier`);
-        console.log(`  ✓ Joined: restaurant:${user.restaurantId}:cashier`);
-      }
-
+    if (user.role !== "CUSTOMER") {
       /* ---------- USER-SPECIFIC ROOM (for direct notifications) ---------- */
       socket.join(`user:${user.id}`);
       console.log(`  ✓ Joined: user:${user.id}`);
+
+      if (user.restaurantId) {
+        console.log(`✅ Staff member - joining rooms...`);
+        joinStaffRooms(user.restaurantId);
+        console.log(
+          `  ✓ Joined role rooms for restaurant:${user.restaurantId}`,
+        );
+      } else {
+        console.log(
+          `ℹ️ Staff connected without fixed restaurant; awaiting join:restaurant`,
+        );
+      }
     } else if (user.role === "CUSTOMER") {
       console.log(
         `👥 Customer connected (will join specific room on join:customer event)`,
       );
     }
 
+    socket.on("join:restaurant", ({ restaurantId }) => {
+      if (!restaurantId || user.role === "CUSTOMER") return;
+
+      const targetRestaurantId = String(restaurantId);
+      const userRestaurantId = user.restaurantId
+        ? String(user.restaurantId)
+        : null;
+
+      // Prevent non-admin staff from joining arbitrary restaurants
+      if (
+        userRestaurantId &&
+        userRestaurantId !== targetRestaurantId &&
+        !["BRAND_ADMIN", "ADMIN", "OWNER"].includes(user.role)
+      ) {
+        console.warn(
+          `⛔ Blocked room join for ${user.role}. Requested ${targetRestaurantId}, allowed ${userRestaurantId}`,
+        );
+        return;
+      }
+
+      joinStaffRooms(targetRestaurantId);
+
+      console.log(
+        `🏢 ${user.role} joined requested restaurant rooms: ${targetRestaurantId}`,
+      );
+    });
+
     /* ---------- CUSTOMER JOINS ---------- */
     socket.on("join:customer", ({ sessionId, tableId, restaurantId }) => {
-      if (restaurantId) {
-        socket.join(`restaurant:${restaurantId}:customers`);
-        socket.join(`session:${sessionId}`);
+      const normalizedSessionId = sessionId ? String(sessionId) : null;
+      const normalizedRestaurantId = restaurantId ? String(restaurantId) : null;
+      const normalizedTableId = tableId ? String(tableId) : null;
+
+      // Session room is the primary channel for customer order lifecycle updates.
+      if (normalizedSessionId) {
+        socket.join(`session:${normalizedSessionId}`);
+      }
+
+      // Restaurant customer room is used as fallback broadcast channel.
+      if (normalizedRestaurantId) {
+        socket.join(`restaurant:${normalizedRestaurantId}:customers`);
+      }
+
+      if (normalizedSessionId || normalizedRestaurantId) {
         console.log(
-          `👥 Customer joined: session:${sessionId} | restaurant:${restaurantId} | socket:${socket.id}`,
+          `👥 Customer joined: session:${normalizedSessionId || "-"} | restaurant:${normalizedRestaurantId || "-"} | table:${normalizedTableId || "-"} | socket:${socket.id}`,
         );
         // Confirm room membership
         console.log(`  🏠 Rooms after join:`, Array.from(socket.rooms));
+      } else {
+        console.warn(
+          `⚠️ join:customer ignored (missing sessionId and restaurantId) | socket:${socket.id}`,
+        );
       }
     });
 
@@ -404,25 +526,15 @@ export function initSocketServer(httpServer, options = {}) {
 
         await order.save();
 
-        const totalItems = order.items.length;
-        const readyCount = order.items.filter(
-          (i) => i.itemStatus === "READY",
-        ).length;
-        const servedCount = order.items.filter(
-          (i) => i.itemStatus === "SERVED",
-        ).length;
-        const inProgressCount = order.items.filter(
-          (i) => i.itemStatus === "IN_PROGRESS",
-        ).length;
-        const newCount = order.items.filter(
-          (i) => i.itemStatus === "NEW",
-        ).length;
-
-        let orderStatus = "NEW";
-        if (servedCount === totalItems && totalItems > 0)
-          orderStatus = "SERVED";
-        else if (inProgressCount > 0) orderStatus = "IN_PROGRESS";
-        else if (readyCount > 0) orderStatus = "READY";
+        const {
+          orderStatus,
+          totalItems,
+          readyCount,
+          servedCount,
+          servingCount,
+          inProgressCount,
+          newCount,
+        } = deriveLiveOrderStatusFromItems(order.items);
 
         // Emit comprehensive status update
         await emitOrderItemStatusUpdate({
@@ -441,6 +553,7 @@ export function initSocketServer(httpServer, options = {}) {
           totalItems,
           readyCount,
           servedCount,
+          servingCount,
           inProgressCount,
           newCount,
           updatedAt: new Date(),
@@ -477,25 +590,15 @@ export function initSocketServer(httpServer, options = {}) {
 
         await order.save();
 
-        const totalItems = order.items.length;
-        const readyCount = order.items.filter(
-          (i) => i.itemStatus === "READY",
-        ).length;
-        const servedCount = order.items.filter(
-          (i) => i.itemStatus === "SERVED",
-        ).length;
-        const inProgressCount = order.items.filter(
-          (i) => i.itemStatus === "IN_PROGRESS",
-        ).length;
-        const newCount = order.items.filter(
-          (i) => i.itemStatus === "NEW",
-        ).length;
-
-        let orderStatus = "NEW";
-        if (servedCount === totalItems && totalItems > 0)
-          orderStatus = "SERVED";
-        else if (inProgressCount > 0) orderStatus = "IN_PROGRESS";
-        else if (readyCount > 0) orderStatus = "READY";
+        const {
+          orderStatus,
+          totalItems,
+          readyCount,
+          servedCount,
+          servingCount,
+          inProgressCount,
+          newCount,
+        } = deriveLiveOrderStatusFromItems(order.items);
 
         // Emit comprehensive status update
         await emitOrderItemStatusUpdate({
@@ -514,6 +617,7 @@ export function initSocketServer(httpServer, options = {}) {
           totalItems,
           readyCount,
           servedCount,
+          servingCount,
           inProgressCount,
           newCount,
           updatedAt: new Date(),
@@ -524,9 +628,16 @@ export function initSocketServer(httpServer, options = {}) {
           io.to(`restaurant:${user.restaurantId}`).emit(
             "order:ready-for-serving",
             {
-              orderId,
+              _id: String(orderId),
+              orderId: String(orderId),
+              sessionId: String(order.sessionId),
               tableName: order.tableName,
-              tableId: order.tableId,
+              tableId: String(order.tableId),
+              orderNumber: order.orderNumber,
+              orderStatus: "READY",
+              status: "READY",
+              readyAt: new Date(),
+              updatedAt: new Date(),
             },
           );
         }
@@ -633,25 +744,15 @@ export function initSocketServer(httpServer, options = {}) {
 
         await order.save();
 
-        const totalItems = order.items.length;
-        const readyCount = order.items.filter(
-          (i) => i.itemStatus === "READY",
-        ).length;
-        const servedCount = order.items.filter(
-          (i) => i.itemStatus === "SERVED",
-        ).length;
-        const inProgressCount = order.items.filter(
-          (i) => i.itemStatus === "IN_PROGRESS",
-        ).length;
-        const newCount = order.items.filter(
-          (i) => i.itemStatus === "NEW",
-        ).length;
-
-        let orderStatus = "NEW";
-        if (servedCount === totalItems && totalItems > 0)
-          orderStatus = "SERVED";
-        else if (inProgressCount > 0) orderStatus = "IN_PROGRESS";
-        else if (readyCount > 0) orderStatus = "READY";
+        const {
+          orderStatus,
+          totalItems,
+          readyCount,
+          servedCount,
+          servingCount,
+          inProgressCount,
+          newCount,
+        } = deriveLiveOrderStatusFromItems(order.items);
 
         await emitOrderItemStatusUpdate({
           orderId: String(orderId),
@@ -669,6 +770,7 @@ export function initSocketServer(httpServer, options = {}) {
           totalItems,
           readyCount,
           servedCount,
+          servingCount,
           inProgressCount,
           newCount,
           updatedAt: new Date(),
@@ -859,6 +961,14 @@ export function initSocketServer(httpServer, options = {}) {
             timestamp: new Date(),
           },
         );
+
+        io.to(`restaurant:${user.restaurantId}`).emit("order:status-changed", {
+          orderId,
+          status,
+          orderStatus: status,
+          updatedAt: new Date(),
+          timestamp: new Date(),
+        });
 
         ack({ ok: true });
       } catch (err) {

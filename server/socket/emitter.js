@@ -16,6 +16,19 @@ export function getIO() {
   return ioRef;
 }
 
+function normalizeOrderLifecyclePayload(payload = {}) {
+  const normalizedOrderId = payload.orderId || payload._id;
+  return {
+    ...payload,
+    _id: normalizedOrderId,
+    orderId: normalizedOrderId,
+    orderStatus: payload.orderStatus || payload.status || "NEW",
+    status: payload.status || payload.orderStatus || "NEW",
+    placedAt: payload.placedAt || payload.createdAt || payload.updatedAt,
+    updatedAt: payload.updatedAt || new Date(),
+  };
+}
+
 /* ================= WAITER UPDATES ================= */
 
 export function emitTableUpdate(restaurantId) {
@@ -101,7 +114,7 @@ export async function emitOrderPlaced(orderData) {
    * 1️⃣ BROADCAST TO RESTAURANT STAFF
    * (Admin, Manager, Waiter)
    */
-  ioRef.to(`restaurant:${restaurantId}`).emit("order:placed", {
+  const staffOrderPayload = normalizeOrderLifecyclePayload({
     orderId,
     sessionId,
     tableId,
@@ -109,15 +122,27 @@ export async function emitOrderPlaced(orderData) {
     orderNumber,
     totalAmount,
     itemCount: items.length,
+    items,
     placedBy,
     placedAt,
     status: "NEW",
+  });
+
+  ioRef
+    .to(`restaurant:${restaurantId}`)
+    .emit("order:placed", staffOrderPayload);
+
+  ioRef.to(`restaurant:${restaurantId}`).emit("order:status-changed", {
+    ...staffOrderPayload,
+    status: "NEW",
+    orderStatus: "NEW",
   });
 
   /**
    * 2️⃣ NOTIFY WAITER TEAM
    */
   ioRef.to(`restaurant:${restaurantId}:waiters`).emit("table:order-placed", {
+    ...staffOrderPayload,
     orderId,
     tableId,
     tableName,
@@ -194,8 +219,25 @@ export async function emitOrderPlaced(orderData) {
   /**
    * 4️⃣ NOTIFY CUSTOMER
    */
+  // Full lifecycle payload for customer order timeline UIs.
+  if (sessionId) {
+    ioRef.to(`session:${sessionId}`).emit("order:placed", {
+      ...staffOrderPayload,
+      message: "Your order has been placed successfully.",
+    });
+  }
+
+  // Fallback broadcast for customer clients that joined restaurant customer room
+  // but may have stale/missing session room membership.
+  ioRef.to(`restaurant:${restaurantId}:customers`).emit("order:placed", {
+    ...staffOrderPayload,
+    message: "A new order has been placed.",
+  });
+
   ioRef.to(`session:${sessionId}`).emit("order:confirmed", {
+    ...staffOrderPayload,
     orderId,
+    _id: orderId,
     orderNumber,
     totalAmount,
     itemCount: items.length,
@@ -232,6 +274,7 @@ export async function emitOrderItemStatusUpdate(updateData) {
     totalItems,
     readyCount,
     servedCount,
+    servingCount,
     inProgressCount,
     newCount,
     updatedAt,
@@ -245,6 +288,7 @@ export async function emitOrderItemStatusUpdate(updateData) {
     _id: orderId,
     orderId,
     orderStatus,
+    status: orderStatus,
     tableId,
     tableName,
     itemId,
@@ -257,6 +301,7 @@ export async function emitOrderItemStatusUpdate(updateData) {
     totalItems,
     readyCount,
     servedCount,
+    servingCount,
     inProgressCount,
     newCount,
     updatedAt,
@@ -268,6 +313,40 @@ export async function emitOrderItemStatusUpdate(updateData) {
   ioRef
     .to(`restaurant:${restaurantId}`)
     .emit("order:item-status-updated", basePayload);
+
+  // Ensure waiter-only clients also receive canonical order item event even
+  // if they are not subscribed to the broader restaurant room in some flows.
+  ioRef
+    .to(`restaurant:${restaurantId}:waiters`)
+    .emit("order:item-status-updated", basePayload);
+
+  // Customer fallback channel for clients that temporarily miss session room join.
+  ioRef
+    .to(`restaurant:${restaurantId}:customers`)
+    .emit("order:item-status-updated", {
+      ...basePayload,
+      message:
+        itemStatus === "READY"
+          ? `${itemName} is ready!`
+          : `${itemName} is ${itemStatus.replaceAll("_", " ")}`,
+    });
+
+  ioRef.to(`restaurant:${restaurantId}`).emit("order:status-changed", {
+    ...basePayload,
+    status: orderStatus,
+  });
+
+  ioRef.to(`restaurant:${restaurantId}:waiters`).emit("order:status-changed", {
+    ...basePayload,
+    status: orderStatus,
+  });
+
+  ioRef
+    .to(`restaurant:${restaurantId}:customers`)
+    .emit("order:status-changed", {
+      ...basePayload,
+      status: orderStatus,
+    });
 
   /**
    * 2️⃣ NOTIFY WAITER
@@ -299,7 +378,9 @@ export async function emitOrderItemStatusUpdate(updateData) {
   /**
    * 3️⃣ NOTIFY CUSTOMER (all item status changes)
    */
-  console.log(`📢 Emitting to session:${sessionId} - itemStatus: ${itemStatus}`);
+  console.log(
+    `📢 Emitting to session:${sessionId} - itemStatus: ${itemStatus}`,
+  );
   ioRef.to(`session:${sessionId}`).emit("order:item-status-updated", {
     ...basePayload,
     message:
@@ -349,34 +430,41 @@ export async function emitOrderReady(orderData) {
   /**
    * 1️⃣ NOTIFY WAITERS - PRIORITY
    */
-  ioRef.to(`restaurant:${restaurantId}:waiters`).emit("table:order-ready", {
+  const readyPayload = normalizeOrderLifecyclePayload({
     orderId,
+    sessionId,
     tableId,
     tableName,
     orderNumber,
+    orderStatus: "READY",
     message: `Order #${orderNumber} is ready for Table ${tableName}`,
     readyAt,
+    updatedAt: readyAt || new Date(),
   });
+
+  ioRef
+    .to(`restaurant:${restaurantId}:waiters`)
+    .emit("table:order-ready", readyPayload);
 
   /**
    * 2️⃣ NOTIFY ADMIN/MANAGER
    */
-  ioRef.to(`restaurant:${restaurantId}`).emit("order:ready-for-serving", {
-    orderId,
-    tableId,
-    tableName,
-    orderNumber,
-    readyAt,
+  ioRef
+    .to(`restaurant:${restaurantId}`)
+    .emit("order:ready-for-serving", readyPayload);
+
+  ioRef.to(`restaurant:${restaurantId}`).emit("order:status-changed", {
+    ...readyPayload,
+    status: "READY",
+    orderStatus: "READY",
   });
 
   /**
    * 3️⃣ NOTIFY CUSTOMER
    */
   ioRef.to(`session:${sessionId}`).emit("order:ready", {
-    orderId,
-    orderNumber,
+    ...readyPayload,
     message: "Your order is ready! Waiter will serve shortly.",
-    readyAt,
   });
 }
 
@@ -404,23 +492,32 @@ export async function emitOrderServed(orderData) {
   /**
    * 1️⃣ NOTIFY STAFF
    */
-  ioRef.to(`restaurant:${restaurantId}`).emit("order:served", {
+  const servedPayload = normalizeOrderLifecyclePayload({
     orderId,
+    sessionId,
     tableId,
     tableName,
     orderNumber,
     servedBy,
     servedAt,
+    orderStatus: "SERVED",
+    updatedAt: servedAt || new Date(),
+  });
+
+  ioRef.to(`restaurant:${restaurantId}`).emit("order:served", servedPayload);
+
+  ioRef.to(`restaurant:${restaurantId}`).emit("order:status-changed", {
+    ...servedPayload,
+    status: "SERVED",
+    orderStatus: "SERVED",
   });
 
   /**
    * 2️⃣ NOTIFY CUSTOMER
    */
   ioRef.to(`session:${sessionId}`).emit("order:served", {
-    orderId,
-    orderNumber,
+    ...servedPayload,
     message: "Your order has been served. Enjoy!",
-    servedAt,
   });
 }
 
@@ -449,14 +546,28 @@ export async function emitOrderCancelled(orderData) {
   /**
    * 1️⃣ NOTIFY ALL RESTAURANT
    */
-  ioRef.to(`restaurant:${restaurantId}`).emit("order:cancelled", {
+  const cancelledPayload = normalizeOrderLifecyclePayload({
     orderId,
+    sessionId,
     tableId,
     tableName,
     orderNumber,
     reason,
     cancelledBy,
     cancelledAt,
+    orderStatus: "CANCELLED",
+    status: "CANCELLED",
+    updatedAt: cancelledAt || new Date(),
+  });
+
+  ioRef
+    .to(`restaurant:${restaurantId}`)
+    .emit("order:cancelled", cancelledPayload);
+
+  ioRef.to(`restaurant:${restaurantId}`).emit("order:status-changed", {
+    ...cancelledPayload,
+    status: "CANCELLED",
+    orderStatus: "CANCELLED",
   });
 
   /**
@@ -465,18 +576,14 @@ export async function emitOrderCancelled(orderData) {
   ioRef
     .to(`restaurant:${restaurantId}:kitchen`)
     .emit("kitchen:order-cancelled", {
-      orderId,
-      orderNumber,
-      reason,
+      ...cancelledPayload,
     });
 
   /**
    * 3️⃣ NOTIFY CUSTOMER
    */
   ioRef.to(`session:${sessionId}`).emit("order:cancelled", {
-    orderId,
-    orderNumber,
-    reason,
+    ...cancelledPayload,
     message: `Order #${orderNumber} has been cancelled.`,
   });
 }

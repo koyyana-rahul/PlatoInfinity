@@ -48,7 +48,7 @@ const formatOrderTime = (timestamp) => {
  * Displays list of recent orders with status badges
  */
 export const RecentOrdersTable = ({ orders, loading }) => {
-  if (loading) {
+  if (loading && (!orders || orders.length === 0)) {
     return (
       <div className="space-y-4">
         <div className="h-6 bg-slate-100 rounded animate-pulse w-32" />
@@ -154,21 +154,26 @@ export const RecentOrdersTable = ({ orders, loading }) => {
  * Shows colored badge based on order status
  */
 const OrderStatusBadge = ({ status }) => {
+  const normalized = String(status || "NEW").toUpperCase();
+
   const statusConfig = {
-    NEW: { bg: "bg-red-100", text: "text-red-700" },
+    NEW: { bg: "bg-orange-100", text: "text-orange-700", label: "PLACED" },
     IN_PROGRESS: { bg: "bg-yellow-100", text: "text-yellow-700" },
+    SERVING: { bg: "bg-blue-100", text: "text-blue-700" },
     READY: { bg: "bg-green-100", text: "text-green-700" },
-    DELIVERED: { bg: "bg-blue-100", text: "text-blue-700" },
+    SERVED: { bg: "bg-emerald-100", text: "text-emerald-700" },
+    DELIVERED: { bg: "bg-emerald-100", text: "text-emerald-700" },
     CANCELLED: { bg: "bg-slate-100", text: "text-slate-700" },
   };
 
-  const config = statusConfig[status] || statusConfig.NEW;
+  const config = statusConfig[normalized] || statusConfig.NEW;
+  const label = config.label || normalized.replaceAll("_", " ");
 
   return (
     <span
       className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${config.bg} ${config.text}`}
     >
-      {status || "UNKNOWN"}
+      {label}
     </span>
   );
 };

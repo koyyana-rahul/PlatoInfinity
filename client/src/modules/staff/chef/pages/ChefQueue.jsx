@@ -7,10 +7,13 @@ import { FiRefreshCcw } from "react-icons/fi";
 
 export default function ChefQueue() {
   const station = useSelector((s) => s.user.station || "MAIN");
+  const kitchenStationId = useSelector((s) => s.user.kitchenStationId || null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { orders, loading, reload, updateOrderItemStatus } =
-    useKitchenOrders(station);
+  const { orders, loading, reload, updateOrderItemStatus } = useKitchenOrders(
+    station,
+    kitchenStationId,
+  );
 
   // 🧠 Queue = orders where ALL items are still NEW
   const queuedOrders = useMemo(

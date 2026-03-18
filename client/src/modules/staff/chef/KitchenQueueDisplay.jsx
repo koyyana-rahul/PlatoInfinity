@@ -12,6 +12,11 @@ import Axios from "../../../api/axios";
 import SummaryApi from "../../../api/summaryApi";
 import { useSocket } from "../../../socket/SocketProvider";
 
+const formatTableNo = (tableName) => {
+  const raw = String(tableName || "Unknown").trim();
+  return raw.replace(/^table\s*/i, "").trim();
+};
+
 const KitchenQueueDisplay = () => {
   const socket = useSocket();
   const user = useSelector((state) => state.user);
@@ -98,7 +103,8 @@ const KitchenQueueDisplay = () => {
       const { orderId, itemId, itemName, itemStatus, chefName } = data;
       setQueue((prev) =>
         prev.map((item) =>
-          item.orderId === orderId && (item.itemName === itemName || String(item.itemId) === String(itemId))
+          item.orderId === orderId &&
+          (item.itemName === itemName || String(item.itemId) === String(itemId))
             ? { ...item, status: itemStatus, claimedBy: chefName }
             : item,
         ),
@@ -292,7 +298,8 @@ const KitchenQueueDisplay = () => {
                           <strong>Order:</strong> #{item.orderNumber}
                         </p>
                         <p>
-                          <strong>Table:</strong> {item.tableName}
+                          <strong>Table:</strong>{" "}
+                          {formatTableNo(item.tableName)}
                         </p>
                         <p>
                           <strong>Quantity:</strong> {item.quantity}
@@ -310,7 +317,11 @@ const KitchenQueueDisplay = () => {
                       {item.status === "NEW" && (
                         <button
                           onClick={() =>
-                            handleClaimItem(item.orderId, item.itemId, item.itemName)
+                            handleClaimItem(
+                              item.orderId,
+                              item.itemId,
+                              item.itemName,
+                            )
                           }
                           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition transform hover:scale-105"
                         >
@@ -321,7 +332,11 @@ const KitchenQueueDisplay = () => {
                       {item.status === "IN_PROGRESS" && (
                         <button
                           onClick={() =>
-                            handleMarkReady(item.orderId, item.itemId, item.itemName)
+                            handleMarkReady(
+                              item.orderId,
+                              item.itemId,
+                              item.itemName,
+                            )
                           }
                           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition transform hover:scale-105"
                         >

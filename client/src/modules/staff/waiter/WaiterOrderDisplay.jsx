@@ -77,7 +77,7 @@ const WaiterOrderDisplay = () => {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("table:order-placed", (orderData) => {
+    const handleOrderPlaced = (orderData) => {
       console.log("🆕 New order at table:", orderData);
       toast.success(
         `New order at Table ${orderData.tableName}: ${orderData.itemCount} items`,
@@ -100,9 +100,29 @@ const WaiterOrderDisplay = () => {
       ) {
         loadTableOrders();
       }
-    });
+    };
 
-    return () => socket.off("table:order-placed");
+    const handleLifecycleReload = () => {
+      if (selectedTable) {
+        loadTableOrders();
+      }
+    };
+
+    socket.on("table:order-placed", handleOrderPlaced);
+    socket.on("order:placed", handleOrderPlaced);
+    socket.on("order:status-changed", handleLifecycleReload);
+    socket.on("order:served", handleLifecycleReload);
+    socket.on("order:cancelled", handleLifecycleReload);
+    socket.on("connect", handleLifecycleReload);
+
+    return () => {
+      socket.off("table:order-placed", handleOrderPlaced);
+      socket.off("order:placed", handleOrderPlaced);
+      socket.off("order:status-changed", handleLifecycleReload);
+      socket.off("order:served", handleLifecycleReload);
+      socket.off("order:cancelled", handleLifecycleReload);
+      socket.off("connect", handleLifecycleReload);
+    };
   }, [socket, selectedTable]);
 
   /**
@@ -111,7 +131,7 @@ const WaiterOrderDisplay = () => {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("table:item-status-changed", (data) => {
+    const handleTableItemStatusChanged = (data) => {
       console.log("📍 Item status changed:", data);
 
       if (data.itemStatus === "READY") {
@@ -154,9 +174,15 @@ const WaiterOrderDisplay = () => {
           ),
         );
       }
-    });
+    };
 
-    return () => socket.off("table:item-status-changed");
+    socket.on("table:item-status-changed", handleTableItemStatusChanged);
+    socket.on("order:item-status-updated", handleTableItemStatusChanged);
+
+    return () => {
+      socket.off("table:item-status-changed", handleTableItemStatusChanged);
+      socket.off("order:item-status-updated", handleTableItemStatusChanged);
+    };
   }, [socket, selectedTable]);
 
   /**
@@ -165,7 +191,7 @@ const WaiterOrderDisplay = () => {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("table:order-ready", (data) => {
+    const handleOrderReady = (data) => {
       console.log("✅ Order ready at table:", data);
 
       toast.success(
@@ -182,9 +208,15 @@ const WaiterOrderDisplay = () => {
           table._id === data.tableId ? { ...table, readyOrders: true } : table,
         ),
       );
-    });
+    };
 
-    return () => socket.off("table:order-ready");
+    socket.on("table:order-ready", handleOrderReady);
+    socket.on("order:ready", handleOrderReady);
+
+    return () => {
+      socket.off("table:order-ready", handleOrderReady);
+      socket.off("order:ready", handleOrderReady);
+    };
   }, [socket]);
 
   /**

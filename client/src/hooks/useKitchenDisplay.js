@@ -217,6 +217,37 @@ export function useKitchenDisplay(restaurantId, stationFilter = null) {
     listenForSessionClose,
   ]);
 
+  /* ========== DIRECT SOCKET LIFECYCLE LISTENERS ========== */
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleLifecycleRefresh = () => {
+      fetchKitchenOrders();
+    };
+
+    const events = [
+      "order:placed",
+      "kitchen:order-new",
+      "order:item-status-updated",
+      "order:status-changed",
+      "order:ready",
+      "order:served",
+      "order:cancelled",
+      "table:item-status-changed",
+      "waiter:item-ready-alert",
+    ];
+
+    events.forEach((eventName) => socket.on(eventName, handleLifecycleRefresh));
+    socket.on("connect", handleLifecycleRefresh);
+
+    return () => {
+      events.forEach((eventName) =>
+        socket.off(eventName, handleLifecycleRefresh),
+      );
+      socket.off("connect", handleLifecycleRefresh);
+    };
+  }, [socket, fetchKitchenOrders]);
+
   /* ========== INITIAL LOAD ========== */
   useEffect(() => {
     if (restaurantId) {

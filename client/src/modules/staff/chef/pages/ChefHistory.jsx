@@ -7,8 +7,14 @@ import { FiRefreshCcw } from "react-icons/fi";
 import { useSocket } from "../../../../socket/SocketProvider";
 import toast from "react-hot-toast";
 
+const formatTableNo = (tableName, tableId) => {
+  const raw = String(tableName || tableId || "Unknown").trim();
+  return raw.replace(/^table\s*/i, "").trim();
+};
+
 export default function ChefHistory() {
   const station = useSelector((s) => s.user.station || "MAIN");
+  const kitchenStationId = useSelector((s) => s.user.kitchenStationId || null);
   const socket = useSocket();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,7 +25,11 @@ export default function ChefHistory() {
       if (!silent) setLoading(true);
       const res = await Axios({
         ...chefApi.listOrders,
-        params: { station },
+        params: {
+          ...(station ? { station } : {}),
+          ...(kitchenStationId ? { stationId: kitchenStationId } : {}),
+          includeServed: true,
+        },
       });
 
       // 🧠 History = orders where all items are served
@@ -39,7 +49,7 @@ export default function ChefHistory() {
 
   useEffect(() => {
     loadHistory();
-  }, [station]);
+  }, [station, kitchenStationId]);
 
   // 🔥 REAL-TIME SOCKET LISTENER - Auto-refresh when items are marked SERVED
   useEffect(() => {
@@ -129,7 +139,7 @@ export default function ChefHistory() {
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-bold text-gray-900">
-                    Table {order.tableName || order.tableId}
+                    Table {formatTableNo(order.tableName, order.tableId)}
                   </h3>
                   <div className="flex items-center gap-2 mt-2">
                     <span className="inline-block bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded border border-green-200 uppercase tracking-wide">

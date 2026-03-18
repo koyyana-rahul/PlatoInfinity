@@ -60,6 +60,11 @@ const STATUS_CONFIG = {
   },
 };
 
+const formatTableNo = (tableName) => {
+  const raw = String(tableName || "Unknown").trim();
+  return raw.replace(/^table\s*/i, "").trim();
+};
+
 export default function ChefStatusConfirmationModal({
   isOpen,
   status, // "IN_PROGRESS" | "READY" | "SERVED"
@@ -118,7 +123,7 @@ export default function ChefStatusConfirmationModal({
               {itemName}
             </p>
             <p className={`text-xs ${config.textColor} opacity-80`}>
-              Table {tableName}
+              Table {formatTableNo(tableName)}
             </p>
           </div>
 

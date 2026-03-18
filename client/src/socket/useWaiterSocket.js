@@ -7,16 +7,29 @@ export default function useWaiterSocket(onUpdate) {
   useEffect(() => {
     if (!socket || !onUpdate) return;
 
-    socket.on("order:new", onUpdate);
-    socket.on("order:ready", onUpdate);
-    socket.on("order:served", onUpdate);
-    socket.on("session:update", onUpdate);
+    const handleSocketSync = () => onUpdate?.({ _event: "connect" });
+
+    const events = [
+      "order:new",
+      "order:placed",
+      "order:item-status-updated",
+      "order:status-changed",
+      "manager:order-status-changed",
+      "order:ready",
+      "order:ready-for-serving",
+      "order:served",
+      "order:cancelled",
+      "table:item-status-changed",
+      "waiter:item-ready-alert",
+      "session:update",
+    ];
+
+    events.forEach((eventName) => socket.on(eventName, onUpdate));
+    socket.on("connect", handleSocketSync);
 
     return () => {
-      socket.off("order:new", onUpdate);
-      socket.off("order:ready", onUpdate);
-      socket.off("order:served", onUpdate);
-      socket.off("session:update", onUpdate);
+      events.forEach((eventName) => socket.off(eventName, onUpdate));
+      socket.off("connect", handleSocketSync);
     };
   }, [socket, onUpdate]);
 }

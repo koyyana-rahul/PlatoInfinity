@@ -1,10 +1,44 @@
 import Order from "../models/order.model.js";
-import { emitOrderItemStatusUpdate } from "../socket/emitter.js";
+import {
+  emitOrderItemStatusUpdate,
+  emitOrderServed,
+} from "../socket/emitter.js";
 
 console.log(
   "✅ Waiter controller loaded; emitOrderItemStatusUpdate imported:",
   emitOrderItemStatusUpdate,
 );
+
+function deriveLiveOrderStatusFromItems(items = []) {
+  const safeItems = Array.isArray(items) ? items : [];
+  const totalItems = safeItems.length;
+
+  const newCount = safeItems.filter((i) => i.itemStatus === "NEW").length;
+  const inProgressCount = safeItems.filter(
+    (i) => i.itemStatus === "IN_PROGRESS",
+  ).length;
+  const readyCount = safeItems.filter((i) => i.itemStatus === "READY").length;
+  const servingCount = safeItems.filter(
+    (i) => i.itemStatus === "SERVING",
+  ).length;
+  const servedCount = safeItems.filter((i) => i.itemStatus === "SERVED").length;
+
+  let orderStatus = "NEW";
+  if (totalItems > 0 && servedCount === totalItems) orderStatus = "SERVED";
+  else if (servingCount > 0 || servedCount > 0) orderStatus = "SERVING";
+  else if (readyCount > 0) orderStatus = "READY";
+  else if (inProgressCount > 0) orderStatus = "IN_PROGRESS";
+
+  return {
+    orderStatus,
+    totalItems,
+    newCount,
+    inProgressCount,
+    readyCount,
+    servingCount,
+    servedCount,
+  };
+}
 
 /* ======================================================
    GET WAITER ORDERS (All orders in restaurant)
@@ -159,6 +193,8 @@ export async function serveOrderItemController(req, res) {
 
     console.log(`✅ Item ${itemId} marked as SERVING`);
 
+    const servingSnapshot = deriveLiveOrderStatusFromItems(order.items);
+
     // Emit SERVING status (wrapped in try-catch to prevent crashes)
     try {
       await emitOrderItemStatusUpdate({
@@ -175,14 +211,13 @@ export async function serveOrderItemController(req, res) {
         chefName: null,
         waiterId: String(waiterId),
         waiterName: req.user.name || "Waiter",
-        orderStatus: "IN_PROGRESS",
-        totalItems: order.items.length,
-        readyCount: order.items.filter((i) => i.itemStatus === "READY").length,
-        servedCount: order.items.filter((i) => i.itemStatus === "SERVED")
-          .length,
-        inProgressCount: order.items.filter((i) => i.itemStatus === "SERVING")
-          .length,
-        newCount: order.items.filter((i) => i.itemStatus === "NEW").length,
+        orderStatus: servingSnapshot.orderStatus,
+        totalItems: servingSnapshot.totalItems,
+        readyCount: servingSnapshot.readyCount,
+        servedCount: servingSnapshot.servedCount,
+        servingCount: servingSnapshot.servingCount,
+        inProgressCount: servingSnapshot.inProgressCount,
+        newCount: servingSnapshot.newCount,
         updatedAt: new Date(),
       });
     } catch (emitErr) {
@@ -196,6 +231,8 @@ export async function serveOrderItemController(req, res) {
     await order.save();
 
     console.log(`✅ Item ${itemId} marked as SERVED`);
+
+    const servedSnapshot = deriveLiveOrderStatusFromItems(order.items);
 
     // Emit SERVED update (wrapped in try-catch to prevent crashes)
     try {
@@ -213,18 +250,30 @@ export async function serveOrderItemController(req, res) {
         chefName: null,
         waiterId: String(waiterId),
         waiterName: req.user.name || "Waiter",
-        orderStatus: "SERVED",
-        totalItems: order.items.length,
-        readyCount: order.items.filter((i) => i.itemStatus === "READY").length,
-        servedCount: order.items.filter((i) => i.itemStatus === "SERVED")
-          .length,
-        inProgressCount: order.items.filter((i) => i.itemStatus === "SERVING")
-          .length,
-        newCount: order.items.filter((i) => i.itemStatus === "NEW").length,
+        orderStatus: servedSnapshot.orderStatus,
+        totalItems: servedSnapshot.totalItems,
+        readyCount: servedSnapshot.readyCount,
+        servedCount: servedSnapshot.servedCount,
+        servingCount: servedSnapshot.servingCount,
+        inProgressCount: servedSnapshot.inProgressCount,
+        newCount: servedSnapshot.newCount,
         updatedAt: new Date(),
       });
     } catch (emitErr) {
       console.error("⚠️ Failed to emit SERVED status:", emitErr.message);
+    }
+
+    if (servedSnapshot.orderStatus === "SERVED") {
+      await emitOrderServed({
+        orderId: String(order._id),
+        restaurantId: String(order.restaurantId),
+        sessionId: String(order.sessionId),
+        tableId: String(order.tableId),
+        tableName: order.tableName || "Unknown",
+        orderNumber: order.orderNumber,
+        servedBy: String(waiterId),
+        servedAt: new Date(),
+      });
     }
 
     return res.json({

@@ -19,6 +19,37 @@ import {
   logSuspiciousOrder,
 } from "../utils/fraudDetection.js";
 
+function deriveLiveOrderStatusFromItems(items = []) {
+  const safeItems = Array.isArray(items) ? items : [];
+  const totalItems = safeItems.length;
+
+  const newCount = safeItems.filter((i) => i.itemStatus === "NEW").length;
+  const inProgressCount = safeItems.filter(
+    (i) => i.itemStatus === "IN_PROGRESS",
+  ).length;
+  const readyCount = safeItems.filter((i) => i.itemStatus === "READY").length;
+  const servingCount = safeItems.filter(
+    (i) => i.itemStatus === "SERVING",
+  ).length;
+  const servedCount = safeItems.filter((i) => i.itemStatus === "SERVED").length;
+
+  let orderStatus = "NEW";
+  if (totalItems > 0 && servedCount === totalItems) orderStatus = "SERVED";
+  else if (servingCount > 0 || servedCount > 0) orderStatus = "SERVING";
+  else if (readyCount > 0) orderStatus = "READY";
+  else if (inProgressCount > 0) orderStatus = "IN_PROGRESS";
+
+  return {
+    orderStatus,
+    totalItems,
+    newCount,
+    inProgressCount,
+    readyCount,
+    servingCount,
+    servedCount,
+  };
+}
+
 /**
  * ============================
  * PLACE ORDER (FROM CART)
@@ -101,8 +132,6 @@ export async function placeOrderController(req, res) {
 
     let orderItems = [];
     let totalAmount = 0;
-    const hasLargeQty = cartItems.some((item) => item.quantity > 10);
-
     /**
      * 3️⃣ VALIDATE ITEMS + DEDUCT STOCK (ATOMIC)
      */
@@ -244,24 +273,6 @@ export async function placeOrderController(req, res) {
     } catch (_) {}
 
     /**
-     * 9️⃣ 🔥 EMIT REAL-TIME UPDATES TO ALL ROLES
-     */
-    if (!hasLargeQty) {
-      await emitOrderPlaced({
-        orderId: order._id,
-        restaurantId: session.restaurantId,
-        sessionId: session._id,
-        tableId: session.tableId,
-        tableName: table.name || table.tableNumber,
-        orderNumber: order.orderNumber,
-        items: order.items,
-        totalAmount: order.totalAmount,
-        placedBy: order.placedBy,
-        placedAt: order.createdAt,
-      });
-    }
-
-    /**
      * 🔟 COMMIT
      */
     await mongoSession.commitTransaction();
@@ -377,23 +388,53 @@ export async function listSessionOrdersController(req, res) {
  * GET /api/kitchen/orders?station=TANDOOR
  */
 export async function listKitchenOrdersController(req, res) {
-  const { station } = req.query;
+  const { station, stationId, includeServed } = req.query;
   const restaurantId = req.user.restaurantId;
+  const chefStationId = req.user?.kitchenStationId
+    ? String(req.user.kitchenStationId)
+    : null;
 
-  if (!station) {
+  const shouldIncludeServed =
+    String(includeServed || "").toLowerCase() === "true";
+
+  const effectiveStationId = stationId || chefStationId;
+  const effectiveStation = station || null;
+
+  if (!effectiveStationId && !effectiveStation) {
     return res.status(400).json({
-      message: "station required",
+      message: "station or stationId required",
       error: true,
       success: false,
     });
   }
 
-  const orders = await Order.find({
+  const stationMatch = [];
+  if (effectiveStation) {
+    stationMatch.push({ "items.station": effectiveStation });
+  }
+  if (
+    effectiveStationId &&
+    mongoose.Types.ObjectId.isValid(effectiveStationId)
+  ) {
+    stationMatch.push({
+      "items.kitchenStationId": new mongoose.Types.ObjectId(effectiveStationId),
+    });
+  }
+
+  const query = {
     restaurantId,
-    orderStatus: "OPEN",
-    "items.station": station,
-    "items.itemStatus": { $ne: "SERVED" },
-  }).sort({ createdAt: 1 });
+    ...(stationMatch.length ? { $or: stationMatch } : {}),
+  };
+
+  // Kitchen queue default: active (not fully served) OPEN orders only.
+  if (!shouldIncludeServed) {
+    query.orderStatus = "OPEN";
+    query["items.itemStatus"] = { $ne: "SERVED" };
+  }
+
+  const orders = await Order.find(query).sort({
+    createdAt: shouldIncludeServed ? -1 : 1,
+  });
 
   res.json({
     success: true,
@@ -468,22 +509,15 @@ export async function updateOrderItemStatusController(req, res) {
       (i) => String(i._id) === String(itemId),
     );
 
-    const totalItems = order.items.length;
-    const readyCount = order.items.filter(
-      (i) => i.itemStatus === "READY",
-    ).length;
-    const servedCount = order.items.filter(
-      (i) => i.itemStatus === "SERVED",
-    ).length;
-    const inProgressCount = order.items.filter(
-      (i) => i.itemStatus === "IN_PROGRESS",
-    ).length;
-    const newCount = order.items.filter((i) => i.itemStatus === "NEW").length;
-
-    let orderStatus = "NEW";
-    if (servedCount === totalItems && totalItems > 0) orderStatus = "SERVED";
-    else if (inProgressCount > 0) orderStatus = "IN_PROGRESS";
-    else if (readyCount > 0) orderStatus = "READY";
+    const {
+      orderStatus,
+      totalItems,
+      readyCount,
+      servedCount,
+      servingCount,
+      inProgressCount,
+      newCount,
+    } = deriveLiveOrderStatusFromItems(order.items);
 
     // 🔥 Unified socket emit for all roles
     await emitOrderItemStatusUpdate({
@@ -502,10 +536,40 @@ export async function updateOrderItemStatusController(req, res) {
       totalItems,
       readyCount,
       servedCount,
+      servingCount,
       inProgressCount,
       newCount,
       updatedAt: now,
     });
+
+    const allReadyForServing =
+      totalItems > 0 &&
+      order.items.every((i) => ["READY", "SERVED"].includes(i.itemStatus));
+
+    if (allReadyForServing) {
+      await emitOrderReady({
+        orderId: String(order._id),
+        restaurantId: String(order.restaurantId),
+        sessionId: String(order.sessionId),
+        tableId: String(order.tableId),
+        tableName: order.tableName,
+        orderNumber: order.orderNumber,
+        readyAt: now,
+      });
+    }
+
+    if (orderStatus === "SERVED") {
+      await emitOrderServed({
+        orderId: String(order._id),
+        restaurantId: String(order.restaurantId),
+        sessionId: String(order.sessionId),
+        tableId: String(order.tableId),
+        tableName: order.tableName,
+        orderNumber: order.orderNumber,
+        servedBy: String(chefId),
+        servedAt: now,
+      });
+    }
 
     return res.json({
       success: true,
@@ -780,8 +844,18 @@ export async function approveOrderController(req, res) {
 
     await order.save();
 
-    // Emit update to kitchen
-    emitOrderPlaced(order._id, { ...order.toObject(), status: "OPEN" });
+    await emitOrderPlaced({
+      orderId: order._id,
+      restaurantId: order.restaurantId,
+      sessionId: order.sessionId,
+      tableId: order.tableId,
+      tableName: order.tableName,
+      orderNumber: order.orderNumber,
+      items: order.items,
+      totalAmount: order.totalAmount,
+      placedBy: manager?._id || null,
+      placedAt: order.createdAt,
+    });
 
     return res.json({
       success: true,

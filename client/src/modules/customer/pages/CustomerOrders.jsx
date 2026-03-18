@@ -10,7 +10,6 @@ import {
   UtensilsCrossed,
   ChevronRight,
   CheckCircle2,
-  RefreshCw,
   ReceiptText,
   Sparkles,
   ChevronDown,
@@ -70,12 +69,13 @@ export default function CustomerOrders() {
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const [expandedOrders, setExpandedOrders] = useState({});
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [restaurantId, setRestaurantId] = useState(null);
+  const [restaurantId, setRestaurantId] = useState(
+    parsedSession?.restaurantId ? String(parsedSession.restaurantId) : null,
+  );
   const [tableName, setTableName] = useState("Table");
   const [requestingBill, setRequestingBill] = useState(false);
 
@@ -85,37 +85,104 @@ export default function CustomerOrders() {
     tableId,
   });
 
+  const deriveOrderStatusFromItems = (items = [], fallback = "NEW") => {
+    const statuses = (Array.isArray(items) ? items : []).map((it) =>
+      String(it?.itemStatus || "").toUpperCase(),
+    );
+    const totalItems = statuses.length;
+    const servedCount = statuses.filter((s) => s === "SERVED").length;
+
+    if (totalItems > 0 && servedCount === totalItems) return "SERVED";
+    if (statuses.some((s) => s === "SERVING") || servedCount > 0)
+      return "SERVING";
+    if (statuses.some((s) => s === "READY")) return "READY";
+    if (statuses.some((s) => s === "IN_PROGRESS")) return "IN_PROGRESS";
+
+    return String(fallback || "NEW").toUpperCase();
+  };
+
+  const applyOrderLevelStatusToItems = (items = [], status) => {
+    const normalizedStatus = String(status || "").toUpperCase();
+
+    if (normalizedStatus === "SERVED") {
+      return (Array.isArray(items) ? items : []).map((item) => ({
+        ...item,
+        itemStatus: "SERVED",
+      }));
+    }
+
+    return Array.isArray(items) ? items : [];
+  };
+
   // Listen for real-time item status updates
   useEffect(() => {
     if (!customerSocket) {
       console.warn("⚠️ customerSocket is null, cannot listen for updates");
       return;
     }
-    console.log("🔧 CustomerOrders: setting up socket listeners", { sessionId, restaurantId, tableId });
+    console.log("🔧 CustomerOrders: setting up socket listeners", {
+      sessionId,
+      restaurantId,
+      tableId,
+    });
     const handleItemStatusUpdate = (data) => {
       console.log("📶 Customer: item status update", data);
-      const { orderId, itemId, itemIndex, itemStatus, itemName } = data;
+      const { orderId, _id, itemId, itemIndex, itemStatus, itemName } = data;
+      const resolvedOrderId = orderId || _id;
+      const incomingOrderStatus = String(
+        data?.orderStatus || data?.status || "",
+      ).toUpperCase();
+
+      if (!resolvedOrderId) return;
+
       setOrders((prev) =>
         prev.map((order) => {
-          if (String(order._id) !== String(orderId)) return order;
+          if (String(order._id) !== String(resolvedOrderId)) return order;
+
+          let nextItems = (order.items || []).map((item, idx) => {
+            const matches =
+              String(item._id) === String(itemId) || idx === itemIndex;
+            if (!matches) return item;
+            console.log(
+              `🔄 Updating item ${itemName} from ${item.itemStatus} to ${itemStatus}`,
+            );
+            return { ...item, itemStatus };
+          });
+
+          // Some lifecycle events (order:served/order:status-changed) can be order-level only.
+          if (
+            !itemId &&
+            (itemIndex === undefined || itemIndex === null) &&
+            incomingOrderStatus
+          ) {
+            nextItems = applyOrderLevelStatusToItems(
+              nextItems,
+              incomingOrderStatus,
+            );
+          }
+
           return {
             ...order,
-            items: order.items.map((item, idx) => {
-              const matches =
-                String(item._id) === String(itemId) || idx === itemIndex;
-              if (!matches) return item;
-              console.log(`🔄 Updating item ${itemName} from ${item.itemStatus} to ${itemStatus}`);
-              return { ...item, itemStatus };
-            }),
+            items: nextItems,
+            orderStatus: deriveOrderStatusFromItems(
+              nextItems,
+              incomingOrderStatus || order.orderStatus,
+            ),
           };
         }),
       );
       // Show toasts for major transitions
       if (itemStatus === "READY") {
-        toast(`${itemName || "Item"} is ready!`, { icon: "✅", duration: 4000 });
+        toast(`${itemName || "Item"} is ready!`, {
+          icon: "✅",
+          duration: 4000,
+        });
       }
       if (itemStatus === "SERVED") {
-        toast(`${itemName || "Item"} has been served!`, { icon: "🍽️", duration: 3000 });
+        toast(`${itemName || "Item"} has been served!`, {
+          icon: "🍽️",
+          duration: 3000,
+        });
       }
     };
     // Primary event from emitter
@@ -135,17 +202,6 @@ export default function CustomerOrders() {
         handleItemStatusUpdate(data);
       }
     });
-
-    // When any event arrives, ensure we are in the right room (defensive)
-    const ensureRoom = () => {
-      if (sessionId && restaurantId && tableId) {
-        console.log("🔁 Ensuring customer room membership...");
-        customerSocket.emit("join:customer", { sessionId, tableId, restaurantId });
-      }
-    };
-    customerSocket.on("order:item-status-updated", ensureRoom);
-    customerSocket.on("order:item-status", ensureRoom);
-    customerSocket.on("order:item-ready", ensureRoom);
 
     return () => {
       customerSocket.off("order:item-status-updated", handleItemStatusUpdate);
@@ -167,7 +223,6 @@ export default function CustomerOrders() {
   const loadOrders = async ({ showLoading = false, silent = false } = {}) => {
     try {
       if (showLoading) setLoading(true);
-      if (!showLoading) setRefreshing(true);
 
       const deviceId = getDeviceId();
       const res = sessionId
@@ -197,19 +252,93 @@ export default function CustomerOrders() {
       }
     } finally {
       if (showLoading) setLoading(false);
-      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     loadOrders({ showLoading: true });
-
-    const interval = setInterval(() => {
-      loadOrders({ showLoading: false, silent: true });
-    }, 15000);
-
-    return () => clearInterval(interval);
   }, [sessionId, tableId]);
+
+  // Real-time order lifecycle updates (new/confirmed/ready/served/cancelled)
+  useEffect(() => {
+    if (!customerSocket) return;
+
+    const refreshFromSocket = (eventName) => {
+      console.log(
+        `📡 CustomerOrders: ${eventName} received, syncing orders...`,
+      );
+      loadOrders({ showLoading: false, silent: true });
+    };
+
+    const onOrderConfirmed = () => refreshFromSocket("order:confirmed");
+    const onOrderPlaced = () => refreshFromSocket("order:placed");
+    const onOrderReady = () => refreshFromSocket("order:ready");
+    const onOrderReadyForServing = () =>
+      refreshFromSocket("order:ready-for-serving");
+    const onOrderServed = (data) => {
+      if (!data?._id && !data?.orderId) {
+        refreshFromSocket("order:served:sparse");
+        return;
+      }
+
+      onOrderStatusChanged({
+        ...data,
+        orderStatus: "SERVED",
+        status: "SERVED",
+      });
+    };
+    const onOrderCancelled = () => refreshFromSocket("order:cancelled");
+    const onConnect = () => refreshFromSocket("connect");
+    const onReconnect = () => refreshFromSocket("reconnect");
+
+    const onOrderStatusChanged = (data) => {
+      const incomingId = data?._id || data?.orderId;
+      const incomingStatus = String(
+        data?.orderStatus || data?.status || "",
+      ).toUpperCase();
+      if (!incomingId || !incomingStatus) {
+        refreshFromSocket("order:status-changed:sparse");
+        return;
+      }
+
+      setOrders((prev) =>
+        prev.map((order) =>
+          String(order._id) === String(incomingId)
+            ? {
+                ...order,
+                orderStatus: incomingStatus,
+                items: applyOrderLevelStatusToItems(
+                  order.items || [],
+                  incomingStatus,
+                ),
+              }
+            : order,
+        ),
+      );
+    };
+
+    customerSocket.on("order:confirmed", onOrderConfirmed);
+    customerSocket.on("order:placed", onOrderPlaced);
+    customerSocket.on("order:status-changed", onOrderStatusChanged);
+    customerSocket.on("order:ready", onOrderReady);
+    customerSocket.on("order:ready-for-serving", onOrderReadyForServing);
+    customerSocket.on("order:served", onOrderServed);
+    customerSocket.on("order:cancelled", onOrderCancelled);
+    customerSocket.on("connect", onConnect);
+    customerSocket.on("reconnect", onReconnect);
+
+    return () => {
+      customerSocket.off("order:confirmed", onOrderConfirmed);
+      customerSocket.off("order:placed", onOrderPlaced);
+      customerSocket.off("order:status-changed", onOrderStatusChanged);
+      customerSocket.off("order:ready", onOrderReady);
+      customerSocket.off("order:ready-for-serving", onOrderReadyForServing);
+      customerSocket.off("order:served", onOrderServed);
+      customerSocket.off("order:cancelled", onOrderCancelled);
+      customerSocket.off("connect", onConnect);
+      customerSocket.off("reconnect", onReconnect);
+    };
+  }, [customerSocket, sessionId, tableId, restaurantId]);
 
   useEffect(() => {
     let active = true;
@@ -364,6 +493,8 @@ export default function CustomerOrders() {
         return `${base} bg-red-50 text-red-600 border-red-100`;
       case "READY":
         return `${base} bg-blue-50 text-blue-700 border-blue-100`;
+      case "SERVING":
+        return `${base} bg-indigo-50 text-indigo-700 border-indigo-100`;
       case "IN_PROGRESS":
         return `${base} bg-amber-50 text-amber-700 border-amber-100`;
       default:
@@ -376,6 +507,7 @@ export default function CustomerOrders() {
     if (normalized === "NEW" || normalized === "PENDING") return "Pending";
     if (normalized === "IN_PROGRESS") return "Sent";
     if (normalized === "READY") return "Ready";
+    if (normalized === "SERVING") return "Serving";
     if (normalized === "SERVED") return "Served";
     return normalized.replace(/_/g, " ");
   };
@@ -440,24 +572,12 @@ export default function CustomerOrders() {
                   Your Orders <Sparkles size={14} className="text-orange-500" />
                 </h1>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Live updates every 15s
+                  Live updates via kitchen & waiter sockets
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => loadOrders({ showLoading: false })}
-                className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-700 inline-flex items-center gap-1.5 hover:bg-gray-50"
-                disabled={refreshing}
-              >
-                <RefreshCw
-                  size={13}
-                  className={refreshing ? "animate-spin" : ""}
-                />
-                Refresh
-              </button>
-            </div>
+            <div className="flex items-center gap-2" />
           </div>
 
           <div className="flex items-center justify-between mb-4 gap-2">
@@ -567,7 +687,10 @@ export default function CustomerOrders() {
               const orderStatus = normalizeStatus(order.orderStatus);
 
               return (
-                <div key={`${order._id}-${order.items.map(it => it.itemStatus).join(",")}`} className="overflow-hidden">
+                <div
+                  key={`${order._id}-${order.items.map((it) => it.itemStatus).join(",")}`}
+                  className="overflow-hidden"
+                >
                   {/* ACCORDION TRIGGER */}
                   <button
                     onClick={() => toggleOrder(order._id)}
@@ -639,7 +762,10 @@ export default function CustomerOrders() {
                         <div className="p-4 sm:p-5 pt-0 space-y-4">
                           <div className="h-px bg-slate-50 w-full mb-4" />
 
-                          <OrderProgress status={orderStatus} items={order.items} />
+                          <OrderProgress
+                            status={orderStatus}
+                            items={order.items}
+                          />
 
                           {/* CUSTOMER LABEL (INDIVIDUAL MODE ONLY) */}
                           {order.meta?.customerMode === "INDIVIDUAL" &&
@@ -759,6 +885,7 @@ function OrderProgress({ status, items = [] }) {
     { key: "NEW", label: "Placed" },
     { key: "IN_PROGRESS", label: "Preparing" },
     { key: "READY", label: "Ready" },
+    { key: "SERVING", label: "Serving" },
     { key: "SERVED", label: "Served" },
   ];
 
@@ -767,17 +894,25 @@ function OrderProgress({ status, items = [] }) {
     PENDING: 0,
     IN_PROGRESS: 1,
     READY: 2,
-    SERVED: 3,
-    COMPLETED: 3,
-    PAID: 3,
-    DELIVERED: 3,
+    SERVING: 3,
+    SERVED: 4,
+    COMPLETED: 4,
+    PAID: 4,
+    DELIVERED: 4,
   };
 
   // Derive active step from highest item status if items exist
   let activeIndex = indexMap[normalized] ?? 0;
   if (items && items.length > 0) {
-    const itemStatuses = items.map((it) => String(it.itemStatus || "NEW").toUpperCase());
-    if (itemStatuses.some((s) => s === "SERVED")) activeIndex = 3;
+    const itemStatuses = items.map((it) =>
+      String(it.itemStatus || "NEW").toUpperCase(),
+    );
+    const totalItems = itemStatuses.length;
+    const servedCount = itemStatuses.filter((s) => s === "SERVED").length;
+
+    if (totalItems > 0 && servedCount === totalItems) activeIndex = 4;
+    else if (itemStatuses.some((s) => s === "SERVING") || servedCount > 0)
+      activeIndex = 3;
     else if (itemStatuses.some((s) => s === "READY")) activeIndex = 2;
     else if (itemStatuses.some((s) => s === "IN_PROGRESS")) activeIndex = 1;
     else activeIndex = 0;

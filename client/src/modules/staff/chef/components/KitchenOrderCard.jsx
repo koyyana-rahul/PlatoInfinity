@@ -1,6 +1,11 @@
 // src/modules/staff/chef/components/KitchenOrderCard.jsx
 import KitchenItemRow from "./KitchenItemRow";
 
+const formatTableNo = (tableName, tableId) => {
+  const raw = String(tableName || tableId || "Unknown").trim();
+  return raw.replace(/^table\s*/i, "").trim();
+};
+
 export default function KitchenOrderCard({ order, reload, onStatusUpdate }) {
   const allItemsServed = order.items?.every((i) => i.itemStatus === "SERVED");
   const allItemsReady = order.items?.every(
@@ -26,7 +31,7 @@ export default function KitchenOrderCard({ order, reload, onStatusUpdate }) {
       <div className="flex justify-between items-start gap-3">
         <div>
           <h3 className="font-bold text-lg text-gray-900">
-            Table {order.tableName || order.tableId}
+            Table {formatTableNo(order.tableName, order.tableId)}
           </h3>
           <p className="text-xs text-gray-500 mt-1">
             {order.items?.length || 0} item
@@ -51,7 +56,7 @@ export default function KitchenOrderCard({ order, reload, onStatusUpdate }) {
             key={item._id}
             item={item}
             orderId={order._id}
-            tableName={order.tableName || order.tableId || "Unknown"}
+            tableName={formatTableNo(order.tableName, order.tableId)}
             onUpdated={reload}
             onStatusUpdate={onStatusUpdate}
           />

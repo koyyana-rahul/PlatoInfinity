@@ -22,26 +22,48 @@ const getSocketUrl = () => {
 export function SocketProvider({ children }) {
   const [socket, setSocket] = useState(null);
   const restaurantId = useSelector((s) => s.user.restaurantId);
+  const role = useSelector((s) => s.user.role);
 
   useEffect(() => {
-    if (!restaurantId) {
-      console.log("🔌 SocketProvider: No restaurantId, disconnecting socket");
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
-      }
-      return;
-    }
-
-    console.log(
-      "🔌 SocketProvider: Creating socket for restaurant:",
-      restaurantId,
-    );
-
     const token =
       localStorage.getItem("authToken") ||
       localStorage.getItem("token") ||
       sessionStorage.getItem("authToken");
+
+    const isStaffRole = [
+      "BRAND_ADMIN",
+      "ADMIN",
+      "OWNER",
+      "MANAGER",
+      "CHEF",
+      "WAITER",
+      "CASHIER",
+    ].includes(role);
+
+    // Customer uses separate socket hook/provider.
+    if (role === "CUSTOMER") {
+      console.log(
+        "🔌 SocketProvider: Customer role detected, skipping staff socket",
+      );
+      return;
+    }
+
+    // Until role loads, avoid opening an unauthenticated socket accidentally.
+    if (!role) return;
+
+    // Staff/admin can authenticate via localStorage token OR httpOnly accessToken cookie.
+    if (!token && !isStaffRole) {
+      console.log(
+        "🔌 SocketProvider: Missing token and non-staff role, skipping socket",
+      );
+      return;
+    }
+
+    console.log("🔌 SocketProvider: Creating authenticated socket", {
+      restaurantId,
+      role,
+      hasToken: !!token,
+    });
 
     const nextSocket = io(getSocketUrl(), {
       withCredentials: true,
@@ -55,6 +77,16 @@ export function SocketProvider({ children }) {
 
     nextSocket.on("connect", () => {
       console.log("✅ SocketProvider: Socket connected:", nextSocket.id);
+
+      if (restaurantId) {
+        nextSocket.emit("join:restaurant", { restaurantId });
+      }
+    });
+
+    nextSocket.on("reconnect", () => {
+      if (restaurantId) {
+        nextSocket.emit("join:restaurant", { restaurantId });
+      }
     });
 
     nextSocket.on("connect_error", (error) => {
@@ -69,7 +101,12 @@ export function SocketProvider({ children }) {
       setSocket(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restaurantId]);
+  }, [restaurantId, role]);
+
+  useEffect(() => {
+    if (!socket || !socket.connected || !restaurantId) return;
+    socket.emit("join:restaurant", { restaurantId });
+  }, [socket, restaurantId]);
 
   return (
     <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>

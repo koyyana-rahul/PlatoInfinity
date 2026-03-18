@@ -18,7 +18,7 @@
  * - ErrorBoundary: Error handling
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   FiBarChart2,
   FiTrendingUp,
@@ -57,6 +57,22 @@ export default function ManagerDashboard() {
   const socket = useSocket();
   const restaurantId = user?.restaurantId;
 
+  const normalizeStatus = (status) =>
+    String(status || "").toUpperCase() || "NEW";
+
+  const applyOrderLevelStatusToItems = (items = [], status) => {
+    const normalized = normalizeStatus(status);
+
+    if (normalized === "SERVED") {
+      return (Array.isArray(items) ? items : []).map((item) => ({
+        ...item,
+        itemStatus: "SERVED",
+      }));
+    }
+
+    return Array.isArray(items) ? items : [];
+  };
+
   // Dashboard State
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
@@ -80,19 +96,53 @@ export default function ManagerDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dateRange, setDateRange] = useState("7d");
 
+  const deriveOrderStatus = (order = {}) => {
+    const fallback = normalizeStatus(
+      order?.orderStatus || order?.status || "NEW",
+    );
+
+    if (["SERVED", "CANCELLED", "PAID"].includes(fallback)) {
+      return fallback;
+    }
+
+    const items = Array.isArray(order?.items) ? order.items : [];
+    const itemStatuses = items.map((it) =>
+      String(it?.itemStatus || "").toUpperCase(),
+    );
+    const totalItems = itemStatuses.length;
+    const servedCount = itemStatuses.filter((s) => s === "SERVED").length;
+
+    if (totalItems > 0 && servedCount === totalItems) return "SERVED";
+    if (itemStatuses.some((s) => s === "SERVING") || servedCount > 0)
+      return "SERVING";
+    if (itemStatuses.some((s) => s === "READY")) return "READY";
+    if (itemStatuses.some((s) => s === "IN_PROGRESS")) return "IN_PROGRESS";
+
+    return fallback;
+  };
+
+  const normalizeOrder = (order = {}) => ({
+    ...order,
+    _id: order._id || order.orderId,
+    items: Array.isArray(order.items) ? order.items : [],
+    orderStatus: deriveOrderStatus(order),
+    placedAt: order.placedAt || order.createdAt || order.updatedAt,
+  });
+
   /**
    * Fetch orders from API
    */
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       const config = dashboardApi.getRecentOrders(100, filters.timeRange);
       const res = await AuthAxios.get(config.url, { params: config.params });
 
       if (res.data?.success) {
-        setOrders(res.data.data);
-        applyFilters(res.data.data, filters);
-        calculateStats(res.data.data);
+        const normalized = (res.data.data || []).map((o) => normalizeOrder(o));
+        setOrders(normalized);
+        applyFilters(normalized, filters);
+        calculateStats(normalized);
       }
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -100,13 +150,13 @@ export default function ManagerDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters.timeRange, filters.status, filters.sortBy]);
 
   /**
    * Apply filters to orders
    */
   const applyFilters = (orderList, filterSettings) => {
-    let filtered = [...orderList];
+    let filtered = orderList.map((o) => normalizeOrder(o));
 
     // Filter by status
     if (filterSettings.status !== "all") {
@@ -131,17 +181,25 @@ export default function ManagerDashboard() {
    * Calculate statistics
    */
   const calculateStats = (orderList) => {
-    const completed = orderList.filter((o) => o.orderStatus === "SERVED");
-    const pending = orderList.filter(
-      (o) => o.orderStatus === "NEW" || o.orderStatus === "IN_PROGRESS",
+    const normalized = orderList.map((o) => normalizeOrder(o));
+    const completed = normalized.filter((o) => o.orderStatus === "SERVED");
+    const pending = normalized.filter(
+      (o) =>
+        o.orderStatus === "NEW" ||
+        o.orderStatus === "IN_PROGRESS" ||
+        o.orderStatus === "SERVING" ||
+        o.orderStatus === "READY",
     );
 
     setStats({
-      totalOrders: orderList.length,
+      totalOrders: normalized.length,
       completedOrders: completed.length,
       pendingOrders: pending.length,
       avgTime: Math.random() * 30,
-      totalRevenue: orderList.reduce((sum, o) => sum + (o.totalAmount || 0), 0),
+      totalRevenue: normalized.reduce(
+        (sum, o) => sum + (o.totalAmount || 0),
+        0,
+      ),
     });
   };
 
@@ -152,7 +210,22 @@ export default function ManagerDashboard() {
     fetchOrders();
     const interval = setInterval(fetchOrders, 30000); // Refresh every 30s
     return () => clearInterval(interval);
-  }, [filters.timeRange]);
+  }, [fetchOrders]);
+
+  useEffect(() => {
+    if (!socket || !restaurantId) return;
+
+    const emitJoin = () => {
+      socket.emit("join:restaurant", { restaurantId });
+    };
+
+    emitJoin();
+    socket.on("connect", emitJoin);
+
+    return () => {
+      socket.off("connect", emitJoin);
+    };
+  }, [socket, restaurantId]);
 
   /**
    * Real-time socket updates
@@ -162,7 +235,10 @@ export default function ManagerDashboard() {
 
     const handleOrderUpdate = (data) => {
       const incomingId = data?._id || data?.orderId;
-      if (!incomingId) return;
+      if (!incomingId) {
+        fetchOrders();
+        return;
+      }
 
       setOrders((prev) => {
         const exists = prev.some((o) => String(o._id) === String(incomingId));
@@ -182,15 +258,29 @@ export default function ManagerDashboard() {
                   : item;
               });
 
+              const incomingOrderStatus =
+                data.orderStatus || data.status || o.orderStatus;
+              const patchedItems =
+                !data.itemId &&
+                (data.itemIndex === undefined || data.itemIndex === null)
+                  ? applyOrderLevelStatusToItems(nextItems, incomingOrderStatus)
+                  : nextItems;
+
               return {
                 ...o,
                 ...data,
                 _id: o._id,
-                orderStatus: data.orderStatus || o.orderStatus,
-                items: nextItems,
+                orderStatus: deriveOrderStatus({
+                  ...o,
+                  ...data,
+                  orderStatus: incomingOrderStatus,
+                  status: incomingOrderStatus,
+                  items: patchedItems,
+                }),
+                items: patchedItems,
               };
             })
-          : [data, ...prev];
+          : [normalizeOrder(data), ...prev];
 
         applyFilters(updated, filters);
         calculateStats(updated);
@@ -198,16 +288,36 @@ export default function ManagerDashboard() {
       });
     };
 
+    const handleSocketReconnect = () => {
+      fetchOrders();
+    };
+
     socket.on("order:placed", handleOrderUpdate);
     socket.on("order:item-status-updated", handleOrderUpdate);
+    socket.on("order:status-changed", handleOrderUpdate);
+    socket.on("manager:order-status-changed", handleOrderUpdate);
+    socket.on("order:ready", handleOrderUpdate);
+    socket.on("order:ready-for-serving", handleOrderUpdate);
     socket.on("order:served", handleOrderUpdate);
+    socket.on("order:cancelled", handleOrderUpdate);
+    socket.on("table:item-status-changed", handleOrderUpdate);
+    socket.on("waiter:item-ready-alert", handleOrderUpdate);
+    socket.on("connect", handleSocketReconnect);
 
     return () => {
       socket.off("order:placed", handleOrderUpdate);
       socket.off("order:item-status-updated", handleOrderUpdate);
+      socket.off("order:status-changed", handleOrderUpdate);
+      socket.off("manager:order-status-changed", handleOrderUpdate);
+      socket.off("order:ready", handleOrderUpdate);
+      socket.off("order:ready-for-serving", handleOrderUpdate);
       socket.off("order:served", handleOrderUpdate);
+      socket.off("order:cancelled", handleOrderUpdate);
+      socket.off("table:item-status-changed", handleOrderUpdate);
+      socket.off("waiter:item-ready-alert", handleOrderUpdate);
+      socket.off("connect", handleSocketReconnect);
     };
-  }, [socket, filters]);
+  }, [socket, filters, fetchOrders]);
 
   /**
    * Handle filter changes
@@ -286,13 +396,48 @@ export default function ManagerDashboard() {
     {
       key: "orderStatus",
       label: "Status",
-      render: (val) => (
-        <span
-          className={`inline-block px-2 py-1 rounded text-xs font-semibold ${getStatusBadge(val)}`}
-        >
-          {val === "IN_PROGRESS" ? "Preparing" : val?.replaceAll("_", " ")}
-        </span>
-      ),
+      render: (val) => {
+        const normalized = String(val || "NEW").toUpperCase();
+        const progressMap = {
+          NEW: { percent: 20, color: "bg-orange-500", label: "PLACED" },
+          IN_PROGRESS: {
+            percent: 40,
+            color: "bg-yellow-500",
+            label: "PREPARING",
+          },
+          SERVING: { percent: 60, color: "bg-indigo-500", label: "SERVING" },
+          READY: { percent: 80, color: "bg-green-500", label: "READY" },
+          SERVED: { percent: 100, color: "bg-blue-600", label: "SERVED" },
+          CANCELLED: { percent: 0, color: "bg-slate-400", label: "CANCELLED" },
+        };
+
+        const progress = progressMap[normalized] || {
+          percent: 20,
+          color: "bg-slate-500",
+          label: normalized.replaceAll("_", " "),
+        };
+
+        return (
+          <div className="space-y-1">
+            <span
+              className={`inline-block px-2 py-1 rounded text-xs font-semibold ${getStatusBadge(normalized)}`}
+            >
+              {progress.label}
+            </span>
+            <div className="flex items-center gap-2">
+              <div className="w-20 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                <div
+                  className={`h-full ${progress.color} transition-all duration-500`}
+                  style={{ width: `${progress.percent}%` }}
+                />
+              </div>
+              <span className="text-[10px] font-semibold text-slate-600">
+                {progress.percent}%
+              </span>
+            </div>
+          </div>
+        );
+      },
     },
   ];
 
@@ -305,6 +450,8 @@ export default function ManagerDashboard() {
         return "bg-red-100 text-red-700";
       case "IN_PROGRESS":
         return "bg-yellow-100 text-yellow-700";
+      case "SERVING":
+        return "bg-indigo-100 text-indigo-700";
       case "READY":
         return "bg-green-100 text-green-700";
       case "SERVED":
@@ -458,8 +605,9 @@ export default function ManagerDashboard() {
                 placeholder="All"
                 options={[
                   { value: "all", label: "All" },
-                  { value: "NEW", label: "New" },
+                  { value: "NEW", label: "Placed" },
                   { value: "IN_PROGRESS", label: "Preparing" },
+                  { value: "SERVING", label: "Serving" },
                   { value: "READY", label: "Ready" },
                   { value: "SERVED", label: "Served" },
                 ]}
