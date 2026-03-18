@@ -3,7 +3,8 @@ import crypto from "crypto";
 import UserModel from "../models/user.model.js";
 import RestaurantModel from "../models/restaurant.model.js";
 import sendEmail from "../config/sendEmail.js";
-import AuditLog from "../models/auditLog.model.js"; // optional - remove if not present
+import AuditLog from "../models/auditLog.model.js";
+import getManagerInviteTemplate from "../utils/emailTemplates/inviteManager.js";
 
 // POST /restaurants/:restaurantId/invite-manager
 export async function inviteManagerController(req, res) {
@@ -81,17 +82,19 @@ export async function inviteManagerController(req, res) {
     // Build invite URL (frontend will call /auth/accept-invite)
     const inviteUrl = `${process.env.FRONTEND_URL.replace(
       /\/$/,
-      ""
+      "",
     )}/accept-invite?token=${rawToken}&uid=${newUser._id}`;
 
     // Send email (best-effort)
     sendEmail({
       sendTo: email,
       subject: `You're invited to manage ${restaurant.name}`,
-      html: `<p>Hi ${name},</p>
-             <p>You were invited to manage <strong>${restaurant.name}</strong>.</p>
-             <p>Click to accept: <a href="${inviteUrl}">${inviteUrl}</a></p>
-             <p>This link expires in 7 days.</p>`,
+      html: getManagerInviteTemplate({
+        name,
+        restaurantName: restaurant.name,
+        inviteUrl,
+        appName: "Plato",
+      }),
     }).catch((e) => console.error("sendEmail failed", e));
 
     // Audit

@@ -2,6 +2,7 @@ import crypto from "crypto";
 import User from "../models/user.model.js";
 import Restaurant from "../models/restaurant.model.js";
 import { Resend } from "resend";
+import getManagerInviteTemplate from "../utils/emailTemplates/inviteManager.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -93,14 +94,12 @@ export async function inviteManagerController(req, res) {
       from: process.env.RESEND_FROM_EMAIL,
       to: email,
       subject: `You're invited as Manager – ${restaurant.name}`,
-      html: `
-        <h3>Hello ${name}</h3>
-        <p>You have been invited as a manager for <b>${restaurant.name}</b>.</p>
-        <a href="${inviteUrl}" style="padding:10px 16px;background:#00684A;color:#fff;border-radius:6px;text-decoration:none;">
-          Accept Invite
-        </a>
-        <p>This link expires in 24 hours.</p>
-      `,
+      html: getManagerInviteTemplate({
+        name,
+        restaurantName: restaurant.name,
+        inviteUrl,
+        appName: "Plato",
+      }),
     });
 
     return res.status(201).json({
@@ -171,11 +170,13 @@ export async function resendInviteController(req, res) {
     from: process.env.RESEND_FROM_EMAIL,
     to: user.email,
     subject: "Your manager invite – Resent",
-    html: `
-      <p>Hello ${user.name},</p>
-      <p>Your invite has been resent.</p>
-      <a href="${inviteUrl}">Accept Invite</a>
-    `,
+    html: getManagerInviteTemplate({
+      name: user.name,
+      restaurantName: "Plato", // Ideally get from DB if linked
+      inviteUrl,
+      appName: "Plato",
+      isResend: true,
+    }),
   });
 
   res.json({ success: true });

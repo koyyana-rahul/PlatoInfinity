@@ -1,5 +1,6 @@
 import React from "react";
 import { FiMapPin } from "react-icons/fi";
+import Dropdown from "../../../components/ui/DropDown";
 
 /**
  * Branch Selector Component
@@ -12,30 +13,36 @@ export const BranchSelector = ({
   loading,
 }) => {
   if (loading) {
-    return <div className="h-11 bg-slate-100 rounded-2xl animate-pulse w-48 startup-shadow" />;
+    return (
+      <div className="h-11 bg-slate-100 rounded-xl animate-pulse w-full sm:w-72 startup-shadow" />
+    );
   }
 
   if (!branches || branches.length === 0) {
     return null;
   }
 
+  const branchOptions = [
+    { value: "all", label: "All Branches" },
+    ...branches.map((branch) => ({
+      value: branch._id,
+      label: branch.name,
+    })),
+  ];
+
   return (
-    <div className="flex items-center gap-2">
-      <FiMapPin className="text-slate-600" size={18} />
-      <select
-        value={selectedBranch || "all"}
-        onChange={(e) =>
-          onBranchChange(e.target.value === "all" ? null : e.target.value)
-        }
-        className="px-4 py-2.5 rounded-2xl text-sm font-semibold text-slate-700 bg-white startup-shadow focus:outline-none focus:ring-2 focus:ring-orange-300 cursor-pointer"
-      >
-        <option value="all">All Branches</option>
-        {branches.map((branch) => (
-          <option key={branch._id} value={branch._id}>
-            {branch.name}
-          </option>
-        ))}
-      </select>
+    <div className="w-full sm:w-72 max-w-full">
+      <div className="flex items-center gap-2 bg-white rounded-xl startup-shadow px-3 py-1.5 border border-slate-100">
+        <FiMapPin className="text-[#FC8019] shrink-0" size={16} />
+        <div className="min-w-0 flex-1">
+          <Dropdown
+            value={selectedBranch || "all"}
+            onChange={(value) => onBranchChange(value === "all" ? null : value)}
+            options={branchOptions}
+            placeholder="Select branch"
+          />
+        </div>
+      </div>
     </div>
   );
 };

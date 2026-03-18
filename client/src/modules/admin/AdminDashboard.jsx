@@ -250,8 +250,8 @@ export default function AdminDashboard() {
           </div>
 
           {/* Right: Branch Selector & Notifications */}
-          <div className="flex items-center justify-end gap-3 flex-wrap sm:flex-nowrap">
-            <div className="w-full sm:w-auto">
+          <div className="flex items-center justify-end gap-3 flex-wrap w-full lg:w-auto">
+            <div className="w-full sm:w-auto min-w-0">
               <BranchSelector
                 branches={branches}
                 selectedBranch={selectedBranch}

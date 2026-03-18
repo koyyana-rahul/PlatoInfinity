@@ -1,16 +1,11 @@
 import React, { useState } from "react";
-import {
-  Eye,
-  EyeOff,
-  ShieldAlert,
-  ArrowRight,
-  CheckCircle,
-} from "lucide-react";
+import { Eye, EyeOff, ArrowRight, CheckCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import Axios from "../../api/axios";
 import summaryApi from "../../api/summaryApi";
+import AuthLogo from "./components/AuthLogo";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -84,9 +79,7 @@ const ResetPassword = () => {
       {/* Header Section */}
       <div className="w-full max-w-md mx-auto mb-6 sm:mb-8">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center h-14 w-14 rounded-xl bg-gradient-to-br from-[#FC8019] to-[#FF6B35] mb-4 sm:mb-6 shadow-lg">
-            <ShieldAlert className="h-7 w-7 text-white" />
-          </div>
+          <AuthLogo className="mb-4 sm:mb-6" />
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
             Reset Password
           </h1>

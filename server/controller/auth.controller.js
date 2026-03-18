@@ -7,8 +7,9 @@ import crypto from "crypto";
 import UserModel from "../models/user.model.js";
 import KitchenStationModel from "../models/kitchenStation.model.js";
 import uploadImageClodinary from "../utils/uploadImageClodinary.js";
-import getInviteEmailTemplate from "../utils/getInviteEmailTemplate.js";
-import userModel from "../models/user.model.js";
+import getVerifyEmailTemplate from "../utils/emailTemplates/verifyEmail.js";
+import getOtpEmailTemplate from "../utils/emailTemplates/otpEmail.js";
+// import userModel from "../models/user.model.js"; // removed duplicate
 // import uploadImageClodinary from "../utils/uploadImageClodinary.js"; // optional, used in uploadAvatar
 
 // Initialize Resend
@@ -61,36 +62,29 @@ function cookieOptions() {
 }
 
 async function sendVerifyEmail({ to, name, url }) {
-  const html = `
-    <div style="font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#111;">
-      <h2>Hello ${name || ""},</h2>
-      <p>Please verify your email by clicking the button below:</p>
-      <a href="${url}" style="display:inline-block;padding:10px 18px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none;">Verify Email</a>
-      <p>If the button doesn't work, open this URL: ${url}</p>
-      <p>Thanks,<br/>Team</p>
-    </div>
-  `;
+  const html = getVerifyEmailTemplate({
+    name,
+    verifyUrl: url,
+    appName: "Plato",
+  });
   return resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL,
     to,
-    subject: "Verify your email",
+    subject: "Active your Plato Account",
     html,
   });
 }
 
 async function sendForgotPasswordEmail({ to, name, otp }) {
-  const html = `
-    <div style="font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#111;">
-      <h3>Hello ${name || ""},</h3>
-      <p>Here is your password reset OTP (valid for 1 hour):</p>
-      <div style="font-size:22px;font-weight:700;padding:10px 0">${otp}</div>
-      <p>If you didn't request a password reset, ignore this email.</p>
-    </div>
-  `;
+  const html = getOtpEmailTemplate({
+    name,
+    otp,
+    appName: "Plato",
+  });
   return resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL,
     to,
-    subject: "Password reset OTP",
+    subject: "Reset Password OTP",
     html,
   });
 }
@@ -132,11 +126,11 @@ export async function registerUserController(req, res) {
     await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL,
       to: email,
-      subject: "You're invited – Verify your email",
-      html: getInviteEmailTemplate({
-        name: user.name, // optional
+      subject: "Welcome to Plato – Verify Email",
+      html: getVerifyEmailTemplate({
+        name: user.name,
         verifyUrl,
-        appName: "Plato", // change if needed
+        appName: "Plato",
       }),
     });
 

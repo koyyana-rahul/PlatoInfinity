@@ -1,16 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Eye,
-  EyeOff,
-  Mail,
-  ShieldAlert,
-  ArrowRight,
-  CheckCircle,
-} from "lucide-react";
+import { Eye, EyeOff, Mail, ArrowRight, CheckCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import Axios from "../../api/axios";
 import SummaryApi from "../../api/summaryApi";
+import AuthLogo from "./components/AuthLogo";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -73,6 +67,7 @@ export default function Register() {
         <div className="w-full max-w-md mx-auto">
           <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-6 sm:p-8">
             <div className="flex flex-col items-center justify-center space-y-4">
+              <AuthLogo sizeClass="h-16 w-16" iconSize={30} />
               <div className="h-16 w-16 rounded-xl bg-gradient-to-br from-[#FC8019] to-[#FF6B35] flex items-center justify-center shadow-lg">
                 <Mail className="h-8 w-8 text-white" />
               </div>
@@ -115,9 +110,7 @@ export default function Register() {
       {/* Header Section */}
       <div className="w-full max-w-md mx-auto mb-6 sm:mb-8">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center h-14 w-14 rounded-xl bg-gradient-to-br from-[#FC8019] to-[#FF6B35] mb-4 sm:mb-6 shadow-lg">
-            <ShieldAlert className="h-7 w-7 text-white" />
-          </div>
+          <AuthLogo className="mb-4 sm:mb-6" />
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
             Create Account
           </h1>

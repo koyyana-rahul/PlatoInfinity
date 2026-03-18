@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { CheckCircle, XCircle, ShieldAlert, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import AuthAxios from "../../api/authAxios";
+import AuthLogo from "./components/AuthLogo";
 
 export default function VerifyEmail() {
   const navigate = useNavigate();
@@ -39,9 +40,7 @@ export default function VerifyEmail() {
       <div className="w-full max-w-md mx-auto">
         {/* Header Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-14 w-14 rounded-xl bg-gradient-to-br from-[#FC8019] to-[#FF6B35] mb-4 shadow-lg">
-            <ShieldAlert className="h-7 w-7 text-white" />
-          </div>
+          <AuthLogo className="mb-4" />
           <h1 className="text-3xl font-bold text-gray-900">
             Email Verification
           </h1>
@@ -88,12 +87,12 @@ export default function VerifyEmail() {
                     The verification link has expired or is invalid
                   </p>
                 </div>
-                <button
+                {/* <button
                   onClick={() => navigate("/login")}
                   className="mt-4 px-6 h-11 bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white font-semibold rounded-xl hover:shadow-xl transition-all shadow-lg active:scale-[0.98]"
                 >
                   Go to Login
-                </button>
+                </button> */}
               </>
             )}
           </div>

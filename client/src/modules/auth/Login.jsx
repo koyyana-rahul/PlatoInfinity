@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, ShieldAlert, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
 import { useDispatch } from "react-redux";
 
@@ -8,6 +8,7 @@ import Axios from "../../api/axios";
 import SummaryApi from "../../api/summaryApi";
 import { setUserDetails } from "../../store/auth/userSlice";
 import { setBrandDetails } from "../../store/brand/brandSlice";
+import AuthLogo from "./components/AuthLogo";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -82,9 +83,7 @@ export default function Login() {
       {/* Header Section */}
       <div className="w-full max-w-md mx-auto mb-6 sm:mb-8">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center h-14 w-14 rounded-xl bg-gradient-to-br from-[#FC8019] to-[#FF6B35] mb-4 sm:mb-6 shadow-lg">
-            <ShieldAlert className="text-white" size={28} strokeWidth={2.5} />
-          </div>
+          <AuthLogo className="mb-4 sm:mb-6" />
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
             Welcome Back
           </h1>
