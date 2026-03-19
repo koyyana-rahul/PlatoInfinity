@@ -10,7 +10,7 @@ import {
 import clsx from "clsx";
 import AuthAxios from "../../api/authAxios";
 import reportsApi from "../../api/reports.api";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 
 export default function AdminReports() {
   const [reports, setReports] = useState({
@@ -45,7 +45,7 @@ export default function AdminReports() {
       }
     } catch (error) {
       console.error("❌ Error fetching reports:", error.message);
-      toast.error("Failed to fetch reports");
+      notify.error("Failed to fetch reports");
     } finally {
       setLoading(false);
     }
@@ -69,10 +69,10 @@ export default function AdminReports() {
       a.href = url;
       a.download = `${type}-report-${new Date().getTime()}.csv`;
       a.click();
-      toast.success("Report downloaded");
+      notify.success("Report downloaded");
     } catch (error) {
       console.error("❌ Export error:", error.message);
-      toast.error("Failed to export report");
+      notify.error("Failed to export report");
     } finally {
       setExporting(false);
     }

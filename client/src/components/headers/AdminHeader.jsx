@@ -9,7 +9,7 @@ import {
   FiLogOut,
   FiActivity,
 } from "react-icons/fi"; // Unified Fi icons
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 import clsx from "clsx";
 
 import Axios from "../../api/axios";
@@ -33,7 +33,7 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }) {
     } finally {
       dispatch(logout());
       localStorage.clear();
-      toast.success("Safe travels! Logged out.");
+      notify.success("Signed out successfully");
       navigate("/login", { replace: true });
     }
   };

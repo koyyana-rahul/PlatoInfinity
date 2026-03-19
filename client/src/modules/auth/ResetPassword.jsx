@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import { Eye, EyeOff, ArrowRight, CheckCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 
 import Axios from "../../api/axios";
 import summaryApi from "../../api/summaryApi";
 import AuthLogo from "./components/AuthLogo";
+import {
+  validatePassword,
+  passwordRequirementsText,
+} from "../../utils/validation";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -25,7 +29,7 @@ const ResetPassword = () => {
 
   // 🚨 Prevent direct access
   if (!email) {
-    toast.error("Invalid password reset flow");
+    notify.error("Invalid password reset flow");
     navigate("/forgot-password", { replace: true });
     return null;
   }
@@ -40,12 +44,17 @@ const ResetPassword = () => {
     const { newPassword, confirmPassword } = form;
 
     if (!newPassword || !confirmPassword) {
-      toast.error("All fields are required");
+      notify.error("All fields are required");
+      return;
+    }
+
+    if (!validatePassword(newPassword)) {
+      notify.error(passwordRequirementsText);
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
+      notify.error("Passwords do not match");
       return;
     }
 
@@ -62,13 +71,13 @@ const ResetPassword = () => {
       });
 
       if (res.data.success) {
-        toast.success("Password reset successful");
+        notify.success("Password reset successful");
         navigate("/login", { replace: true });
       } else {
-        toast.error(res.data.message || "Reset failed");
+        notify.error(res.data.message || "Reset failed");
       }
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Something went wrong");
+      notify.error(err?.response?.data?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -145,6 +154,9 @@ const ResetPassword = () => {
                   )}
                 </button>
               </div>
+              <p className="text-xs text-gray-500">
+                {passwordRequirementsText}
+              </p>
             </div>
 
             {/* Confirm Password Input */}
@@ -237,7 +249,7 @@ const ResetPassword = () => {
 
         {/* Footer Text */}
         <p className="text-center text-xs text-gray-500 mt-8">
-          Password must be at least 8 characters long
+          {passwordRequirementsText}
         </p>
       </div>
     </div>

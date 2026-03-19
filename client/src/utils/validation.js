@@ -3,19 +3,33 @@
  * Production-ready form validation utilities
  */
 
+import validator from "validator";
+
+const passwordRules = {
+  minLength: 8,
+  minLowercase: 1,
+  minUppercase: 1,
+  minNumbers: 1,
+  minSymbols: 1,
+};
+
 export const validateEmail = (email) => {
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return regex.test(email);
+  if (!email) return false;
+  return validator.isEmail(String(email).trim());
 };
 
 export const validatePhone = (phone) => {
-  const regex = /^[0-9]{10}$/;
-  return regex.test(phone.replace(/\D/g, ""));
+  if (!phone) return false;
+  return validator.isMobilePhone(String(phone), "any");
 };
 
 export const validatePassword = (password) => {
-  return password.length >= 8;
+  if (!password) return false;
+  return validator.isStrongPassword(String(password), passwordRules);
 };
+
+export const passwordRequirementsText =
+  "At least 8 characters with uppercase, lowercase, number, and symbol";
 
 export const validateRequired = (value) => {
   return value !== "" && value !== null && value !== undefined;
@@ -52,7 +66,7 @@ export const createValidator = (rules) => {
       } else if (fieldRules.phone && !validatePhone(value)) {
         errors[field] = "Invalid phone number (10 digits required)";
       } else if (fieldRules.password && !validatePassword(value)) {
-        errors[field] = "Password must be at least 8 characters";
+        errors[field] = passwordRequirementsText;
       } else if (
         fieldRules.minLength &&
         !validateMinLength(value, fieldRules.minLength)

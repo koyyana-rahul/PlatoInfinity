@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Axios from "../../api/axios";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 import {
   TrendingUp,
   Users,
@@ -33,7 +33,7 @@ export default function AdminAnalytics() {
       }
     } catch (err) {
       console.error("Failed to fetch analytics:", err);
-      toast.error("Failed to load analytics");
+      notify.error("Failed to load analytics");
     } finally {
       setRefreshing(false);
       setLoading(false);

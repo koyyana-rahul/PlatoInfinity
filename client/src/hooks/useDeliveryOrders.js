@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSocket } from "./useSocket";
 import * as deliveryAPI from "../api/delivery.api";
-import { toast } from "react-hot-toast";
+import { notify } from "../utils/notify";
 
 /**
  * Custom hook for managing delivery orders
@@ -48,7 +48,7 @@ export const useDeliveryOrders = (restaurantId) => {
       } catch (err) {
         const message = err.response?.data?.message || "Failed to load orders";
         setError(message);
-        toast.error(message);
+        notify.error(message);
         return null;
       } finally {
         setLoading(false);
@@ -73,7 +73,7 @@ export const useDeliveryOrders = (restaurantId) => {
       } catch (err) {
         const message = err.response?.data?.message || "Failed to load order";
         setError(message);
-        toast.error(message);
+        notify.error(message);
         return null;
       } finally {
         setLoading(false);
@@ -106,13 +106,13 @@ export const useDeliveryOrders = (restaurantId) => {
           setSelectedOrder(response.data.data);
         }
 
-        toast.success(`Order status updated to ${status}`);
+        notify.success(`Order status updated to ${status}`);
         return response.data.data;
       } catch (err) {
         const message =
           err.response?.data?.message || "Failed to update status";
         setError(message);
-        toast.error(message);
+        notify.error(message);
         return null;
       } finally {
         setLoading(false);
@@ -144,13 +144,13 @@ export const useDeliveryOrders = (restaurantId) => {
           setSelectedOrder(response.data.data);
         }
 
-        toast.success("Delivery partner assigned successfully");
+        notify.success("Delivery partner assigned successfully");
         return response.data.data;
       } catch (err) {
         const message =
           err.response?.data?.message || "Failed to assign partner";
         setError(message);
-        toast.error(message);
+        notify.error(message);
         return null;
       } finally {
         setLoading(false);
@@ -180,7 +180,7 @@ export const useDeliveryOrders = (restaurantId) => {
         const message =
           err.response?.data?.message || "Failed to load partner orders";
         setError(message);
-        toast.error(message);
+        notify.error(message);
         return null;
       } finally {
         setLoading(false);
@@ -235,13 +235,13 @@ export const useDeliveryOrders = (restaurantId) => {
           setSelectedOrder(response.data.data);
         }
 
-        toast.success("Delivery completed successfully");
+        notify.success("Delivery completed successfully");
         return response.data.data;
       } catch (err) {
         const message =
           err.response?.data?.message || "Failed to complete delivery";
         setError(message);
-        toast.error(message);
+        notify.error(message);
         return null;
       } finally {
         setLoading(false);
@@ -271,12 +271,12 @@ export const useDeliveryOrders = (restaurantId) => {
           setSelectedOrder(null);
         }
 
-        toast.success("Order cancelled successfully");
+        notify.success("Order cancelled successfully");
         return response.data.data;
       } catch (err) {
         const message = err.response?.data?.message || "Failed to cancel order";
         setError(message);
-        toast.error(message);
+        notify.error(message);
         return null;
       } finally {
         setLoading(false);
@@ -321,7 +321,7 @@ export const useDeliveryOrders = (restaurantId) => {
     socket.on("delivery:order-received", (data) => {
       if (data.restaurantId === restaurantId) {
         setDeliveryOrders((prev) => [data.deliveryOrder, ...prev]);
-        toast.success("New delivery order received!");
+        notify.success("New delivery order received");
       }
     });
 
@@ -338,7 +338,7 @@ export const useDeliveryOrders = (restaurantId) => {
           setSelectedOrder(data.deliveryOrder);
         }
 
-        toast.info(`Order status: ${data.deliveryOrder.orderStatus}`);
+        notify.info(`Order status: ${data.deliveryOrder.orderStatus}`);
       }
     });
 
@@ -351,7 +351,7 @@ export const useDeliveryOrders = (restaurantId) => {
           ),
         );
 
-        toast.success(
+        notify.success(
           `Partner assigned: ${data.deliveryOrder.deliveryPartner.name}`,
         );
       }
@@ -380,7 +380,7 @@ export const useDeliveryOrders = (restaurantId) => {
           ),
         );
 
-        toast.success("Order delivered successfully!");
+        notify.success("Order delivered successfully");
       }
     });
 
@@ -391,7 +391,7 @@ export const useDeliveryOrders = (restaurantId) => {
           orders.filter((order) => order._id !== data.deliveryOrder._id),
         );
 
-        toast.info("Order has been cancelled");
+        notify.info("Order has been cancelled");
       }
     });
 

@@ -1,10 +1,14 @@
 // src/modules/auth/invite/SetPassword.jsx
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 import Axios from "../../../api/axios";
 import authApi from "../../../api/auth.api";
 import { FiEye, FiEyeOff } from "react-icons/fi";
+import {
+  validatePassword,
+  passwordRequirementsText,
+} from "../../../utils/validation";
 
 export default function SetPassword() {
   const [params] = useSearchParams();
@@ -20,20 +24,20 @@ export default function SetPassword() {
   /* ---------- SAFETY CHECK ---------- */
   useEffect(() => {
     if (!token) {
-      toast.error("Invalid or missing invite token");
+      notify.error("Invalid or missing invite token");
       navigate("/login", { replace: true });
     }
   }, [token, navigate]);
 
   /* ---------- SUBMIT ---------- */
   const submit = async () => {
-    if (!password || password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (!validatePassword(password)) {
+      notify.error(passwordRequirementsText);
       return;
     }
 
     if (password !== confirm) {
-      toast.error("Passwords do not match");
+      notify.error("Passwords do not match");
       return;
     }
 
@@ -45,11 +49,11 @@ export default function SetPassword() {
         data: { token, password },
       });
 
-      toast.success("Password set successfully");
+      notify.success("Password set successfully");
       navigate("/login", { replace: true });
     } catch (err) {
       console.error("SetPassword error:", err);
-      toast.error(err?.response?.data?.message || "Unable to set password");
+      notify.error(err?.response?.data?.message || "Unable to set password");
     } finally {
       setLoading(false);
     }
@@ -91,7 +95,7 @@ export default function SetPassword() {
             </button>
           </div>
 
-          <p className="text-xs text-gray-400">Minimum 6 characters</p>
+          <p className="text-xs text-gray-400">{passwordRequirementsText}</p>
         </div>
 
         {/* CONFIRM PASSWORD */}

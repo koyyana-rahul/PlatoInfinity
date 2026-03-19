@@ -16,8 +16,8 @@ export default function AdminSidebar({ open, onClose }) {
 
   const menu = [
     { name: "Dashboard", icon: FiGrid, path: "dashboard" },
-    { name: "Master Menu", icon: FiBookOpen, path: "master-menu" },
     { name: "Restaurants", icon: FiMapPin, path: "restaurants" },
+    { name: "Master Menu", icon: FiBookOpen, path: "master-menu" },
     { name: "Reports", icon: FiPieChart, path: "reports" },
     { name: "Analytics", icon: FiChevronRight, path: "analytics" },
     { name: "Settings", icon: FiSettings, path: "settings" },
@@ -105,11 +105,11 @@ export default function AdminSidebar({ open, onClose }) {
         </nav>
 
         {/* FOOTER SECTION */}
-        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50">
+        {/* <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50">
           <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">
             Plato Menu v1.0
           </p>
-        </div>
+        </div> */}
       </aside>
     </>
   );

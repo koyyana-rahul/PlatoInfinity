@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Axios from "../../api/axios";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 import { Users, RefreshCw, Loader2 } from "lucide-react";
 import clsx from "clsx";
 
@@ -27,7 +27,7 @@ export default function AdminStaffStatus() {
       }
     } catch (err) {
       console.error("Failed to fetch staff status:", err);
-      toast.error("Failed to load staff status");
+      notify.error("Failed to load staff status");
     } finally {
       setRefreshing(false);
       setLoading(false);

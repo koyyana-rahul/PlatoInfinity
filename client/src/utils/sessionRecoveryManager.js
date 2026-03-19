@@ -7,7 +7,7 @@
 import { useEffect, useCallback, useRef } from "react";
 import store from "../store/store.js";
 import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import { notify } from "./notify";
 
 /**
  * Redux actions for session state
@@ -78,12 +78,12 @@ export const useSessionRecovery = (onSessionExpired) => {
         // - Retry original operation
 
         console.log("✅ Session recovered");
-        toast.success("Session recovered! Continuing...");
+        notify.success("Session recovered. Continuing...");
 
         return true;
       } catch (error) {
         console.error("❌ Session recovery failed:", error);
-        toast.error("Failed to resume session. Please scan QR code again.");
+        notify.error("Failed to resume session. Please scan QR code again.");
 
         store.dispatch({
           type: SESSION_ACTIONS.SESSION_RECOVERY_FAILED,

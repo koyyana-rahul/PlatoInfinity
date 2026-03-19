@@ -9,6 +9,10 @@ import KitchenStationModel from "../models/kitchenStation.model.js";
 import uploadImageClodinary from "../utils/uploadImageClodinary.js";
 import getVerifyEmailTemplate from "../utils/emailTemplates/verifyEmail.js";
 import getOtpEmailTemplate from "../utils/emailTemplates/otpEmail.js";
+import {
+  validatePassword,
+  passwordRequirementsText,
+} from "../middleware/validation.js";
 // import userModel from "../models/user.model.js"; // removed duplicate
 // import uploadImageClodinary from "../utils/uploadImageClodinary.js"; // optional, used in uploadAvatar
 
@@ -101,6 +105,13 @@ export async function registerUserController(req, res) {
       return res
         .status(400)
         .json({ success: false, message: "All fields required" });
+
+    if (!validatePassword(password)) {
+      return res.status(400).json({
+        success: false,
+        message: passwordRequirementsText,
+      });
+    }
 
     const exists = await UserModel.findOne({ email });
     if (exists)
@@ -441,6 +452,14 @@ export async function resetPasswordController(req, res) {
         success: false,
       });
 
+    if (!validatePassword(newPassword)) {
+      return res.status(400).json({
+        message: passwordRequirementsText,
+        error: true,
+        success: false,
+      });
+    }
+
     const user = await UserModel.findOne({ email }).select("+password");
     if (!user)
       return res
@@ -566,6 +585,13 @@ export async function updateUserDetailsController(req, res) {
     }
 
     if (password) {
+      if (!validatePassword(password)) {
+        return res.status(400).json({
+          message: passwordRequirementsText,
+          error: true,
+          success: false,
+        });
+      }
       const salt = await bcrypt.genSalt(10);
       updates.password = await bcrypt.hash(password, salt);
     }

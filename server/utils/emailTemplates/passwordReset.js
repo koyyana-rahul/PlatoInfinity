@@ -21,7 +21,7 @@ export default function getPasswordResetTemplate({
         This link is valid for <strong>1 hour</strong> only.
       </p>
       <p style="margin-bottom: 0; color: #9CA3AF; font-size: 13px;">
-        ⚠ If you didn't request a password reset, your account is still secure. You can ignore this email.
+        If you didn’t request a password reset, your account is still secure. You can ignore this email.
       </p>
     `,
     ctaButton: {

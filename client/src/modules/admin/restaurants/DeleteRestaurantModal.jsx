@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { FiX, FiAlertTriangle, FiTrash2, FiLoader } from "react-icons/fi";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 import Axios from "../../../api/axios";
 import clsx from "clsx";
 
@@ -15,16 +15,16 @@ export default function DeleteRestaurantModal({
   const [loading, setLoading] = useState(false);
 
   const handleDelete = async () => {
-    const toastId = toast.loading("Deleting restaurant...");
+    const toastId = notify.loading("Deleting restaurant...");
     setLoading(true);
 
     try {
       await Axios.delete(`/api/restaurants/${restaurant._id}`);
-      toast.success("Restaurant deleted successfully", { id: toastId });
+      notify.success("Restaurant deleted successfully", { id: toastId });
       onSuccess?.();
       onClose();
     } catch (err) {
-      toast.error(
+      notify.error(
         err?.response?.data?.message || "Failed to delete restaurant",
         { id: toastId },
       );

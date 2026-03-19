@@ -8,7 +8,7 @@
 import { useState, useEffect } from "react";
 import { X, Bell, AlertCircle, CheckCircle, Info, Zap } from "lucide-react";
 import { useSocket } from "../socket/SocketProvider";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 import clsx from "clsx";
 
 export default function NotificationCenter({ restaurantId }) {
@@ -120,7 +120,7 @@ export default function NotificationCenter({ restaurantId }) {
 
   const handleAttendCall = (tableId) => {
     setNotifications((prev) => prev.filter((n) => n.id !== `call-${tableId}`));
-    toast.success("Attending table...");
+    notify.success("Attending table...");
   };
 
   const removeNotification = (id) => {

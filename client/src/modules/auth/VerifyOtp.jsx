@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { KeyRound, ArrowRight } from "lucide-react";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 
 import Axios from "../../api/axios";
 import summaryApi from "../../api/summaryApi";
@@ -19,7 +19,7 @@ const VerifyOtp = () => {
 
   // 🚨 Prevent direct access
   if (!email) {
-    toast.error("Invalid OTP verification flow");
+    notify.error("Invalid OTP verification flow");
     navigate("/forgot-password", { replace: true });
     return null;
   }
@@ -28,7 +28,7 @@ const VerifyOtp = () => {
     e.preventDefault();
 
     if (!otp || otp.length !== 6) {
-      toast.error("Enter valid 6-digit OTP");
+      notify.error("Enter the 6-digit OTP");
       return;
     }
 
@@ -44,7 +44,7 @@ const VerifyOtp = () => {
       });
 
       if (res.data.success) {
-        toast.success("OTP verified successfully");
+        notify.success("OTP verified successfully");
 
         // 👉 Go to reset password page
         navigate("/reset-password", {
@@ -52,10 +52,10 @@ const VerifyOtp = () => {
           replace: true,
         });
       } else {
-        toast.error(res.data.message || "Invalid OTP");
+        notify.error(res.data.message || "Invalid OTP");
       }
     } catch (err) {
-      toast.error(err?.response?.data?.message || "OTP verification failed");
+      notify.error(err?.response?.data?.message || "OTP verification failed");
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,7 @@
 // src/modules/auth/invite/AcceptInvite.jsx
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 import axios from "axios";
 import authApi from "../../../api/auth.api";
 
@@ -18,7 +18,7 @@ export default function AcceptInvite() {
   useEffect(() => {
     if (!token) {
       setStatus("error");
-      toast.error("Invalid invite link");
+      notify.error("Invalid invite link");
       return;
     }
 
@@ -37,8 +37,8 @@ export default function AcceptInvite() {
       } catch (err) {
         console.error("Invite verification failed:", err);
         setStatus("error");
-        toast.error(
-          err?.response?.data?.message || "Invite expired or invalid"
+        notify.error(
+          err?.response?.data?.message || "Invite expired or invalid",
         );
       }
     };

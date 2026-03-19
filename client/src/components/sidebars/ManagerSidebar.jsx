@@ -23,11 +23,13 @@ export default function ManagerSidebar({ open, onClose }) {
 
   const menu = [
     { name: "Dashboard", icon: FaTachometerAlt, path: "dashboard" },
-    { name: "Food Menu", icon: FaUtensils, path: "menu" },
     { name: "Kitchen Hub", icon: FaFire, path: "kitchen-stations" },
     { name: "Staff Team", icon: FaUsers, path: "staff" },
-    { name: "Staff QR Access", icon: FaQrcode, path: "staff-qr" },
+    { name: "Food Menu", icon: FaUtensils, path: "menu" },
     { name: "Table Management", icon: FaChair, path: "tables" },
+
+    { name: "Staff QR Access", icon: FaQrcode, path: "staff-qr" },
+
     { name: "Business Analytics", icon: FaChartBar, path: "reports" },
     { name: "Global Settings", icon: FaCog, path: "settings" },
   ];

@@ -19,9 +19,13 @@ import { useSelector, useDispatch } from "react-redux";
 import clsx from "clsx";
 import AuthAxios from "../../api/authAxios";
 import settingsApi from "../../api/settings.api";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 import { updateBrandSettings } from "../../store/brand/brandSlice";
 import { setUserDetails } from "../../store/auth/userSlice";
+import {
+  validatePassword,
+  passwordRequirementsText,
+} from "../../utils/validation";
 
 // Input Component
 const FormInput = ({
@@ -157,7 +161,7 @@ export default function AdminSettings() {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      toast.error("Please fill all required fields");
+      notify.error("Please fill all required fields");
       return;
     }
 
@@ -170,14 +174,14 @@ export default function AdminSettings() {
       );
 
       if (res.data?.success) {
-        toast.success("Restaurant settings updated successfully!");
+        notify.success("Restaurant settings updated successfully");
         if (res.data.data) {
           dispatch(updateBrandSettings(res.data.data));
         }
       }
     } catch (error) {
       console.error("❌ Error:", error.message);
-      toast.error(error.response?.data?.message || "Failed to save settings");
+      notify.error(error.response?.data?.message || "Failed to save settings");
     } finally {
       setSaving(false);
     }
@@ -190,7 +194,7 @@ export default function AdminSettings() {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      toast.error("Please fill all required fields");
+      notify.error("Please fill all required fields");
       return;
     }
 
@@ -203,14 +207,14 @@ export default function AdminSettings() {
       );
 
       if (res.data?.success) {
-        toast.success("Profile updated successfully!");
+        notify.success("Profile updated successfully");
         if (res.data.data) {
           dispatch(setUserDetails(res.data.data));
         }
       }
     } catch (error) {
       console.error("❌ Error:", error.message);
-      toast.error("Failed to update profile");
+      notify.error("Failed to update profile");
     } finally {
       setSaving(false);
     }
@@ -225,12 +229,12 @@ export default function AdminSettings() {
       newErrors.confirm = "Confirm password is required";
     if (passwords.new !== passwords.confirm)
       newErrors.confirm = "Passwords don't match";
-    if (passwords.new.length < 6)
-      newErrors.new = "Password must be at least 6 characters";
+    if (!validatePassword(passwords.new))
+      newErrors.new = passwordRequirementsText;
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      toast.error("Please fix the errors below");
+      notify.error("Please fix the errors below");
       return;
     }
 
@@ -243,13 +247,15 @@ export default function AdminSettings() {
       );
 
       if (res.data?.success) {
-        toast.success("Password changed successfully!");
+        notify.success("Password changed successfully");
         setPasswords({ current: "", new: "", confirm: "" });
         setErrors({});
       }
     } catch (error) {
       console.error("❌ Error:", error.message);
-      toast.error(error.response?.data?.message || "Failed to change password");
+      notify.error(
+        error.response?.data?.message || "Failed to change password",
+      );
     } finally {
       setSaving(false);
     }
@@ -496,8 +502,8 @@ export default function AdminSettings() {
                     Security Notice
                   </h4>
                   <p className="text-sm text-red-700 mt-1">
-                    Use a strong password with at least 6 characters. Never
-                    share your password with anyone.
+                    {passwordRequirementsText}. Never share your password with
+                    anyone.
                   </p>
                 </div>
               </div>
@@ -522,7 +528,7 @@ export default function AdminSettings() {
                       setPasswords((prev) => ({ ...prev, new: val }))
                     }
                     type="password"
-                    help="At least 6 characters"
+                    help={passwordRequirementsText}
                     error={errors.new}
                   />
                   <FormInput

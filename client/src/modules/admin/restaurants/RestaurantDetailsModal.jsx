@@ -10,7 +10,7 @@ import {
   FiCheckCircle,
   FiUsers,
 } from "react-icons/fi";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 import Axios from "../../../api/axios";
 
 /**
@@ -31,11 +31,11 @@ export default function RestaurantDetailsModal({
 
   const handleSave = async () => {
     if (!form.name.trim()) {
-      toast.error("Restaurant name is required");
+      notify.error("Restaurant name is required");
       return;
     }
 
-    const toastId = toast.loading("Updating restaurant...");
+    const toastId = notify.loading("Updating restaurant...");
     setLoading(true);
 
     try {
@@ -44,12 +44,12 @@ export default function RestaurantDetailsModal({
         phone: form.phone.trim(),
       });
 
-      toast.success("Restaurant updated successfully", { id: toastId });
+      notify.success("Restaurant updated successfully", { id: toastId });
       setIsEditing(false);
       onSuccess?.();
       onClose();
     } catch (err) {
-      toast.error(
+      notify.error(
         err?.response?.data?.message || "Failed to update restaurant",
         {
           id: toastId,

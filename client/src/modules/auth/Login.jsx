@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 import { useDispatch } from "react-redux";
 
 import Axios from "../../api/axios";
@@ -29,7 +29,7 @@ export default function Login() {
     e.preventDefault();
 
     if (!form.email || !form.password) {
-      toast.error("Please enter email and password");
+      notify.error("Enter your email and password");
       return;
     }
 
@@ -60,18 +60,18 @@ export default function Login() {
         dispatch(setBrandDetails(user.brand));
       }
 
-      toast.success("Welcome back 👋");
+      notify.success("Welcome back");
       navigate("/redirect", { replace: true });
     } catch (err) {
       const status = err?.response?.status;
       const message = err?.response?.data?.message;
 
       if (status === 403) {
-        toast.error("Please verify your email before logging in");
+        notify.error("Please verify your email before logging in");
       } else if (status === 401) {
-        toast.error("Invalid email or password");
+        notify.error("Invalid email or password");
       } else {
-        toast.error(message || "Login failed");
+        notify.error(message || "Login failed");
       }
     } finally {
       setLoading(false);

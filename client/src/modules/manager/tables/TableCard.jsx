@@ -7,7 +7,7 @@ import {
   FiTrash2,
   FiExternalLink,
 } from "react-icons/fi";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 
 const STATUS_STYLE = {
   FREE: "bg-green-50 text-green-700 border-green-200",
@@ -23,18 +23,18 @@ export default function TableCard({ table, onDelete }) {
   const tableId = table?._id ? table._id.slice(-5).toUpperCase() : "-----";
 
   const copyLink = async () => {
-    if (!qrLink) return toast.error("QR link not available");
+    if (!qrLink) return notify.error("QR link not available");
     try {
       await navigator.clipboard.writeText(qrLink);
-      toast.success("Link copied");
+      notify.success("Link copied");
     } catch {
-      toast.error("Copy failed");
+      notify.error("Copy failed");
     }
   };
 
   const downloadQr = async () => {
-    if (!qrImage) return toast.error("QR image not available");
-    const exportToast = toast.loading("Preparing download...");
+    if (!qrImage) return notify.error("QR image not available");
+    const exportToast = notify.loading("Preparing download...");
     try {
       const res = await fetch(qrImage, { cache: "no-store" });
       const blob = await res.blob();
@@ -46,9 +46,9 @@ export default function TableCard({ table, onDelete }) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success("QR downloaded", { id: exportToast });
+      notify.success("QR downloaded", { id: exportToast });
     } catch {
-      toast.error("Download failed", { id: exportToast });
+      notify.error("Download failed", { id: exportToast });
     }
   };
 

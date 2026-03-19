@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 import {
   FiUsers,
   FiUserCheck,
@@ -56,7 +56,7 @@ export default function ManagersPage() {
         await loadManagers();
       } catch (err) {
         console.error("Failed to initialize:", err);
-        toast.error("Failed to load data");
+        notify.error("Failed to load data");
       } finally {
         setLoading(false);
       }
@@ -75,30 +75,30 @@ export default function ManagersPage() {
     setRefreshing(true);
     await loadManagers();
     setRefreshing(false);
-    toast.success("Refreshed");
+    notify.success("Data refreshed");
   };
 
   const handleResend = async (managerId) => {
     try {
-      const toastId = toast.loading("Sending invite...");
+      const toastId = notify.loading("Sending invite...");
       await Axios(managerApi.resendInvite(restaurantId, managerId));
-      toast.success("Invite resent successfully", { id: toastId });
+      notify.success("Invite resent successfully", { id: toastId });
       loadManagers();
     } catch (err) {
-      toast.error("Failed to resend invite");
+      notify.error("Failed to resend invite");
     }
   };
 
   const handleRemove = async () => {
     try {
       setActionLoading(true);
-      const toastId = toast.loading("Removing manager...");
+      const toastId = notify.loading("Removing manager...");
       await Axios(managerApi.removeManager(restaurantId, removeTarget._id));
-      toast.success("Manager access revoked", { id: toastId });
+      notify.success("Manager access revoked", { id: toastId });
       setRemoveTarget(null);
       loadManagers();
     } catch (err) {
-      toast.error("Failed to remove manager");
+      notify.error("Failed to remove manager");
     } finally {
       setActionLoading(false);
     }

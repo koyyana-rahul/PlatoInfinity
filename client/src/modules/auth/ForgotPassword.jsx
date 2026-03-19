@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, ArrowRight } from "lucide-react";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 
 import Axios from "../../api/axios";
 import summaryApi from "../../api/summaryApi";
@@ -17,7 +17,7 @@ const ForgotPassword = () => {
     e.preventDefault();
 
     if (!email) {
-      toast.error("Please enter your email");
+      notify.error("Please enter your email");
       return;
     }
 
@@ -30,17 +30,17 @@ const ForgotPassword = () => {
       });
 
       if (res.data.success) {
-        toast.success("OTP sent to your email");
+        notify.success("OTP sent to your email");
 
         // 👉 Move to OTP verification
         navigate("/verify-otp", {
           state: { email },
         });
       } else {
-        toast.error(res.data.message || "Failed to send OTP");
+        notify.error(res.data.message || "Failed to send OTP");
       }
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Something went wrong");
+      notify.error(err?.response?.data?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }

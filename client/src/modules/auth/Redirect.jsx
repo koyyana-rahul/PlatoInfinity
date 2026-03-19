@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 
 import Axios from "../../api/axios";
 import summaryApi from "../../api/summaryApi";
@@ -30,7 +30,7 @@ export default function Redirect() {
         /* ================= STAFF (NO EMAIL CHECK) ================= */
         if (["CHEF", "WAITER", "CASHIER"].includes(user.role)) {
           if (!user.restaurantId || !user.brand?.slug) {
-            toast.error("Restaurant or brand not assigned");
+            notify.error("Restaurant or brand not assigned");
             navigate("/staff/login", { replace: true });
             return;
           }
@@ -41,14 +41,14 @@ export default function Redirect() {
             `/${user.brand.slug}/staff/${user.role.toLowerCase()}/restaurants/${
               user.restaurantId
             }`,
-            { replace: true }
+            { replace: true },
           );
           return;
         }
 
         /* ================= EMAIL USERS ================= */
         if (!user.verify_email) {
-          toast.error("Please verify your email");
+          notify.error("Please verify your email");
           navigate("/login", { replace: true });
           return;
         }
@@ -67,19 +67,19 @@ export default function Redirect() {
 
         if (user.role === "MANAGER") {
           if (!user.restaurantId) {
-            toast.error("Restaurant not assigned");
+            notify.error("Restaurant not assigned");
             navigate("/login", { replace: true });
             return;
           }
 
           navigate(
             `/${user.brand.slug}/manager/restaurants/${user.restaurantId}/dashboard`,
-            { replace: true }
+            { replace: true },
           );
           return;
         }
 
-        toast.error("Unsupported role");
+        notify.error("Unsupported role");
         navigate("/login", { replace: true });
       } catch (err) {
         console.error("Redirect error:", err);

@@ -12,7 +12,7 @@ import { useState, useCallback, useEffect } from "react";
 import Axios from "../api/axios";
 import orderApi, { generateIdempotencyKey } from "../api/order.api";
 import customerApi from "../api/customer.api";
-import toast from "react-hot-toast";
+import { notify } from "../utils/notify";
 import { socketService } from "../api/socket.service";
 
 export function useOrders(sessionId, restaurantId, tableId) {
@@ -45,7 +45,7 @@ export function useOrders(sessionId, restaurantId, tableId) {
   const placeOrder = useCallback(
     async (paymentMethod = "CASH") => {
       if (!sessionId || !restaurantId || !tableId) {
-        toast.error("Invalid session");
+        notify.error("Invalid session");
         return false;
       }
 
@@ -78,7 +78,7 @@ export function useOrders(sessionId, restaurantId, tableId) {
           const orderData = res.data?.data;
 
           console.log("✅ Order placed successfully:", orderData.orderId);
-          toast.success(`Order placed! Total: ₹${orderData.totalAmount}`);
+          notify.success(`Order placed. Total: ₹${orderData.totalAmount}`);
 
           // Refresh orders
           await fetchOrders();
@@ -98,12 +98,12 @@ export function useOrders(sessionId, restaurantId, tableId) {
 
         // Check if order was already placed (idempotency)
         if (err?.response?.status === 409) {
-          toast.info("Order already placed. Retrieving details...");
+          notify.info("Order already placed. Retrieving details...");
           await fetchOrders();
           return { success: true, alreadyPlaced: true };
         }
 
-        toast.error(message);
+        notify.error(message);
         return false;
       } finally {
         setPlacingOrder(false);
@@ -128,12 +128,12 @@ export function useOrders(sessionId, restaurantId, tableId) {
         });
 
         if (res.data?.success) {
-          toast.success("Order placed successfully!");
+          notify.success("Order placed successfully");
           await fetchOrders();
           return true;
         }
       } catch (err) {
-        toast.error(
+        notify.error(
           err?.response?.data?.message || "Failed to retry order placement",
         );
         return false;

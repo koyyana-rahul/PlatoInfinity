@@ -11,7 +11,7 @@
 import { useState, useCallback, useEffect } from "react";
 import Axios from "../api/axios";
 import customerApi from "../api/customer.api";
-import toast from "react-hot-toast";
+import { notify } from "../utils/notify";
 import { socketService } from "../api/socket.service";
 
 export function useCart(sessionId, restaurantId, sessionMode = "FAMILY") {
@@ -53,7 +53,7 @@ export function useCart(sessionId, restaurantId, sessionMode = "FAMILY") {
       console.log(`📦 Cart fetched: ${items.length} items`);
     } catch (err) {
       console.error("❌ Failed to fetch cart:", err);
-      toast.error("Failed to load cart");
+      notify.error("Failed to load cart");
     } finally {
       setLoading(false);
     }
@@ -80,7 +80,7 @@ export function useCart(sessionId, restaurantId, sessionMode = "FAMILY") {
         setCart(updatedCart);
         calculateTotals(updatedCart);
 
-        toast.success(`Added to cart`);
+        notify.success("Added to cart");
 
         // Broadcast to other devices in FAMILY mode
         if (sessionMode === "FAMILY") {
@@ -90,7 +90,7 @@ export function useCart(sessionId, restaurantId, sessionMode = "FAMILY") {
         return true;
       } catch (err) {
         console.error("❌ Failed to add to cart:", err);
-        toast.error(
+        notify.error(
           err?.response?.data?.message || "Failed to add item to cart",
         );
         return false;
@@ -135,7 +135,7 @@ export function useCart(sessionId, restaurantId, sessionMode = "FAMILY") {
         return true;
       } catch (err) {
         console.error("❌ Failed to update cart:", err);
-        toast.error("Failed to update item quantity");
+        notify.error("Failed to update item quantity");
         return false;
       } finally {
         setLoading(false);
@@ -156,7 +156,7 @@ export function useCart(sessionId, restaurantId, sessionMode = "FAMILY") {
         setCart(updatedCart);
         calculateTotals(updatedCart);
 
-        toast.success("Item removed from cart");
+        notify.success("Item removed from cart");
 
         // Broadcast to other devices in FAMILY mode
         if (sessionMode === "FAMILY") {
@@ -166,7 +166,7 @@ export function useCart(sessionId, restaurantId, sessionMode = "FAMILY") {
         return true;
       } catch (err) {
         console.error("❌ Failed to remove from cart:", err);
-        toast.error("Failed to remove item");
+        notify.error("Failed to remove item");
         return false;
       } finally {
         setLoading(false);
@@ -183,7 +183,7 @@ export function useCart(sessionId, restaurantId, sessionMode = "FAMILY") {
       setTotalItems(0);
       setTotalPrice(0);
 
-      toast.success("Cart cleared");
+      notify.success("Cart cleared");
 
       // Broadcast to other devices in FAMILY mode
       if (sessionMode === "FAMILY") {
@@ -193,7 +193,7 @@ export function useCart(sessionId, restaurantId, sessionMode = "FAMILY") {
       return true;
     } catch (err) {
       console.error("❌ Failed to clear cart:", err);
-      toast.error("Failed to clear cart");
+      notify.error("Failed to clear cart");
       return false;
     }
   }, [sessionMode]);

@@ -1,5 +1,9 @@
 import UserModel from "../models/user.model.js";
 import bcrypt from "bcrypt";
+import {
+  validatePassword,
+  passwordRequirementsText,
+} from "../middleware/validation.js";
 
 /**
  * Update user profile (name, email, phone)
@@ -58,9 +62,9 @@ export async function changePasswordController(req, res) {
       });
     }
 
-    if (newPassword.length < 6) {
+    if (!validatePassword(newPassword)) {
       return res.status(400).json({
-        message: "Password must be at least 6 characters",
+        message: passwordRequirementsText,
         error: true,
         success: false,
       });

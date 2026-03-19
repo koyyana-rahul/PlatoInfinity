@@ -13,7 +13,7 @@ export default function getOtpEmailTemplate({ name, otp, appName = "Plato" }) {
         Hi ${name || "there"},
       </p>
       <p style="margin-bottom: 24px;">
-        Your verification code for password reset is:
+        Use the verification code below to continue with your password reset.
       </p>
       <div style="
         background-color: #F3F4F6;
@@ -34,13 +34,13 @@ export default function getOtpEmailTemplate({ name, otp, appName = "Plato" }) {
         </div>
       </div>
       <p style="margin-bottom: 12px; color: #9CA3AF; font-size: 13px;">
-        ✓ This code is valid for <strong>1 hour</strong>
+        This code is valid for <strong>1 hour</strong>.
       </p>
       <p style="margin-bottom: 12px; color: #9CA3AF; font-size: 13px;">
-        ✓ Never share this code with anyone
+        Do not share this code with anyone.
       </p>
       <p style="margin-bottom: 0; color: #9CA3AF; font-size: 13px;">
-        ✓ If you didn't request this, ignore this email
+        If you did not request this, you can safely ignore this email.
       </p>
     `,
     footerNote: `

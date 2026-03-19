@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Eye, EyeOff, Mail, ArrowRight, CheckCircle } from "lucide-react";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 import Axios from "../../api/axios";
 import SummaryApi from "../../api/summaryApi";
 import AuthLogo from "./components/AuthLogo";
+import {
+  validatePassword,
+  passwordRequirementsText,
+} from "../../utils/validation";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -29,13 +33,19 @@ export default function Register() {
     form.email &&
     form.password &&
     form.confirmPassword &&
-    form.password === form.confirmPassword;
+    form.password === form.confirmPassword &&
+    validatePassword(form.password);
 
   const submit = async (e) => {
     e.preventDefault();
 
+    if (!validatePassword(form.password)) {
+      notify.error(passwordRequirementsText);
+      return;
+    }
+
     if (form.password !== form.confirmPassword) {
-      toast.error("Passwords do not match");
+      notify.error("Passwords do not match");
       return;
     }
 
@@ -53,9 +63,9 @@ export default function Register() {
 
       // ✅ DO NOT REDIRECT
       setSuccessEmail(form.email);
-      toast.success("Verification email sent");
+      notify.success("Verification email sent");
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Registration failed");
+      notify.error(err?.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -85,14 +95,6 @@ export default function Register() {
                 Please check your inbox and spam folder for the verification
                 link.
               </div>
-
-              <Link
-                to="/login"
-                className="mt-6 inline-flex items-center space-x-2 px-6 h-11 bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white font-semibold rounded-xl hover:shadow-xl transition-all shadow-lg active:scale-[0.98]"
-              >
-                <span>Go to Login</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
 
               <p className="text-xs text-gray-500 text-center mt-4">
                 Didn't receive the email? Check your spam folder or contact
@@ -198,6 +200,9 @@ export default function Register() {
                   )}
                 </button>
               </div>
+              <p className="text-xs text-gray-500">
+                {passwordRequirementsText}
+              </p>
             </div>
 
             {/* Confirm Password Input */}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 import AuthAxios from "../../api/authAxios";
 import AuthLogo from "./components/AuthLogo";
 
@@ -21,7 +21,7 @@ export default function VerifyEmail() {
     AuthAxios.get(`/api/auth/verify-email?token=${token}`)
       .then(() => {
         setStatus("success");
-        toast.success("Email verified successfully");
+        notify.success("Email verified successfully");
 
         setTimeout(() => {
           navigate("/login", { replace: true });
@@ -29,7 +29,7 @@ export default function VerifyEmail() {
       })
       .catch((err) => {
         setStatus("error");
-        toast.error(
+        notify.error(
           err?.response?.data?.message || "Verification failed or link expired",
         );
       });

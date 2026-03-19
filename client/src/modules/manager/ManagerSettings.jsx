@@ -3,6 +3,10 @@ import { FiSave, FiLock, FiAlertCircle } from "react-icons/fi";
 import AuthAxios from "../../api/authAxios";
 import settingsApi from "../../api/settings.api";
 import toast from "react-hot-toast";
+import {
+  validatePassword,
+  passwordRequirementsText,
+} from "../../utils/validation";
 
 // Component definition outside to prevent re-creation on each render
 const ToggleSetting = ({ label, value, onChange, help }) => (
@@ -70,8 +74,8 @@ export default function ManagerSettings() {
       return;
     }
 
-    if (passwords.new.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (!validatePassword(passwords.new)) {
+      toast.error(passwordRequirementsText);
       return;
     }
 
@@ -270,7 +274,7 @@ export default function ManagerSettings() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  At least 6 characters
+                  {passwordRequirementsText}
                 </p>
               </div>
 

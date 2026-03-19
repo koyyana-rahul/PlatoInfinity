@@ -1,6 +1,6 @@
 import Modal from "../ui/Modal";
 import { Copy } from "lucide-react";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 
 export default function SessionInfoModal({ info, onClose }) {
   if (!info) return null;
@@ -8,9 +8,9 @@ export default function SessionInfoModal({ info, onClose }) {
   const copyPin = async () => {
     try {
       await navigator.clipboard.writeText(String(info.tablePin || ""));
-      toast.success("PIN copied");
+      notify.success("PIN copied");
     } catch {
-      toast.error("Copy failed");
+      notify.error("Copy failed");
     }
   };
 

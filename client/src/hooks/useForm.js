@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from "react";
-import toast from "react-hot-toast";
+import { notify } from "../utils/notify";
 
 export default function useForm(initialValues, onSubmit, validate = null) {
   const [values, setValues] = useState(initialValues);
@@ -41,7 +41,7 @@ export default function useForm(initialValues, onSubmit, validate = null) {
       e?.preventDefault?.();
 
       if (!validateForm()) {
-        toast.error("Please fix the errors above");
+        notify.error("Please fix the errors above");
         return;
       }
 
@@ -50,7 +50,7 @@ export default function useForm(initialValues, onSubmit, validate = null) {
         await onSubmit(values);
       } catch (error) {
         console.error("Form submission error:", error);
-        toast.error(error.message || "Submission failed");
+        notify.error(error.message || "Submission failed");
       } finally {
         setIsSubmitting(false);
       }

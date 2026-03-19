@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 import {
   FiPlus,
   FiSettings,
@@ -52,11 +52,11 @@ export const QuickActions = () => {
 
   const handleNewOrder = () => {
     navigate("/order-placement");
-    toast.success("Opening Order Placement");
+    notify.success("Opening order placement");
   };
 
   const handlePrintBill = async () => {
-    const toastId = toast.loading("Loading recent bills...");
+    const toastId = notify.loading("Loading recent bills...");
     setLoading("print");
 
     try {
@@ -67,14 +67,14 @@ export const QuickActions = () => {
         const bills = response.data.data;
         const printHTML = generateBillPrintTemplate(bills);
         printDocument(printHTML);
-        toast.success("Opening print preview...", { id: toastId });
+        notify.success("Opening print preview...", { id: toastId });
       } else {
-        toast.error("No bills found to print", { id: toastId });
+        notify.error("No bills found to print", { id: toastId });
       }
     } catch (err) {
       // Fallback to simple print if API fails
       console.error("Failed to fetch bills:", err);
-      toast.success("Opening print preview...", { id: toastId });
+      notify.success("Opening print preview...", { id: toastId });
       window.print();
     } finally {
       setLoading(null);
@@ -82,7 +82,7 @@ export const QuickActions = () => {
   };
 
   const handleExportReport = async () => {
-    const toastId = toast.loading("Generating report...");
+    const toastId = notify.loading("Generating report...");
     setLoading("export");
 
     try {
@@ -93,10 +93,10 @@ export const QuickActions = () => {
         // Create CSV from data
         const csv = convertToCSV(response.data.data);
         downloadCSV(csv, "dashboard-report.csv");
-        toast.success("Report exported successfully", { id: toastId });
+        notify.success("Report exported successfully", { id: toastId });
       }
     } catch (err) {
-      toast.error("Failed to export report", { id: toastId });
+      notify.error("Failed to export report", { id: toastId });
       console.error(err);
     } finally {
       setLoading(null);
@@ -104,12 +104,12 @@ export const QuickActions = () => {
   };
 
   const handleRefreshData = () => {
-    toast.success("Refreshing data...");
+    notify.success("Refreshing data...");
     window.location.reload();
   };
 
   const handleSendAlert = async () => {
-    const toastId = toast.loading("Sending alert to staff...");
+    const toastId = notify.loading("Sending alert to staff...");
     setLoading("alert");
 
     try {
@@ -120,10 +120,10 @@ export const QuickActions = () => {
       });
 
       if (response.data?.success) {
-        toast.success("Alert sent to all staff", { id: toastId });
+        notify.success("Alert sent to all staff", { id: toastId });
       }
     } catch (err) {
-      toast.error("Failed to send alert", { id: toastId });
+      notify.error("Failed to send alert", { id: toastId });
       console.error(err);
     } finally {
       setLoading(null);
@@ -132,17 +132,17 @@ export const QuickActions = () => {
 
   const handleTeamStatus = () => {
     navigate(`/${brandSlug}/admin/staff-status`);
-    toast.success("Loading team status");
+    notify.success("Loading team status");
   };
 
   const handleViewAnalytics = () => {
     navigate(`/${brandSlug}/admin/analytics`);
-    toast.success("Opening analytics dashboard");
+    notify.success("Opening analytics dashboard");
   };
 
   const handleSettings = () => {
     navigate(`/${brandSlug}/admin/settings`);
-    toast.success("Opening settings");
+    notify.success("Opening settings");
   };
 
   const actions = [

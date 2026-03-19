@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { useSocket } from "../../socket/SocketProvider";
 import AuthAxios from "../../api/authAxios";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 import useAdminOnboarding from "../../hooks/useAdminOnboarding";
 import {
   useDashboardStats,
@@ -166,8 +166,8 @@ export default function AdminDashboard() {
 
     const handleFraudAlert = (fraudData) => {
       setFraudAlerts((prev) => [fraudData.order, ...prev.slice(0, 9)]);
-      toast.error(
-        `🚨 Fraud Alert: Order #${fraudData.order.orderNumber} - Risk ${fraudData.order.meta?.fraudScore || 0}%`,
+      notify.error(
+        `Fraud alert: Order #${fraudData.order.orderNumber} - Risk ${fraudData.order.meta?.fraudScore || 0}%`,
       );
     };
 
@@ -182,11 +182,11 @@ export default function AdminDashboard() {
     try {
       const res = await AuthAxios.put(`/api/order/${orderId}/approve`);
       if (res.data?.success) {
-        toast.success("Order approved ✓");
+        notify.success("Order approved");
         setFraudAlerts((prev) => prev.filter((o) => o._id !== orderId));
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Approval failed");
+      notify.error(error.response?.data?.message || "Approval failed");
     }
   };
 
@@ -199,11 +199,11 @@ export default function AdminDashboard() {
         reason,
       });
       if (res.data?.success) {
-        toast.success("Order rejected ✓");
+        notify.success("Order rejected");
         setFraudAlerts((prev) => prev.filter((o) => o._id !== orderId));
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Rejection failed");
+      notify.error(error.response?.data?.message || "Rejection failed");
     }
   };
 

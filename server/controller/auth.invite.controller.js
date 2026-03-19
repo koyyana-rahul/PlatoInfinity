@@ -2,6 +2,10 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
+import {
+  validatePassword,
+  passwordRequirementsText,
+} from "../middleware/validation.js";
 
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
 
@@ -49,9 +53,9 @@ export async function setPasswordController(req, res) {
   try {
     const { token, password } = req.body;
 
-    if (!token || !password || password.length < 6) {
+    if (!token || !password || !validatePassword(password)) {
       return res.status(400).json({
-        message: "Password must be at least 6 characters",
+        message: passwordRequirementsText,
       });
     }
 

@@ -12,7 +12,7 @@
 import { useState, useCallback, useEffect } from "react";
 import Axios from "../api/axios";
 import orderApi from "../api/order.api";
-import toast from "react-hot-toast";
+import { notify } from "../utils/notify";
 import { socketService } from "../api/socket.service";
 import { useSocket } from "../socket/SocketProvider";
 
@@ -52,7 +52,7 @@ export function useKitchenDisplay(restaurantId, stationFilter = null) {
       );
     } catch (err) {
       console.error("❌ Failed to fetch kitchen orders:", err);
-      toast.error("Failed to load kitchen orders");
+      notify.error("Failed to load kitchen orders");
     } finally {
       setLoading(false);
     }
@@ -91,12 +91,12 @@ export function useKitchenDisplay(restaurantId, stationFilter = null) {
           }[newStatus] || "📝";
 
         console.log(`${statusEmoji} Item status updated: ${newStatus}`);
-        toast.success(`Item marked as ${newStatus}`);
+        notify.success(`Item marked as ${newStatus}`);
 
         return true;
       } catch (err) {
         console.error("❌ Failed to update item status:", err);
-        toast.error("Failed to update item status");
+        notify.error("Failed to update item status");
         return false;
       } finally {
         setUpdatingOrder(null);

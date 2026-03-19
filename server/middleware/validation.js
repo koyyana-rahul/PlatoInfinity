@@ -3,24 +3,35 @@
  * Validate incoming requests with Joi or custom validators
  */
 
+import validator from "validator";
+
+const passwordRules = {
+  minLength: 8,
+  minLowercase: 1,
+  minUppercase: 1,
+  minNumbers: 1,
+  minSymbols: 1,
+};
+
+export const passwordRequirementsText =
+  "Password must be at least 8 characters and include uppercase, lowercase, number, and symbol";
+
 // ✅ Validate email format
 export const validateEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  if (!email) return false;
+  return validator.isEmail(String(email).trim());
 };
 
 // ✅ Validate phone number
 export const validatePhone = (phone) => {
-  const phoneRegex = /^[\d\s+\-()]+$/;
-  return phoneRegex.test(phone) && phone.replace(/\D/g, "").length >= 10;
+  if (!phone) return false;
+  return validator.isMobilePhone(String(phone), "any");
 };
 
 // ✅ Validate password strength
 export const validatePassword = (password) => {
-  // At least 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
-  const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-  return passwordRegex.test(password);
+  if (!password) return false;
+  return validator.isStrongPassword(String(password), passwordRules);
 };
 
 // ✅ Validate restaurant name
@@ -114,10 +125,10 @@ export const validatePasswordField = (req, res, next) => {
     });
   }
 
-  if (password.length < 8) {
+  if (!validatePassword(password)) {
     return res.status(400).json({
       success: false,
-      error: "Password must be at least 8 characters long",
+      error: passwordRequirementsText,
     });
   }
 

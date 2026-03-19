@@ -21,7 +21,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Calendar, Download, TrendingUp } from "lucide-react";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 import Axios from "../api/axios";
 import dashboardApi from "../api/dashboard.api";
 import StatCard from "./components/ui/StatCard";
@@ -47,7 +47,7 @@ export default function AnalyticsDashboard({ restaurantId, dateRange = "7d" }) {
       setData(res.data?.data);
     } catch (error) {
       console.error("Failed to load analytics:", error);
-      toast.error("Failed to load analytics");
+      notify.error("Failed to load analytics");
     } finally {
       setLoading(false);
     }
@@ -65,9 +65,9 @@ export default function AnalyticsDashboard({ restaurantId, dateRange = "7d" }) {
       link.setAttribute("download", `analytics-${selectedRange}.csv`);
       document.body.appendChild(link);
       link.click();
-      toast.success("Report exported successfully");
+      notify.success("Report exported successfully");
     } catch (error) {
-      toast.error("Failed to export report");
+      notify.error("Failed to export report");
     }
   };
 

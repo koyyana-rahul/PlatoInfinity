@@ -13,7 +13,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Axios from "../api/axios";
 import sessionApi from "../api/session.api";
 import customerApi from "../api/customer.api";
-import toast from "react-hot-toast";
+import { notify } from "../utils/notify";
 import { socketService } from "../api/socket.service";
 
 const SESSION_STORAGE_KEY = "plato:session";
@@ -120,7 +120,7 @@ export function useCustomerSession(tableId, restaurantId) {
         setSessionToken(rawToken);
         setIsAuthenticated(true);
 
-        toast.success("Welcome! Session started.");
+        notify.success("Session started");
         return true;
       } catch (err) {
         const message =
@@ -130,12 +130,12 @@ export function useCustomerSession(tableId, restaurantId) {
 
         console.error("❌ PIN error:", message);
         setPinError(message);
-        toast.error(message);
+        notify.error(message);
 
         // Show attempts remaining if available
         if (err?.response?.data?.attemptsLeft !== undefined) {
           const left = err.response.data.attemptsLeft;
-          toast.error(`${left} attempts remaining`);
+          notify.error(`${left} attempts remaining`);
         }
 
         return false;
@@ -180,10 +180,10 @@ export function useCustomerSession(tableId, restaurantId) {
         setIsAuthenticated(true);
         setTokenExpired(false);
 
-        toast.success("Session resumed. Your cart is safe.");
+        notify.success("Session resumed. Your cart is safe.");
         return true;
       } catch (err) {
-        toast.error(
+        notify.error(
           err?.response?.data?.message ||
             "Failed to resume session. Please try again.",
         );
@@ -254,7 +254,7 @@ export function useCustomerSession(tableId, restaurantId) {
       socketService.onSessionClosed(() => {
         console.log("🔒 Session closed by staff");
         logoutSession();
-        toast.info("Your session has been closed. Thank you!");
+        notify.info("Your session has been closed. Thank you.");
       });
 
       console.log("✅ Socket connected and listeners attached");
