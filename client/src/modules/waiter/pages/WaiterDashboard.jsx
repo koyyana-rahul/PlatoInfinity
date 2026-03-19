@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 import {
   Users,
   Clock,
@@ -34,34 +34,34 @@ import { useSocket } from "../../../socket/SocketProvider";
  */
 const TABLE_STATUS_CONFIG = {
   AVAILABLE: {
-    icon: "🟢",
     label: "Available",
     color: "brand-accent",
     bg: "bg-brand-accent/10",
+    dot: "bg-emerald-500",
   },
   OCCUPIED: {
-    icon: "🔵",
     label: "Occupied",
     color: "brand-primary",
     bg: "bg-brand-primary/10",
+    dot: "bg-blue-500",
   },
   WAITING: {
-    icon: "🟡",
     label: "Waiting",
     color: "brand-cta",
     bg: "bg-brand-cta/10",
+    dot: "bg-amber-500",
   },
   ORDERING: {
-    icon: "🟣",
     label: "Ordering",
     color: "brand-primary",
     bg: "bg-brand-primary/10",
+    dot: "bg-purple-500",
   },
   SETTLING: {
-    icon: "🔴",
     label: "Settling",
     color: "red-500",
     bg: "bg-red-50",
+    dot: "bg-red-500",
   },
 };
 
@@ -97,7 +97,7 @@ export default function WaiterDashboard() {
       }
     } catch (error) {
       console.error("Failed to load waiter data:", error);
-      toast.error("Failed to load dashboard");
+      notify.error("Failed to load dashboard");
     } finally {
       setLoading(false);
     }
@@ -145,9 +145,9 @@ export default function WaiterDashboard() {
     try {
       setRefreshing(true);
       await loadData();
-      toast.success("Dashboard updated");
+      notify.success("Dashboard updated");
     } catch (error) {
-      toast.error("Failed to refresh");
+      notify.error("Failed to refresh");
     } finally {
       setRefreshing(false);
     }
@@ -165,10 +165,10 @@ export default function WaiterDashboard() {
             t._id === tableId ? { ...t, status: newStatus } : t,
           ),
         );
-        toast.success(`Table marked as ${newStatus.toLowerCase()}`);
+        notify.success(`Table marked as ${newStatus.toLowerCase()}`);
       }
     } catch (error) {
-      toast.error("Failed to update table status");
+      notify.error("Failed to update table status");
     }
   };
 
@@ -176,7 +176,7 @@ export default function WaiterDashboard() {
    * Print bill
    */
   const handlePrintBill = (tableId) => {
-    toast.success("Bill sent to printer");
+    notify.success("Bill sent to printer");
   };
 
   /**
@@ -334,11 +334,11 @@ export default function WaiterDashboard() {
                           {table.tableNumber}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-text-primary">
-                          {config.icon}
-                        </p>
-                        <p className="text-xs font-semibold text-text-secondary mt-1 uppercase">
+                      <div className="text-right flex flex-col items-end gap-1">
+                        <span
+                          className={`inline-block h-2.5 w-2.5 rounded-full ${config.dot}`}
+                        />
+                        <p className="text-xs font-semibold text-text-secondary uppercase">
                           {config.label}
                         </p>
                       </div>
@@ -373,7 +373,7 @@ export default function WaiterDashboard() {
                     {table.notes && (
                       <div className="bg-brand-cta/10 border border-brand-cta/30 rounded-lg p-3 mb-4">
                         <p className="text-xs font-semibold text-brand-cta mb-1">
-                          📝 Notes
+                          Notes
                         </p>
                         <p className="text-xs text-text-secondary line-clamp-2">
                           {table.notes}

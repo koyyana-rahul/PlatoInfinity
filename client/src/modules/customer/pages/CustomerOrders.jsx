@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 import {
   ChevronLeft,
   Search,
@@ -131,16 +131,16 @@ export default function CustomerOrders() {
   // Listen for real-time item status updates
   useEffect(() => {
     if (!customerSocket) {
-      console.warn("⚠️ customerSocket is null, cannot listen for updates");
+      console.warn("Customer socket unavailable; updates paused.");
       return;
     }
-    console.log("🔧 CustomerOrders: setting up socket listeners", {
+    console.log("CustomerOrders: setting up socket listeners", {
       sessionId,
       restaurantId,
       tableId,
     });
     const handleItemStatusUpdate = (data) => {
-      console.log("📶 Customer: item status update", data);
+      console.log("Customer: item status update", data);
       const { orderId, _id, itemId, itemIndex, itemStatus, itemName } = data;
       const resolvedOrderId = orderId || _id;
       const incomingOrderStatus = String(
@@ -158,7 +158,7 @@ export default function CustomerOrders() {
               String(item._id) === String(itemId) || idx === itemIndex;
             if (!matches) return item;
             console.log(
-              `🔄 Updating item ${itemName} from ${item.itemStatus} to ${itemStatus}`,
+              `Updating item ${itemName} from ${item.itemStatus} to ${itemStatus}`,
             );
             return { ...item, itemStatus };
           });
@@ -187,14 +187,12 @@ export default function CustomerOrders() {
       );
       // Show toasts for major transitions
       if (itemStatus === "READY") {
-        toast(`${itemName || "Item"} is ready!`, {
-          icon: "✅",
+        notify.success(`${itemName || "Item"} is ready`, {
           duration: 4000,
         });
       }
       if (itemStatus === "SERVED") {
-        toast(`${itemName || "Item"} has been served!`, {
-          icon: "🍽️",
+        notify.success(`${itemName || "Item"} has been served`, {
           duration: 3000,
         });
       }
@@ -205,14 +203,14 @@ export default function CustomerOrders() {
     customerSocket.on("order:item-status", handleItemStatusUpdate);
     // Explicit READY event (sometimes emitted separately)
     customerSocket.on("order:item-ready", (data) => {
-      console.log("🔔 Customer: item ready", data);
+      console.log("Customer: item ready", data);
       // Apply the same state update
       handleItemStatusUpdate({ ...data, itemStatus: "READY" });
     });
     // Also listen for generic order updates in case payload comes from
     // order-level lifecycle events with sparse item information.
     customerSocket.on("order:updated", (data) => {
-      console.log("📶 Customer: order updated", data);
+      console.log("Customer: order updated", data);
       handleItemStatusUpdate(data || {});
     });
 
@@ -261,7 +259,7 @@ export default function CustomerOrders() {
       }
     } catch (err) {
       if (!silent) {
-        toast.error(err?.response?.data?.message || "Failed to load orders");
+        notify.error(err?.response?.data?.message || "Failed to load orders");
       }
     } finally {
       if (showLoading) setLoading(false);
@@ -277,9 +275,7 @@ export default function CustomerOrders() {
     if (!customerSocket) return;
 
     const refreshFromSocket = (eventName) => {
-      console.log(
-        `📡 CustomerOrders: ${eventName} received, syncing orders...`,
-      );
+      console.log(`CustomerOrders: ${eventName} received, syncing orders...`);
       loadOrders({ showLoading: false, silent: true });
     };
 
@@ -412,7 +408,7 @@ export default function CustomerOrders() {
 
   const handleRequestBill = async () => {
     if (!restaurantId || !tableId) {
-      toast.error("Table details missing. Please refresh and try again.");
+      notify.error("Table details missing. Please refresh and try again.");
       return;
     }
 
@@ -428,7 +424,7 @@ export default function CustomerOrders() {
       });
 
       if (!connected) {
-        toast.error("Unable to connect. Please try again.");
+        notify.error("Unable to connect. Please try again.");
         setRequestingBill(false);
         return;
       }
@@ -455,13 +451,13 @@ export default function CustomerOrders() {
       });
 
       if (ack?.ok) {
-        toast.success(`${tableName || "Your table"}: Bill request sent ✅`);
+        notify.success(`${tableName || "Your table"}: bill request sent`);
       } else {
-        toast.error(ack?.error || "Failed to send bill request");
+        notify.error(ack?.error || "Failed to send bill request");
       }
     } catch (err) {
       console.error("Bill request failed:", err);
-      toast.error("Failed to send bill request");
+      notify.error("Failed to send bill request");
     } finally {
       setRequestingBill(false);
     }
@@ -582,10 +578,10 @@ export default function CustomerOrders() {
           strokeWidth={1}
         />
         <h1 className="text-xl font-black text-slate-900 mb-2 uppercase tracking-tight">
-          No history
+          No orders yet
         </h1>
         <p className="text-sm text-slate-400 mb-8 font-medium">
-          Your order list is currently empty.
+          Your order history is currently empty.
         </p>
         <button
           onClick={() => navigate(basePath + "/menu")}
@@ -619,7 +615,7 @@ export default function CustomerOrders() {
                   Your Orders <Sparkles size={14} className="text-orange-500" />
                 </h1>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Live updates via kitchen & waiter sockets
+                  Live updates from kitchen and service teams
                 </p>
               </div>
             </div>
@@ -818,7 +814,7 @@ export default function CustomerOrders() {
                           {order.meta?.customerMode === "INDIVIDUAL" &&
                             order.meta?.customerLabel && (
                               <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-[12px] font-bold text-blue-900 flex items-center gap-2">
-                                👤 {order.meta.customerLabel}
+                                Customer: {order.meta.customerLabel}
                               </div>
                             )}
 

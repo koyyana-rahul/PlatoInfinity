@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 import {
   Loader2,
   DollarSign,
-  UpiIcon,
   CreditCard,
-  Lock,
-  X,
+  RefreshCw,
+  ReceiptText,
+  Smartphone,
 } from "lucide-react";
 import Axios from "../../../api/axios";
 import CashierPinModal from "../components/CashierPinModal";
@@ -46,7 +46,7 @@ export default function CashierBillDashboard() {
       setBills(res.data?.data || []);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to fetch bills");
+      notify.error("Failed to fetch bills");
     } finally {
       setLoading(false);
     }
@@ -80,16 +80,16 @@ export default function CashierBillDashboard() {
       });
 
       if (res.data?.success) {
-        toast.success(`✅ Bill paid via ${paymentMethod}!`);
+        notify.success(`Bill paid via ${paymentMethod}`);
         setShowPinModal(false);
         setSelectedBill(null);
         setPaymentMethod(null);
         fetchOpenBills();
       } else {
-        toast.error(res.data?.message || "Failed to close bill");
+        notify.error(res.data?.message || "Failed to close bill");
       }
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Error processing payment");
+      notify.error(err?.response?.data?.message || "Error processing payment");
     } finally {
       setPinLoading(false);
     }
@@ -115,7 +115,7 @@ export default function CashierBillDashboard() {
       <div className="bg-slate-800 border-b border-slate-700 p-6 sticky top-0 z-20">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">💳 Billing</h1>
+            <h1 className="text-3xl font-bold text-white">Billing</h1>
             <p className="text-sm text-slate-400 mt-2">
               {bills.length} open bill{bills.length !== 1 ? "s" : ""}
             </p>
@@ -123,8 +123,9 @@ export default function CashierBillDashboard() {
           <button
             onClick={fetchOpenBills}
             className="p-3 hover:bg-slate-700 rounded-lg transition-colors text-slate-300"
+            title="Refresh"
           >
-            🔄
+            <RefreshCw size={18} />
           </button>
         </div>
       </div>
@@ -134,7 +135,7 @@ export default function CashierBillDashboard() {
         {bills.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
-              <span className="text-5xl">☀️</span>
+              <ReceiptText size={36} className="text-slate-500" />
             </div>
             <p className="text-slate-400 text-lg font-medium">No open bills</p>
             <p className="text-slate-500 text-sm mt-2">
@@ -214,7 +215,7 @@ export default function CashierBillDashboard() {
                   onClick={() => handlePayBill(bill, "UPI")}
                   className="flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors active:scale-95 text-sm"
                 >
-                  <span>📲</span> UPI
+                  <Smartphone size={18} /> UPI
                 </button>
                 <button
                   onClick={() => handlePayBill(bill, "CARD")}

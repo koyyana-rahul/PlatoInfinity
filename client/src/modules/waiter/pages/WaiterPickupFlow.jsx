@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 import { Clock, CheckCircle, Truck, AlertCircle, Loader2 } from "lucide-react";
 import Axios from "../../../api/axios";
 import WaiterPinConfirmationModal from "../components/WaiterPinConfirmationModal";
@@ -42,7 +42,7 @@ export default function WaiterPickupFlow() {
       setReadyItems(res.data?.data || []);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to fetch ready items");
+      notify.error("Failed to fetch ready items");
     } finally {
       setLoading(false);
     }
@@ -57,9 +57,7 @@ export default function WaiterPickupFlow() {
     if (!socket) return;
 
     const handleReadyAlert = (payload) => {
-      toast.success(payload?.message || "New item ready for pickup", {
-        icon: "🔔",
-      });
+      notify.success(payload?.message || "New item ready for pickup");
       fetchReadyItems();
     };
 
@@ -127,16 +125,16 @@ export default function WaiterPickupFlow() {
       });
 
       if (res.data?.success) {
-        toast.success("✅ Item served!");
+        notify.success("Item served");
         setShowPinModal(false);
         setPendingAction(null);
         fetchReadyItems();
       } else {
-        toast.error(res.data?.message || "Failed to mark as served");
+        notify.error(res.data?.message || "Failed to mark as served");
       }
     } catch (err) {
       const msg = err?.response?.data?.message || "Error marking as served";
-      toast.error(msg);
+      notify.error(msg);
     } finally {
       setIsPinLoading(false);
     }
@@ -171,7 +169,7 @@ export default function WaiterPickupFlow() {
             onClick={fetchReadyItems}
             className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-colors"
           >
-            🔄 Refresh
+            Refresh
           </button>
         </div>
       </div>
@@ -193,7 +191,7 @@ export default function WaiterPickupFlow() {
             onClick={fetchReadyItems}
             className="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-300"
           >
-            🔄
+            Refresh
           </button>
         </div>
       </div>
@@ -239,7 +237,7 @@ export default function WaiterPickupFlow() {
                     )}
                     {item.meta?.notes && (
                       <p className="text-xs text-yellow-400 mt-2 bg-yellow-900/30 px-2 py-1 rounded inline-block">
-                        📝 {item.meta.notes}
+                        Note: {item.meta.notes}
                       </p>
                     )}
                   </div>
@@ -256,7 +254,7 @@ export default function WaiterPickupFlow() {
                     disabled={isPinLoading}
                     className="flex-shrink-0 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-600 text-white font-bold rounded-lg transition-all active:scale-95 text-sm whitespace-nowrap disabled:cursor-not-allowed"
                   >
-                    {isPinLoading ? "Serving..." : "Serve ✓"}
+                    {isPinLoading ? "Serving..." : "Serve"}
                   </button>
                 </div>
               ))}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 import {
   ChevronLeft,
   ChevronRight,
@@ -13,6 +13,7 @@ import {
   Sparkles,
   AlertCircle,
   Lock,
+  Zap,
 } from "lucide-react";
 
 import QuantityStepper from "../components/QuantityStepper";
@@ -72,7 +73,7 @@ export default function CustomerCart() {
 
   useEffect(() => {
     if (!sessionId) {
-      toast.error("Please join the table first");
+      notify.error("Please join the table first");
       navigate(base, { replace: true });
       return;
     }
@@ -123,7 +124,7 @@ export default function CustomerCart() {
       });
 
       if (res.data?.success) {
-        toast.success("Order placed successfully! 🎉");
+        notify.success("Order placed successfully");
         setShowPinInputModal(false);
         setShowCallWaiterModal(false);
         navigate(base + "/orders");
@@ -135,7 +136,7 @@ export default function CustomerCart() {
       setPinError(errorData?.message || "Invalid PIN. Please try again.");
       setAttemptsLeft(errorData?.attemptsLeft);
       setIsBlocked(errorData?.isBlocked);
-      toast.error(errorData?.message || "PIN verification failed");
+      notify.error(errorData?.message || "PIN verification failed");
     } finally {
       setIsSubmittingOrder(false);
     }
@@ -245,7 +246,7 @@ export default function CustomerCart() {
           {/* SERVICE METHOD SELECTOR */}
           <div className="mb-8">
             <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-3">
-              📍 Service Method
+              Service Method
             </label>
             <div className="bg-slate-100/60 p-1.5 rounded-2xl flex gap-1.5 ring-1 ring-slate-200">
               {["DINE_IN", "TAKEAWAY"].map((t) => (
@@ -258,7 +259,7 @@ export default function CustomerCart() {
                       : "text-slate-500 hover:text-slate-700"
                   }`}
                 >
-                  {t === "DINE_IN" ? "🍽️ Dine In" : "🚚 Takeaway"}
+                  {t === "DINE_IN" ? "Dine In" : "Takeaway"}
                 </button>
               ))}
             </div>
@@ -267,7 +268,7 @@ export default function CustomerCart() {
           {/* ITEMS LIST */}
           <div className="mb-10">
             <h2 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">
-              📦 Your Selection ({totalQty} items)
+              Your Selection ({totalQty} items)
             </h2>
             <div className="space-y-4">
               {items.map((it) => (
@@ -336,7 +337,7 @@ export default function CustomerCart() {
           <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-3xl p-6 sm:p-8 ring-1 ring-slate-200 mb-8">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                💳 Payment Breakdown
+                Payment Breakdown
               </h3>
               <Lock size={16} className="text-slate-400" />
             </div>
@@ -388,7 +389,7 @@ export default function CustomerCart() {
               </div>
             </div>
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex gap-3">
-              <span className="text-xl flex-shrink-0">⚡</span>
+              <Zap size={18} className="text-emerald-700 flex-shrink-0" />
               <div className="text-xs">
                 <p className="font-bold text-emerald-900 mb-1">Quick Service</p>
                 <p className="text-emerald-800">Order prepared in minutes</p>
@@ -431,7 +432,7 @@ export default function CustomerCart() {
             onClick={() => navigate(base + "/menu")}
             className="w-full text-center text-xs sm:text-sm text-slate-500 hover:text-slate-700 py-3 font-semibold transition-colors"
           >
-            ← Continue shopping
+            Continue shopping
           </button>
         </div>
       </div>

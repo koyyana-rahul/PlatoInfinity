@@ -13,7 +13,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 import useKitchenDisplay from "../../hooks/useKitchenDisplay";
 import ChefPinConfirmationModal from "../components/ChefPinConfirmationModal";
 import Axios from "../../../api/axios";
@@ -27,11 +27,11 @@ const STATUS_COLORS = {
 };
 
 const STATUS_ICONS = {
-  NEW: "🆕",
-  IN_PROGRESS: "👨‍🍳",
-  READY: "✅",
-  SERVED: "🚚",
-  CANCELLED: "❌",
+  NEW: "•",
+  IN_PROGRESS: "•",
+  READY: "•",
+  SERVED: "•",
+  CANCELLED: "•",
 };
 
 export default function KitchenDisplay() {
@@ -101,7 +101,7 @@ export default function KitchenDisplay() {
     // For other statuses, proceed directly
     const success = await updateItemStatus(orderId, itemIndex, newStatus);
     if (success) {
-      toast.success(`Item marked as ${newStatus}`);
+      notify.success(`Item marked as ${newStatus}`);
     }
   };
 
@@ -116,7 +116,7 @@ export default function KitchenDisplay() {
       const itemId = order?.items?.[itemIndex]?._id;
 
       if (!itemId) {
-        toast.error("Item not found");
+        notify.error("Item not found");
         return;
       }
 
@@ -131,16 +131,16 @@ export default function KitchenDisplay() {
       });
 
       if (res.data?.success) {
-        toast.success("✅ Item marked as Ready!");
+        notify.success("Item marked as ready");
         setShowPinModal(false);
         setPinPendingAction(null);
         fetchKitchenOrders(); // Refresh orders
       } else {
-        toast.error(res.data?.message || "Failed to update status");
+        notify.error(res.data?.message || "Failed to update status");
       }
     } catch (err) {
       const msg = err?.response?.data?.message || "Invalid PIN or error";
-      toast.error(msg);
+      notify.error(msg);
     } finally {
       setIsPinLoading(false);
     }
@@ -167,7 +167,11 @@ export default function KitchenDisplay() {
           <div>
             <h1 className="text-2xl font-bold text-white">Kitchen Display</h1>
             <p className="text-sm text-slate-400 mt-1">
-              Station: <span className="text-orange-400 font-semibold">{stationFilter || "Loading..."}</span> • {socketReady ? "🟢 Live" : "🔴 Offline"} • {orders.length} active
+              Station: {" "}
+              <span className="text-orange-400 font-semibold">
+                {stationFilter || "Loading..."}
+              </span>
+              {" "}• {socketReady ? "Live" : "Offline"} • {orders.length} active
               orders
             </p>
           </div>
@@ -176,7 +180,7 @@ export default function KitchenDisplay() {
             onClick={fetchKitchenOrders}
             className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"
           >
-            🔄 Refresh
+            Refresh
           </button>
         </div>
       </div>
@@ -187,7 +191,7 @@ export default function KitchenDisplay() {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-4xl">🧑‍🍳</span>
+              <span className="text-4xl">•</span>
             </div>
             <p className="text-slate-300 font-medium">No active orders</p>
             <p className="text-slate-500 text-sm mt-1">
@@ -243,7 +247,7 @@ export default function KitchenDisplay() {
                         {/* Special notes */}
                         {item.notes && (
                           <p className="text-xs text-yellow-400 mt-2 bg-yellow-900/20 px-2 py-1 rounded">
-                            📝 {item.notes}
+                            Note: {item.notes}
                           </p>
                         )}
                       </div>

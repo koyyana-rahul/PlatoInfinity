@@ -10,7 +10,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 import { LogOut, Lock, Clock, CheckCircle, Flame, Heart } from "lucide-react";
 import Axios from "../../api/axios";
 import { setUserDetails, logout } from "../../store/auth/userSlice";
@@ -47,7 +47,7 @@ export function ChefKitchenApp() {
       }
     } catch (error) {
       console.error("Load items error:", error);
-      toast.error("Could not load initial items.");
+      notify.error("Could not load initial items");
     }
   }, [authUser]);
 
@@ -66,7 +66,7 @@ export function ChefKitchenApp() {
       );
       if (stationItems.length > 0) {
         setItems((prev) => [...prev, ...stationItems]);
-        toast.success(`🔥 New order for Table ${order.tableName}!`);
+        notify.success(`New order for Table ${order.tableName}`);
         playSound();
       }
     };
@@ -83,7 +83,7 @@ export function ChefKitchenApp() {
 
     const handleOrderCancelled = (order) => {
       setItems((prev) => prev.filter((item) => item.orderId !== order.orderId));
-      toast.error(`Order for table ${order.tableName} cancelled.`);
+      notify.error(`Order for table ${order.tableName} cancelled`);
     };
 
     socket.on("kitchen:order-new", handleNewOrder);
@@ -102,20 +102,20 @@ export function ChefKitchenApp() {
       await Axios.put(`/api/kitchen/item/${itemId}/claim`);
       // Optimistic update handled by socket event
     } catch (error) {
-      toast.error("Failed to claim item.");
+      notify.error("Failed to claim item");
     }
   };
 
   const markItemReady = async (itemId) => {
-    if (pin.length !== 4) return toast.error("PIN must be 4 digits.");
+    if (pin.length !== 4) return notify.error("PIN must be 4 digits");
     try {
       await Axios.put(`/api/kitchen/item/${itemId}/ready`, { staffPin: pin });
       setItems((prev) => prev.filter((item) => item._id !== itemId));
       setConfirmPin("");
-      toast.success("✅ Item marked as READY!");
+      notify.success("Item marked as ready");
       playSound();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to mark ready.");
+      notify.error(error.response?.data?.message || "Failed to mark ready");
     }
   };
 

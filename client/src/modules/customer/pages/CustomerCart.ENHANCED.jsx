@@ -19,7 +19,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 import {
   ChevronLeft,
   ShoppingBag,
@@ -88,7 +88,7 @@ export default function CustomerCart() {
    */
   useEffect(() => {
     if (!sessionId) {
-      toast.error("Please join the table first");
+      notify.error("Please join the table first");
       navigate(base, { replace: true });
       return;
     }
@@ -100,7 +100,7 @@ export default function CustomerCart() {
    */
   const handlePlaceOrder = async () => {
     if (!items.length) {
-      toast.error("Your cart is empty");
+      notify.error("Your cart is empty");
       return;
     }
 
@@ -108,9 +108,7 @@ export default function CustomerCart() {
       setIsPlacing(true);
       const result = await dispatch(placeOrder()).unwrap();
 
-      toast.success("Order sent to kitchen! 👨‍🍳", {
-        duration: 3000,
-      });
+      notify.success("Order sent to kitchen", { duration: 3000 });
 
       // Navigate to order tracking
       navigate(base + "/orders", {
@@ -118,7 +116,7 @@ export default function CustomerCart() {
       });
     } catch (err) {
       console.error("Order placement error:", err);
-      toast.error(err || "Failed to place order. Please try again.");
+      notify.error(err || "Failed to place order. Please try again.");
     } finally {
       setIsPlacing(false);
     }
@@ -129,7 +127,7 @@ export default function CustomerCart() {
    */
   const handleRemoveItem = (cartItemId) => {
     dispatch(removeCartItem(cartItemId));
-    toast.success("Item removed", { duration: 2000 });
+    notify.success("Item removed", { duration: 2000 });
   };
 
   /**
@@ -206,7 +204,7 @@ export default function CustomerCart() {
                       : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300"
                   }`}
                 >
-                  {type === "DINE_IN" ? "🪑 Dine In" : "📦 Takeaway"}
+                  {type === "DINE_IN" ? "Dine In" : "Takeaway"}
                 </button>
               ))}
             </div>
@@ -316,7 +314,7 @@ export default function CustomerCart() {
                 />
                 <button
                   onClick={() => {
-                    toast.success("Promo code applied!");
+                    notify.success("Promo code applied");
                     setAppliedDiscount(100);
                     setShowPromoCode(false);
                   }}

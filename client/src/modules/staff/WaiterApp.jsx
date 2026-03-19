@@ -13,7 +13,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import toast from "react-hot-toast";
+import { notify } from "../../utils/notify";
 import { LogOut, Lock, Check, Phone, Home } from "lucide-react";
 
 import Axios from "../../api/axios";
@@ -40,12 +40,12 @@ export function WaiterApp() {
     e.preventDefault();
 
     if (!staffCode || !pin) {
-      toast.error("Please enter staff code and PIN");
+      notify.error("Please enter staff code and PIN");
       return;
     }
 
     if (pin.length !== 4) {
-      toast.error("PIN must be 4 digits");
+      notify.error("PIN must be 4 digits");
       return;
     }
 
@@ -62,7 +62,7 @@ export function WaiterApp() {
         dispatch(setUserDetails(response.data.data));
         localStorage.setItem("staffToken", response.data.token);
         setView("dashboard");
-        toast.success(`Welcome, ${response.data.data.name}!`);
+        notify.success(`Welcome, ${response.data.data.name}`);
 
         // Join socket rooms for notifications
         socketService.emit("join-room", {
@@ -77,7 +77,7 @@ export function WaiterApp() {
         loadDashboard();
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Login failed");
+      notify.error(error.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -122,10 +122,10 @@ export function WaiterApp() {
           setView("cart-review");
         }
       } else {
-        toast.info("No open session for this table");
+        notify.info("No open session for this table");
       }
     } catch (error) {
-      toast.error("Failed to load table cart");
+      notify.error("Failed to load table cart");
       console.error(error);
     }
   };
@@ -136,7 +136,9 @@ export function WaiterApp() {
       setLoading(true);
 
       // Confirm action with PIN
-      const confirmPin = window.prompt("🔐 Confirm with your staff PIN:");
+      const confirmPin = window.prompt(
+        "Confirm with your staff PIN to proceed:",
+      );
 
       if (!confirmPin) return;
 
@@ -146,8 +148,8 @@ export function WaiterApp() {
 
       if (response.data?.success) {
         // PIN is valid and displayed
-        toast.success(
-          "✅ Ready! Display this PIN on your phone screen: " + displayPin,
+        notify.success(
+          "PIN confirmed. Display this PIN on your phone screen: " + displayPin,
         );
 
         // Stay on this screen for customer to see PIN
@@ -155,7 +157,7 @@ export function WaiterApp() {
         setView("show-pin");
       }
     } catch (error) {
-      toast.error("PIN verification failed");
+      notify.error("PIN verification failed");
     } finally {
       setLoading(false);
     }
@@ -172,11 +174,11 @@ export function WaiterApp() {
       );
 
       if (response.data?.success) {
-        toast.success("Item marked as served");
+        notify.success("Item marked as served");
         setReadyItems(readyItems.filter((item) => item._id !== itemId));
       }
     } catch (error) {
-      toast.error("Failed to mark item served");
+      notify.error("Failed to mark item served");
     } finally {
       setLoading(false);
     }
@@ -194,21 +196,9 @@ export function WaiterApp() {
           sound: playSound(),
         },
       ]);
-      toast.custom((t) => (
-        <div className="bg-green-500 text-white p-4 rounded-lg shadow-lg flex gap-2 items-center">
-          <Check className="w-5 h-5" />
-          <div>
-            <strong>{data.itemName}</strong>
-            <p className="text-sm">Ready for Table {data.tableName}!</p>
-          </div>
-          <button
-            onClick={() => {}}
-            className="ml-auto bg-white text-green-600 px-3 py-1 rounded text-sm font-semibold"
-          >
-            View
-          </button>
-        </div>
-      ));
+      notify.info(
+        `${data.itemName || "Item"} is ready for Table ${data.tableName || ""}`.trim(),
+      );
     });
 
     return () => {
@@ -222,7 +212,7 @@ export function WaiterApp() {
       await Axios.post("/api/auth/staff/pin-logout");
       dispatch(logout());
       setView("login");
-      toast.success("Logged out successfully");
+      notify.success("Logged out successfully");
     } catch (error) {
       console.error("Logout error:", error);
     }
@@ -285,7 +275,7 @@ export function WaiterApp() {
           </form>
 
           <p className="text-center text-sm text-gray-600 mt-6">
-            🔒 Your PIN keeps your session secure
+            Your PIN keeps your session secure.
           </p>
         </div>
       </div>
@@ -316,7 +306,7 @@ export function WaiterApp() {
         {readyItems.length > 0 && (
           <div className="bg-green-100 border-l-4 border-green-600 p-4 mx-4 mt-4 rounded sticky top-16">
             <strong className="text-green-800">
-              🟢 {readyItems.length} item(s) ready for pickup!
+              {readyItems.length} item(s) ready for pickup
             </strong>
           </div>
         )}
@@ -343,9 +333,9 @@ export function WaiterApp() {
 
                 <p className="text-sm text-gray-600">
                   {table.status === "OCCUPIED" ? (
-                    <span className="text-orange-700">🔴 Occupied</span>
+                    <span className="text-orange-700">Occupied</span>
                   ) : (
-                    <span className="text-green-700">🟢 Available</span>
+                    <span className="text-green-700">Available</span>
                   )}
                 </p>
               </div>
@@ -391,9 +381,7 @@ export function WaiterApp() {
                       Qty: {item.quantity}
                     </p>
                     {item.notes && (
-                      <p className="text-sm text-blue-600 mt-1">
-                        📝 {item.notes}
-                      </p>
+                      <p className="text-sm text-blue-600 mt-1">{item.notes}</p>
                     )}
                   </div>
                   <p className="font-semibold text-blue-600">
@@ -418,7 +406,7 @@ export function WaiterApp() {
             disabled={loading || cart.length === 0}
             className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700"
           >
-            ✅ Approve & Show PIN
+            Approve & Show PIN
           </button>
         </div>
       </div>
@@ -431,7 +419,7 @@ export function WaiterApp() {
       <div className="min-h-screen bg-gradient-to-br from-green-500 to-green-600 flex flex-col items-center justify-center p-4">
         <div className="text-center text-white mb-8">
           <Check className="w-16 h-16 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold mb-2">Cart Approved! ✅</h1>
+          <h1 className="text-3xl font-bold mb-2">Cart Approved</h1>
           <p className="text-green-100">Show this PIN to the customer</p>
         </div>
 
@@ -458,7 +446,7 @@ export function WaiterApp() {
             }}
             className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700"
           >
-            ✓ PIN Shown → Continue
+            PIN Shown • Continue
           </button>
         </div>
       </div>

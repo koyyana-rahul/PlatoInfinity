@@ -3,13 +3,15 @@ import { useParams, useNavigate } from "react-router-dom";
 import Axios from "../../../api/axios";
 import customerApi from "../../../api/customer.api";
 import { useCustomerSocket } from "../hooks/useCustomerSocket";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 import {
   ChevronLeft,
   Loader2,
   Clock,
   CheckCircle2,
   MapPin,
+  RefreshCw,
+  Inbox,
 } from "lucide-react";
 
 /**
@@ -19,10 +21,10 @@ import {
  * Status progression: Pending → Sent to Kitchen → Ready → Served
  *
  * Color coding:
- * 🟡 Pending (yellow)     - Order placed but not sent to kitchen
- * 🟠 In Kitchen (orange)  - Order sent, being prepared
- * 🟢 Ready (green)        - Item ready for pickup
- * 🔵 Served (blue)        - Item served to customer
+ * Pending (yellow)     - Order placed but not sent to kitchen
+ * In Kitchen (orange)  - Order sent, being prepared
+ * Ready (green)        - Item ready for pickup
+ * Served (blue)        - Item served to customer
  */
 export default function CustomerOrderStatus() {
   const { tableId } = useParams();
@@ -114,7 +116,7 @@ export default function CustomerOrderStatus() {
 
     // 🔥 REAL-TIME SOCKET LISTENERS
     const applyLiveItemStatus = (data) => {
-      console.log("📡 Customer received status update:", data);
+      console.log("Customer received status update:", data);
       const resolvedOrderId = data?.orderId || data?._id;
       if (!resolvedOrderId) return;
 
@@ -123,22 +125,19 @@ export default function CustomerOrderStatus() {
       ).toUpperCase();
 
       if (data.itemStatus === "READY") {
-        toast.success(`${data.itemName || "Item"} is ready! 🎉`, {
-          icon: "🟢",
+        notify.success(`${data.itemName || "Item"} is ready`, {
           duration: 5000,
         });
       }
 
       if (data.itemStatus === "IN_PROGRESS") {
-        toast(`Chef is preparing ${data.itemName || "your item"}...`, {
-          icon: "👨‍🍳",
+        notify.info(`${data.itemName || "Your item"} is being prepared`, {
           duration: 3000,
         });
       }
 
       if (data.itemStatus === "SERVED") {
-        toast.success(`${data.itemName || "Item"} has been served. Enjoy!`, {
-          icon: "🍽️",
+        notify.success(`${data.itemName || "Item"} has been served`, {
           duration: 4000,
         });
       }
@@ -209,38 +208,38 @@ export default function CustomerOrderStatus() {
     switch (status) {
       case "NEW":
         return {
-          badge: "🟡",
           label: "Pending",
           color: "bg-yellow-50 border-yellow-200",
           textColor: "text-yellow-900",
+          dotColor: "bg-yellow-500",
         };
       case "IN_PROGRESS":
         return {
-          badge: "🟠",
           label: "Preparing",
           color: "bg-orange-50 border-orange-200",
           textColor: "text-orange-900",
+          dotColor: "bg-orange-500",
         };
       case "READY":
         return {
-          badge: "🟢",
           label: "Ready",
           color: "bg-emerald-50 border-emerald-200",
           textColor: "text-emerald-900",
+          dotColor: "bg-emerald-500",
         };
       case "SERVED":
         return {
-          badge: "🔵",
           label: "Served",
           color: "bg-blue-50 border-blue-200",
           textColor: "text-blue-900",
+          dotColor: "bg-blue-500",
         };
       default:
         return {
-          badge: "⚪",
           label: status,
           color: "bg-slate-50 border-slate-200",
           textColor: "text-slate-900",
+          dotColor: "bg-slate-400",
         };
     }
   };
@@ -267,7 +266,7 @@ export default function CustomerOrderStatus() {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
         <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
-          <span className="text-4xl">📭</span>
+          <Inbox size={32} className="text-slate-400" />
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-2">
           No Orders Yet
@@ -306,7 +305,7 @@ export default function CustomerOrderStatus() {
             className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
             title="Refresh"
           >
-            🔄
+            <RefreshCw size={18} className="text-slate-600" />
           </button>
         </div>
       </div>
@@ -360,7 +359,7 @@ export default function CustomerOrderStatus() {
                           )}
                           {item.meta?.notes && (
                             <p className="text-sm text-slate-600 mt-2 italic bg-slate-50 p-2 rounded">
-                              📝 {item.meta.notes}
+                              {item.meta.notes}
                             </p>
                           )}
                         </div>
@@ -370,7 +369,9 @@ export default function CustomerOrderStatus() {
                       <div
                         className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border ${status.color}`}
                       >
-                        <span className="text-xl">{status.badge}</span>
+                        <span
+                          className={`inline-block w-2.5 h-2.5 rounded-full ${status.dotColor}`}
+                        />
                         <span
                           className={`font-bold text-sm ${status.textColor}`}
                         >
@@ -419,7 +420,7 @@ export default function CustomerOrderStatus() {
                   {order.items?.length} items
                 </span>
                 <span className="text-sm font-bold text-slate-600">
-                  {allServed ? "✅ All items delivered" : "Preparing..."}
+                  {allServed ? "All items delivered" : "In progress"}
                 </span>
               </div>
             </div>

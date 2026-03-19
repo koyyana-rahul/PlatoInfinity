@@ -23,13 +23,13 @@ const ERROR_MESSAGES = {
   // Session Errors
   SESSION_EXPIRED:
     "Your session has expired. Please scan the QR code again to rejoin.",
-  SESSION_INVALID: "This session is no longer valid. Please start fresh.",
-  SESSION_CLOSED: "This table's session has been closed.",
+  SESSION_INVALID: "This session is no longer valid. Please start a new one.",
+  SESSION_CLOSED: "This table session has been closed.",
 
   // PIN Errors
   PIN_INCORRECT: "Incorrect PIN. Please try again.",
-  PIN_LOCKED: "Too many incorrect attempts. Account locked for 30 minutes.",
-  PIN_REQUIRED: "PIN is required to place an order.",
+  PIN_LOCKED: "Too many incorrect attempts. Please try again in 30 minutes.",
+  PIN_REQUIRED: "Please enter the PIN to place your order.",
   PIN_INVALID_FORMAT: "PIN must be 4 digits.",
 
   // Cart Errors
@@ -39,37 +39,39 @@ const ERROR_MESSAGES = {
   CART_ITEM_OUT_OF_STOCK: "This item is out of stock. Please remove from cart.",
 
   // Order Errors
-  ORDER_ALREADY_EXISTS: "You have already placed an order. Wait for it.",
+  ORDER_ALREADY_EXISTS: "You already placed this order. Please wait.",
   ORDER_CANNOT_PLACE:
-    "Unable to place order. Try again or contact your server.",
+    "We couldn’t place your order. Please try again or contact your server.",
   ORDER_DUPLICATE:
     "This order appears to have been placed already. Check your order history.",
-  ORDER_SESSION_MISMATCH: "Order session doesn't match. Please try again.",
+  ORDER_SESSION_MISMATCH: "Order session mismatch. Please try again.",
 
   // Restaurant Errors
-  RESTAURANT_CLOSED: "Restaurant is closed. Orders cannot be placed.",
-  KITCHEN_CLOSED: "Kitchen is closed. Try again later.",
+  RESTAURANT_CLOSED: "The restaurant is closed. Orders are unavailable.",
+  KITCHEN_CLOSED: "The kitchen is closed. Please try again later.",
   TABLE_INACTIVE: "This table is no longer active.",
   TABLE_NOT_FOUND: "Table not found. Please scan the QR code again.",
 
   // Network Errors
-  NETWORK_TIMEOUT: "Connection timeout. Check your internet and try again.",
-  NETWORK_OFFLINE: "You're offline. Connect to internet to place orders.",
-  NETWORK_SLOW: "Slow connection detected. Retrying... (Attempt 2/3)",
+  NETWORK_TIMEOUT: "Connection timed out. Check your internet and try again.",
+  NETWORK_OFFLINE: "You’re offline. Connect to the internet to place orders.",
+  NETWORK_SLOW: "Slow connection detected. Retrying (attempt 2 of 3).",
 
   // Validation Errors
   INVALID_QUANTITY: "Quantity must be between 1 and 100.",
   INVALID_AMOUNT: "Invalid amount. Please check and try again.",
-  INVALID_INPUT: "Some fields have errors. Please check and try again.",
+  INVALID_INPUT: "Some fields need attention. Please review and try again.",
   ITEMS_INVALID: "One or more items invalid. Please refresh menu.",
 
   // Payment Errors
-  PAYMENT_METHOD_FAILED: "Payment method not available. Try another method.",
-  PAYMENT_PROCESSING: "Payment is being processed. Please wait...",
+  PAYMENT_METHOD_FAILED: "Payment method unavailable. Try another method.",
+  PAYMENT_PROCESSING: "Payment is processing. Please wait.",
 
   // Server Errors
-  SERVER_ERROR: "Server error. Our team has been notified. Please try again.",
-  SERVICE_UNAVAILABLE: "Service temporarily unavailable. Try again in moment.",
+  SERVER_ERROR:
+    "We’re having trouble on our side. Please try again in a moment.",
+  SERVICE_UNAVAILABLE:
+    "Service is temporarily unavailable. Please try again shortly.",
   DATABASE_ERROR:
     "Database error. Your order might not be saved. Contact support.",
 

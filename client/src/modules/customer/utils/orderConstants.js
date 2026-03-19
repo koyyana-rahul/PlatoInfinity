@@ -51,12 +51,12 @@ export const getOrderStatusColor = (status) => {
 
 export const getOrderStatusLabel = (status) => {
   const labels = {
-    [ORDER_STATUS.NEW]: "🆕 New Order",
-    [ORDER_STATUS.IN_PROGRESS]: "👨‍🍳 Cooking",
-    [ORDER_STATUS.READY]: "✅ Ready",
-    [ORDER_STATUS.SERVED]: "🎉 Served",
-    [ORDER_STATUS.CANCELLED]: "❌ Cancelled",
-    [ORDER_STATUS.REJECTED]: "⛔ Rejected",
+    [ORDER_STATUS.NEW]: "New order",
+    [ORDER_STATUS.IN_PROGRESS]: "Preparing",
+    [ORDER_STATUS.READY]: "Ready",
+    [ORDER_STATUS.SERVED]: "Served",
+    [ORDER_STATUS.CANCELLED]: "Cancelled",
+    [ORDER_STATUS.REJECTED]: "Rejected",
   };
   return labels[status] || status;
 };

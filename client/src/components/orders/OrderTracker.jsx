@@ -16,7 +16,6 @@ import {
   Package,
 } from "lucide-react";
 import clsx from "clsx";
-import toast from "react-hot-toast";
 import Axios from "../api/axios";
 import orderApi from "../api/order.api";
 
@@ -236,7 +235,7 @@ export default function OrderTracker({ orderId, restaurantId }) {
               Expected in {order.expectedTime} minutes
             </p>
             <p className="text-xs sm:text-sm text-blue-700 mt-1">
-              Your order will be ready soon. Thank you for your patience!
+              Your order is in progress. We appreciate your patience.
             </p>
           </div>
         </div>

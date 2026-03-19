@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import toast from "react-hot-toast";
+import { notify } from "../../../utils/notify";
 import { Loader2 } from "lucide-react";
 import clsx from "clsx";
 
@@ -60,8 +60,7 @@ export default function CustomerMenu() {
     try {
       const res = await Axios(customerApi.publicMenuByTable(tableId));
       setMenu(res.data?.data || []);
-      toast.success("Menu synchronized", {
-        icon: "🔄",
+      notify.success("Menu updated", {
         style: { borderRadius: "15px", fontWeight: "bold" },
       });
     } catch (err) {
@@ -94,7 +93,7 @@ export default function CustomerMenu() {
           setRestaurantId(tableRes.data.data.restaurantId);
         }
       } catch {
-        toast.error("Offline: Reconnecting...");
+        notify.error("Connection lost. Reconnecting...");
       } finally {
         if (active) setLoading(false);
       }

@@ -32,17 +32,18 @@ export default class ErrorBoundary extends Component {
           <div className="text-center max-w-md">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-              Oops! Something went wrong
+              Something went wrong
             </h2>
             <p className="text-sm sm:text-base text-gray-600 mb-6">
-              {this.state.error?.message || "An unexpected error occurred"}
+              {this.state.error?.message ||
+                "We ran into an unexpected error. Please try again."}
             </p>
             <button
               onClick={this.handleReset}
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <RotateCw className="w-4 h-4" />
-              Try Again
+              Retry
             </button>
           </div>
         </div>
