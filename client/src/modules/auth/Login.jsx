@@ -65,9 +65,12 @@ export default function Login() {
     } catch (err) {
       const status = err?.response?.status;
       const message = err?.response?.data?.message;
+      const code = err?.response?.data?.code;
 
       if (status === 403) {
         notify.error("Please verify your email before logging in");
+      } else if (status === 404 || code === "ACCOUNT_NOT_FOUND") {
+        notify.error("Account doesn't exist. Please create an account first.");
       } else if (status === 401) {
         notify.error("Invalid email or password");
       } else {

@@ -208,9 +208,11 @@ export async function loginController(req, res) {
     "+password +refreshToken",
   );
   if (!user) {
-    return res
-      .status(401)
-      .json({ success: false, message: "Invalid credentials" });
+    return res.status(404).json({
+      success: false,
+      code: "ACCOUNT_NOT_FOUND",
+      message: "Account doesn't exist. Please create an account first.",
+    });
   }
 
   const isMatch = await bcrypt.compare(password, user.password);

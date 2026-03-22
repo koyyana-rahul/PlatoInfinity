@@ -5,6 +5,7 @@ import Table from "../models/table.model.js";
 import CartItem from "../models/cartItem.model.js";
 import SessionModel from "../models/session.model.js";
 import AuditLog from "../models/auditLog.model.js";
+import Restaurant from "../models/restaurant.model.js";
 import {
   emitOrderPlaced,
   emitOrderItemStatusUpdate,
@@ -653,34 +654,83 @@ export async function recentOrdersController(req, res) {
       createdAt: { $gte: startDate, $lte: endDate },
     };
 
-    // Determine which restaurantId to use
-    let selectedRestaurantId = null;
+    // Determine which restaurant(s) to use based on role
+    if (user.role === "BRAND_ADMIN") {
+      if (!user.brandId) {
+        return res.status(403).json({
+          success: false,
+          error: true,
+          message: "Brand access not configured",
+        });
+      }
 
-    // Priority 1: Explicit query parameter (if valid)
-    if (restaurantId && restaurantId.trim()) {
+      const brandRestaurants = await Restaurant.find({
+        brandId: user.brandId,
+      })
+        .select("_id")
+        .lean();
+
+      const brandRestaurantIds = brandRestaurants.map((r) => r._id.toString());
+
+      if (restaurantId && restaurantId.trim()) {
+        if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
+          return res.status(400).json({
+            success: false,
+            error: true,
+            message: "Invalid restaurantId",
+          });
+        }
+
+        if (!brandRestaurantIds.includes(restaurantId)) {
+          return res.status(403).json({
+            success: false,
+            error: true,
+            message: "Access denied to this restaurant",
+          });
+        }
+
+        filter.restaurantId = restaurantId;
+      } else {
+        filter.restaurantId = { $in: brandRestaurantIds };
+      }
+    } else if (user.role === "MANAGER") {
+      const managerRestaurantId = user.restaurantId;
+
+      if (!managerRestaurantId) {
+        return res.status(403).json({
+          success: false,
+          error: true,
+          message: "Restaurant access not configured",
+        });
+      }
+
+      if (
+        restaurantId &&
+        restaurantId.trim() &&
+        restaurantId !== String(managerRestaurantId)
+      ) {
+        return res.status(403).json({
+          success: false,
+          error: true,
+          message: "Access denied to this restaurant",
+        });
+      }
+
+      filter.restaurantId = managerRestaurantId;
+    } else if (restaurantId && restaurantId.trim()) {
       if (mongoose.Types.ObjectId.isValid(restaurantId)) {
-        selectedRestaurantId = restaurantId;
+        filter.restaurantId = restaurantId;
       } else {
-        console.warn(`Invalid restaurantId in query: ${restaurantId}`);
-        // Don't filter if invalid - for brand admins
+        return res.status(400).json({
+          success: false,
+          error: true,
+          message: "Invalid restaurantId",
+        });
       }
-    }
-    // Priority 2: User's restaurantId (if not already selected and valid)
-    else if (user.restaurantId && user.restaurantId.trim?.()) {
+    } else if (user.restaurantId && user.restaurantId.trim?.()) {
       if (mongoose.Types.ObjectId.isValid(user.restaurantId)) {
-        selectedRestaurantId = user.restaurantId;
-      } else {
-        console.warn(
-          `Invalid restaurantId for user: ${user._id}`,
-          user.restaurantId,
-        );
-        // Don't filter if invalid - for brand admins
+        filter.restaurantId = user.restaurantId;
       }
-    }
-
-    // Apply filter if valid restaurantId found
-    if (selectedRestaurantId) {
-      filter.restaurantId = selectedRestaurantId;
     }
 
     const parsedLimit = Math.min(parseInt(limit) || 10, 500); // Cap at 500
