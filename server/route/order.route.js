@@ -14,6 +14,8 @@ import {
   getSessionOrdersController,
   approveOrderController,
   rejectOrderController,
+  cancelOrderController,
+  cancelCustomerOrderController,
 } from "../controller/order.controller.js";
 
 const orderRouter = express.Router();
@@ -38,6 +40,13 @@ orderRouter.get(
   "/order/session/:sessionId",
   resolveCustomerSession,
   getSessionOrdersController,
+);
+
+// CUSTOMER CANCEL ORDER (ONLY BEFORE PREP STARTS)
+orderRouter.post(
+  "/order/:orderId/cancel/customer",
+  resolveCustomerSession,
+  cancelCustomerOrderController,
 );
 
 orderRouter.get(
@@ -101,6 +110,14 @@ orderRouter.post(
   requireAuth,
   requireRole("WAITER", "MANAGER", "CASHIER"),
   completeOrderController,
+);
+
+// CANCEL ORDER (STAFF)
+orderRouter.post(
+  "/order/:orderId/cancel",
+  requireAuth,
+  requireRole("BRAND_ADMIN", "MANAGER", "CHEF", "WAITER"),
+  cancelOrderController,
 );
 
 /**

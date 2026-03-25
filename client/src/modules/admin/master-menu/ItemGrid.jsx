@@ -68,7 +68,7 @@ export default function ItemGrid({
                 key={item._id || item.id}
                 item={item}
                 refresh={refresh}
-                onDelete={() => onDeleteItem(item.id || item._id)}
+                onDelete={onDeleteItem ? () => onDeleteItem(item) : undefined}
               />
             ))}
 

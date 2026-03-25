@@ -250,13 +250,17 @@ export default function CustomerOrderStatus() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <Loader2
-            size={32}
-            className="text-blue-600 animate-spin mx-auto mb-4"
-          />
-          <p className="text-slate-600">Loading your order...</p>
+      <div className="min-h-screen bg-white">
+        <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+          <div className="h-10 w-40 bg-slate-100 rounded-xl animate-pulse" />
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div
+                key={`status-shimmer-${idx}`}
+                className="h-32 bg-slate-100 rounded-2xl animate-pulse"
+              />
+            ))}
+          </div>
         </div>
       </div>
     );

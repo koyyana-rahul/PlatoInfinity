@@ -90,23 +90,23 @@ export default function StaffPage() {
           </div>
           <button
             onClick={() => setOpenCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600"
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-all duration-200 hover:-translate-y-0.5"
           >
             <FiPlus size={18} />
             Add Staff
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
             <p className="text-gray-600 text-sm font-medium">Total Staff</p>
             <p className="text-3xl font-bold text-gray-900 mt-2">{total}</p>
           </div>
-          <div className="bg-green-50 rounded-lg p-6 border border-green-200">
+          <div className="bg-green-50 rounded-lg p-4 sm:p-6 border border-green-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
             <p className="text-green-700 text-sm font-medium">Active</p>
             <p className="text-3xl font-bold text-green-600 mt-2">{active}</p>
           </div>
-          <div className="bg-red-50 rounded-lg p-6 border border-red-200">
+          <div className="bg-red-50 rounded-lg p-4 sm:p-6 border border-red-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
             <p className="text-red-700 text-sm font-medium">Inactive</p>
             <p className="text-3xl font-bold text-red-600 mt-2">
               {total - active}

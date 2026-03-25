@@ -3,14 +3,13 @@ import { useState, useMemo } from "react";
 import { useSelector } from "react-redux";
 import useKitchenOrders from "../hooks/useKitchenOrders";
 import KitchenOrderCard from "../components/KitchenOrderCard";
-import { FiSearch, FiFilter, FiRefreshCcw } from "react-icons/fi";
+import { FiSearch } from "react-icons/fi";
 
 export default function ChefDashboard() {
   const station = useSelector((s) => s.user.station || "MAIN");
   const kitchenStationId = useSelector((s) => s.user.kitchenStationId || null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL"); // ALL | NEW | IN_PROGRESS | READY
-  const [refreshing, setRefreshing] = useState(false);
 
   const { orders, loading, reload, updateOrderItemStatus } = useKitchenOrders(
     station,
@@ -57,40 +56,34 @@ export default function ChefDashboard() {
     [orders],
   );
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await reload(true);
-    setRefreshing(false);
-  };
-
   if (loading) {
-    return <div className="p-6 text-gray-500">Loading orders...</div>;
+    return <ChefDashboardSkeleton />;
   }
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
-        <div className="flex items-start justify-between">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
               Kitchen Console
             </h1>
             <p className="text-sm text-gray-600 mt-1">Station: {station}</p>
           </div>
-          <div className="bg-orange-100 text-orange-700 px-3 py-1 rounded-lg text-xs font-semibold tracking-wide">
+          <div className="w-fit bg-orange-100 text-orange-700 px-3 py-1 rounded-lg text-xs font-semibold tracking-wide">
             ⚡ Live
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Kpi label="Total Orders" value={orders.length} />
         <Kpi label="Pending" value={pendingCount} tone="orange" />
         <Kpi label="Cooking" value={cookingCount} tone="green" />
         <Kpi label="Ready" value={readyCount} tone="blue" />
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row gap-3">
+      <div className="bg-white border border-gray-200 rounded-2xl p-3.5 sm:p-5 flex flex-col sm:flex-row gap-3">
         <div className="flex-1 relative">
           <FiSearch
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -107,24 +100,13 @@ export default function ChefDashboard() {
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-500 flex items-center gap-2"
+          className="w-full sm:w-auto px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-500"
         >
           <option value="ALL">All Items</option>
           <option value="NEW">Pending</option>
           <option value="IN_PROGRESS">Cooking</option>
           <option value="READY">Ready</option>
         </select>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="h-10 px-4 bg-orange-50 text-orange-700 border border-orange-200 rounded-lg font-semibold text-sm hover:shadow-sm disabled:opacity-60 inline-flex items-center gap-2"
-        >
-          <FiRefreshCcw
-            size={16}
-            className={refreshing ? "animate-spin" : ""}
-          />
-          Refresh
-        </button>
       </div>
 
       <div className="space-y-4">
@@ -161,6 +143,52 @@ function Kpi({ label, value, tone = "neutral" }) {
     <div className={`rounded-xl border p-4 ${toneClass}`}>
       <p className="text-xs uppercase tracking-wide font-semibold">{label}</p>
       <p className="text-2xl font-bold mt-1">{value}</p>
+    </div>
+  );
+}
+
+function ChefDashboardSkeleton() {
+  return (
+    <div className="space-y-3 sm:space-y-4 animate-pulse">
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6">
+        <div className="h-6 w-48 bg-gray-200 rounded" />
+        <div className="h-4 w-32 bg-gray-100 rounded mt-2" />
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {Array.from({ length: 4 }).map((_, idx) => (
+          <div
+            key={idx}
+            className="rounded-xl border border-gray-200 bg-white p-4 space-y-2"
+          >
+            <div className="h-3 w-20 bg-gray-200 rounded" />
+            <div className="h-7 w-12 bg-gray-100 rounded" />
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-2xl p-3.5 sm:p-5 space-y-3 sm:space-y-0 sm:flex sm:gap-3">
+        <div className="h-10 flex-1 bg-gray-100 rounded-lg" />
+        <div className="h-10 w-full sm:w-36 bg-gray-100 rounded-lg" />
+      </div>
+
+      <div className="space-y-4">
+        {Array.from({ length: 3 }).map((_, idx) => (
+          <div
+            key={idx}
+            className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 space-y-3"
+          >
+            <div className="flex justify-between">
+              <div className="h-5 w-28 bg-gray-200 rounded" />
+              <div className="h-5 w-16 bg-gray-100 rounded" />
+            </div>
+            <div className="space-y-2 border-t border-gray-100 pt-3">
+              <div className="h-12 bg-gray-100 rounded-xl" />
+              <div className="h-12 bg-gray-100 rounded-xl" />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

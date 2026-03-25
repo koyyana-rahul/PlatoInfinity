@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   FiBarChart2,
   FiClock,
@@ -22,8 +22,22 @@ export default function ManagerDashboard() {
       0,
     );
 
-  const normalizeStatus = (status) =>
-    String(status || "").toUpperCase() || "NEW";
+  const normalizeStatus = (status) => {
+    const raw = String(status || "").toUpperCase().trim();
+
+    const statusAliasMap = {
+      OPEN: "NEW",
+      PLACED: "NEW",
+      PENDING: "NEW",
+      PREPARING: "IN_PROGRESS",
+      PREP: "IN_PROGRESS",
+      COOKING: "IN_PROGRESS",
+      COMPLETE: "SERVED",
+      COMPLETED: "SERVED",
+    };
+
+    return statusAliasMap[raw] || raw || "NEW";
+  };
 
   const applyOrderLevelStatusToItems = (items = [], status) => {
     const normalized = normalizeStatus(status);
@@ -32,6 +46,13 @@ export default function ManagerDashboard() {
       return (Array.isArray(items) ? items : []).map((item) => ({
         ...item,
         itemStatus: "SERVED",
+      }));
+    }
+
+    if (normalized === "CANCELLED") {
+      return (Array.isArray(items) ? items : []).map((item) => ({
+        ...item,
+        itemStatus: item.itemStatus === "SERVED" ? "SERVED" : "CANCELLED",
       }));
     }
 
@@ -69,6 +90,9 @@ export default function ManagerDashboard() {
     items: Array.isArray(order.items) ? order.items : [],
     orderStatus: deriveOrderStatus(order),
     placedAt: order.placedAt || order.createdAt || order.updatedAt,
+    cancelReason: order.cancelReason || order.meta?.cancelReason || null,
+    cancelledByRole:
+      order.cancelledByRole || order.meta?.cancelledByRole || null,
   });
 
   const [orders, setOrders] = useState([]);
@@ -85,6 +109,9 @@ export default function ManagerDashboard() {
     timeRange: "today",
   });
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [compactMode, setCompactMode] = useState(true);
 
   const applyFilters = (orderList, filterSettings) => {
     let filtered = orderList.map((o) => normalizeOrder(o));
@@ -216,6 +243,19 @@ export default function ManagerDashboard() {
                 ...o,
                 ...data,
                 _id: o._id,
+                cancelReason:
+                  data.reason ||
+                  data.cancelReason ||
+                  data.meta?.cancelReason ||
+                  o.cancelReason ||
+                  o.meta?.cancelReason ||
+                  null,
+                cancelledByRole:
+                  data.cancelledByRole ||
+                  data.meta?.cancelledByRole ||
+                  o.cancelledByRole ||
+                  o.meta?.cancelledByRole ||
+                  null,
                 orderStatus: deriveOrderStatus({
                   ...o,
                   ...data,
@@ -300,6 +340,8 @@ export default function ManagerDashboard() {
     switch (status) {
       case "SERVED":
         return "bg-green-50 text-green-700";
+      case "CANCELLED":
+        return "bg-red-50 text-red-700";
       case "SERVING":
         return "bg-indigo-50 text-indigo-700";
       case "READY":
@@ -332,9 +374,53 @@ export default function ManagerDashboard() {
     );
   };
 
+  const formatOrderDateTimeParts = (timestamp) => {
+    if (!timestamp) return { date: "-", time: "-" };
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return { date: "-", time: "-" };
+
+    return {
+      date: date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }),
+      time: date.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      }),
+    };
+  };
+
+  const rowsPerPageOptions = [
+    { value: 10, label: "10 rows / page" },
+    { value: 25, label: "25 rows / page" },
+    { value: 50, label: "50 rows / page" },
+  ];
+
+  const totalFilteredOrders = filteredOrders.length;
+  const totalPages = Math.max(1, Math.ceil(totalFilteredOrders / rowsPerPage));
+  const startIndex =
+    totalFilteredOrders === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
+  const endIndex = Math.min(currentPage * rowsPerPage, totalFilteredOrders);
+
+  useEffect(() => {
+    setCurrentPage((prev) => Math.min(prev, totalPages));
+  }, [totalPages]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return filteredOrders.slice(start, start + rowsPerPage);
+  }, [filteredOrders, currentPage, rowsPerPage]);
+
+  const compactClass = compactMode ? "py-2" : "py-3";
+  const compactCellTextClass = compactMode ? "text-xs" : "text-sm";
+
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
+      <div className="w-full px-4 sm:px-6 py-6 sm:py-10 space-y-6">
         <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
@@ -346,39 +432,39 @@ export default function ManagerDashboard() {
           </div>
           <button
             onClick={exportOrders}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600"
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-all duration-200 hover:-translate-y-0.5"
           >
             <FiDownload size={16} />
             Export Orders
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
             <p className="text-sm text-gray-600">Total Orders</p>
             <p className="text-3xl font-bold text-gray-900 mt-2">
               {stats.totalOrders}
             </p>
           </div>
-          <div className="bg-red-50 rounded-lg p-6 border border-red-200">
+          <div className="bg-red-50 rounded-lg p-6 border border-red-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
             <p className="text-sm text-red-700">Total Quantity</p>
             <p className="text-3xl font-bold text-red-600 mt-2">
               {stats.totalQuantity}
             </p>
           </div>
-          <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+          <div className="bg-blue-50 rounded-lg p-6 border border-blue-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
             <p className="text-sm text-blue-700">In Progress</p>
             <p className="text-3xl font-bold text-blue-600 mt-2">
               {stats.pendingOrders}
             </p>
           </div>
-          <div className="bg-green-50 rounded-lg p-6 border border-green-200">
+          <div className="bg-green-50 rounded-lg p-6 border border-green-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
             <p className="text-sm text-green-700">Completed</p>
             <p className="text-3xl font-bold text-green-600 mt-2">
               {stats.completedOrders}
             </p>
           </div>
-          <div className="bg-orange-50 rounded-lg p-6 border border-orange-200">
+          <div className="bg-orange-50 rounded-lg p-6 border border-orange-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
             <p className="text-sm text-orange-700">Revenue</p>
             <p className="text-3xl font-bold text-orange-600 mt-2">
               ₹{stats.totalRevenue}
@@ -386,7 +472,7 @@ export default function ManagerDashboard() {
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 transition-all duration-300 hover:shadow-md">
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">
               Recent Orders
@@ -419,6 +505,32 @@ export default function ManagerDashboard() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full mb-4">
+            <div className="text-xs sm:text-sm text-slate-600 bg-slate-100 px-3 py-2 rounded-md text-center sm:text-left whitespace-nowrap">
+              Showing {startIndex}-{endIndex} of {totalFilteredOrders}
+            </div>
+
+            <div className="w-full min-w-0">
+              <Dropdown
+                value={rowsPerPage}
+                onChange={(value) => {
+                  setRowsPerPage(Number(value));
+                  setCurrentPage(1);
+                }}
+                placeholder="Rows per page"
+                options={rowsPerPageOptions}
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setCompactMode((prev) => !prev)}
+              className="w-full text-xs sm:text-sm border border-slate-200 rounded-md px-3 py-2 bg-white text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-orange-200"
+            >
+              {compactMode ? "Comfortable view" : "Compact view"}
+            </button>
+          </div>
+
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -429,8 +541,9 @@ export default function ManagerDashboard() {
               ))}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[700px]">
+            <>
+              <div className="hidden lg:block">
+                <table className="w-full table-fixed">
                 <thead>
                   <tr className="border-b border-gray-200 text-left text-xs font-semibold uppercase text-gray-500">
                     <th className="py-3 pr-3">Order #</th>
@@ -439,64 +552,91 @@ export default function ManagerDashboard() {
                     <th className="py-3 pr-3">Qty</th>
                     <th className="py-3 pr-3">Amount</th>
                     <th className="py-3 pr-3">Status</th>
-                    <th className="py-3">Time</th>
+                    <th className="py-3">Date & Time</th>
+                    <th className="py-3"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOrders.map((order) => (
-                    <tr key={order._id} className="border-b border-gray-100">
-                      <td className="py-3 pr-3 font-semibold text-gray-900">
-                        #{order.orderNumber}
-                      </td>
-                      <td className="py-3 pr-3 text-gray-700">
-                        {order.tableName || "Takeaway"}
-                      </td>
-                      <td className="py-3 pr-3 text-gray-700">
-                        {order.items?.length || 0}
-                      </td>
-                      <td className="py-3 pr-3 text-gray-700 font-semibold">
-                        {getTotalQuantity(order.items)}
-                      </td>
-                      <td className="py-3 pr-3 text-gray-700">
-                        ₹{order.totalAmount || 0}
-                      </td>
-                      <td className="py-3 pr-3">
-                        {(() => {
-                          const progress = getStatusProgress(order.orderStatus);
-                          return (
-                            <div className="space-y-1">
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-semibold ${statusClass(order.orderStatus)}`}
-                              >
-                                {progress.label}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <div className="w-24 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full ${progress.color} transition-all duration-500`}
-                                    style={{ width: `${progress.percent}%` }}
-                                  />
-                                </div>
-                                <span className="text-[10px] font-semibold text-gray-600">
-                                  {progress.percent}%
+                  {paginatedOrders.map((order) => {
+                    const dateTime = formatOrderDateTimeParts(order.placedAt);
+                    return (
+                      <tr key={order._id} className="border-b border-gray-100">
+                        <td
+                          className={`${compactClass} pr-3 font-semibold text-gray-900 whitespace-nowrap ${compactCellTextClass}`}
+                        >
+                          #{order.orderNumber}
+                        </td>
+                        <td
+                          className={`${compactClass} pr-3 text-gray-700 whitespace-nowrap ${compactCellTextClass}`}
+                        >
+                          {order.tableName || "Takeaway"}
+                        </td>
+                        <td
+                          className={`${compactClass} pr-3 text-gray-700 whitespace-nowrap ${compactCellTextClass}`}
+                        >
+                          {order.items?.length || 0}
+                        </td>
+                        <td
+                          className={`${compactClass} pr-3 text-gray-700 font-semibold whitespace-nowrap ${compactCellTextClass}`}
+                        >
+                          {getTotalQuantity(order.items)}
+                        </td>
+                        <td
+                          className={`${compactClass} pr-3 text-gray-700 whitespace-nowrap ${compactCellTextClass}`}
+                        >
+                          ₹{order.totalAmount || 0}
+                        </td>
+                        <td className={`${compactClass} pr-3`}>
+                          {(() => {
+                            const progress = getStatusProgress(order.orderStatus);
+                            return (
+                              <div className="space-y-1">
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-semibold ${statusClass(order.orderStatus)}`}
+                                >
+                                  {progress.label}
                                 </span>
+                                {(order.orderStatus === "CANCELLED" ||
+                                  order.status === "CANCELLED") && (
+                                  <div className="text-[10px] text-red-600 font-semibold">
+                                    Cancelled by{" "}
+                                    {order.cancelledByRole || "Staff"}
+                                    {order.cancelReason
+                                      ? ` • ${order.cancelReason}`
+                                      : ""}
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2">
+                                  <div className="w-24 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full ${progress.color} transition-all duration-500`}
+                                      style={{ width: `${progress.percent}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-[10px] font-semibold text-gray-600">
+                                    {progress.percent}%
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })()}
-                      </td>
-                      <td className="py-3 text-gray-500 text-sm">
-                        {new Date(order.placedAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </td>
-                    </tr>
-                  ))}
+                            );
+                          })()}
+                        </td>
+                        <td className={`${compactClass} text-xs text-gray-500`}>
+                          <div className="leading-tight">
+                            <p className="font-semibold text-gray-700">
+                              {dateTime.date}
+                            </p>
+                            <p>{dateTime.time}</p>
+                          </div>
+                        </td>
+                        <td className={compactClass}></td>
+                      </tr>
+                    );
+                  })}
                   {filteredOrders.length === 0 && (
                     <tr>
                       <td
-                        colSpan={7}
+                        colSpan={8}
                         className="py-8 text-center text-gray-500"
                       >
                         No orders found.
@@ -504,8 +644,108 @@ export default function ManagerDashboard() {
                     </tr>
                   )}
                 </tbody>
-              </table>
-            </div>
+                </table>
+              </div>
+
+              <div className="lg:hidden space-y-3">
+                {filteredOrders.length === 0 ? (
+                  <div className="py-8 text-center text-gray-500">No orders found.</div>
+                ) : (
+                  paginatedOrders.map((order) => {
+                    const progress = getStatusProgress(order.orderStatus);
+                    const dateTime = formatOrderDateTimeParts(order.placedAt);
+                    return (
+                      <div
+                        key={order._id}
+                        className={`border border-gray-200 rounded-lg ${compactMode ? "p-3 space-y-2" : "p-4 space-y-3"}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-gray-900">
+                              #{order.orderNumber}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {order.tableName || "Takeaway"}
+                            </p>
+                          </div>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-semibold ${statusClass(order.orderStatus)}`}
+                          >
+                            {progress.label}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="bg-gray-50 rounded p-2">
+                            <p className="text-gray-500">Items / Qty</p>
+                            <p className="font-semibold text-gray-800">
+                              {order.items?.length || 0} / {getTotalQuantity(order.items)}
+                            </p>
+                          </div>
+                          <div className="bg-gray-50 rounded p-2">
+                            <p className="text-gray-500">Amount</p>
+                            <p className="font-semibold text-gray-800">
+                              ₹{order.totalAmount || 0}
+                            </p>
+                          </div>
+                          <div className="bg-gray-50 rounded p-2 col-span-2">
+                            <p className="text-gray-500">Date & Time</p>
+                            <p className="font-semibold text-gray-800">{dateTime.date}</p>
+                            <p className="text-gray-600">{dateTime.time}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${progress.color} transition-all duration-500`}
+                              style={{ width: `${progress.percent}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] font-semibold text-gray-600">
+                            {progress.percent}%
+                          </span>
+                        </div>
+
+                        {(order.orderStatus === "CANCELLED" ||
+                          order.status === "CANCELLED") && (
+                          <div className="text-[11px] text-red-600 font-semibold">
+                            Cancelled by {order.cancelledByRole || "Staff"}
+                            {order.cancelReason ? ` • ${order.cancelReason}` : ""}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="border-t border-slate-100 mt-3 pt-3 px-1 sm:px-0 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 text-xs sm:text-sm rounded-md border border-slate-200 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+
+                <div className="text-xs sm:text-sm font-semibold text-slate-600">
+                  Page {currentPage} of {totalPages}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                  }
+                  disabled={currentPage >= totalPages}
+                  className="px-3 py-1.5 text-xs sm:text-sm rounded-md border border-slate-200 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </>
           )}
         </div>
       </div>

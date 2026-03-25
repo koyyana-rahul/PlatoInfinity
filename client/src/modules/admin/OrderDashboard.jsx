@@ -9,7 +9,8 @@ import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import Axios from "../../../api/axios";
-import SummaryApi from "../../../api/summaryApi";
+import dashboardApi from "../../../api/dashboard.api";
+import orderApi from "../../../api/order.api";
 import { useSocket } from "../../../socket/SocketProvider";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
@@ -21,6 +22,26 @@ const OrderDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // all, new, in-progress, ready, served
+  const [cancellingId, setCancellingId] = useState(null);
+
+  const applyOrderLevelStatusToItems = (items = [], status) => {
+    const normalized = String(status || "").toUpperCase();
+    if (normalized === "SERVED") {
+      return (Array.isArray(items) ? items : []).map((item) => ({
+        ...item,
+        itemStatus: "SERVED",
+      }));
+    }
+
+    if (normalized === "CANCELLED") {
+      return (Array.isArray(items) ? items : []).map((item) => ({
+        ...item,
+        itemStatus: item.itemStatus === "SERVED" ? "SERVED" : "CANCELLED",
+      }));
+    }
+
+    return Array.isArray(items) ? items : [];
+  };
 
   /**
    * 1️⃣ Load initial orders
@@ -29,16 +50,38 @@ const OrderDashboard = () => {
     const loadOrders = async () => {
       try {
         setLoading(true);
+        const config = dashboardApi.getRecentOrders(
+          200,
+          "today",
+          restaurantId || null,
+        );
         const res = await Axios({
-          ...SummaryApi.getOrders,
-          params: {
-            restaurantId,
-            status: filter !== "all" ? filter : undefined,
-          },
+          url: config.url,
+          method: config.method,
+          params: config.params,
         });
 
         if (res.data?.success) {
-          setOrders(res.data.data);
+          const normalized = (res.data.data || []).map((order) => ({
+            ...order,
+            status: order.orderStatus || order.status || "NEW",
+            cancelReason:
+              order.cancelReason || order.meta?.cancelReason || null,
+            cancelledByRole:
+              order.cancelledByRole || order.meta?.cancelledByRole || null,
+          }));
+
+          const filteredOrders =
+            filter !== "all"
+              ? normalized.filter(
+                  (order) =>
+                    String(
+                      order.status || order.orderStatus || "",
+                    ).toUpperCase() === String(filter).toUpperCase(),
+                )
+              : normalized;
+
+          setOrders(filteredOrders);
         }
       } catch (err) {
         console.error("Error loading orders:", err);
@@ -74,7 +117,9 @@ const OrderDashboard = () => {
           orderNumber: orderData.orderNumber,
           tableName: orderData.tableName,
           totalAmount: Number(orderData.totalAmount || 0),
-          itemCount: Number(orderData.itemCount || orderData.items?.length || 0),
+          itemCount: Number(
+            orderData.itemCount || orderData.items?.length || 0,
+          ),
           status: orderData.orderStatus || orderData.status || "NEW",
           placedAt: orderData.placedAt,
           items: Array.isArray(orderData.items) ? orderData.items : [],
@@ -140,12 +185,32 @@ const OrderDashboard = () => {
       const targetId = data?.orderId || data?._id;
       if (!targetId) return;
 
+      const incomingStatus =
+        data.orderStatus || data.status || data?.orderStatus || data?.status;
+
       setOrders((prev) =>
         prev.map((order) =>
           String(order._id) === String(targetId)
             ? {
                 ...order,
-                status: data.orderStatus || data.status || order.status,
+                status: incomingStatus || order.status,
+                orderStatus: incomingStatus || order.orderStatus,
+                cancelReason:
+                  data.reason ||
+                  data.cancelReason ||
+                  order.cancelReason ||
+                  order.meta?.cancelReason ||
+                  null,
+                cancelledByRole:
+                  data.cancelledByRole ||
+                  data.meta?.cancelledByRole ||
+                  order.cancelledByRole ||
+                  order.meta?.cancelledByRole ||
+                  null,
+                items: applyOrderLevelStatusToItems(
+                  order.items || [],
+                  incomingStatus,
+                ),
               }
             : order,
         ),
@@ -217,6 +282,49 @@ const OrderDashboard = () => {
     );
   }
 
+  const handleCancelOrder = async (order) => {
+    const orderId = order?._id;
+    if (!orderId) return;
+    const status = String(
+      order?.status || order?.orderStatus || "",
+    ).toUpperCase();
+    if (["CANCELLED", "PAID"].includes(status)) {
+      toast.error("Order cannot be cancelled");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Cancel Order #${order.orderNumber || ""}?`,
+    );
+    if (!confirmed) return;
+
+    const reason = window.prompt("Reason for cancellation (optional)") || "";
+
+    try {
+      setCancellingId(orderId);
+      const res = await Axios({
+        ...orderApi.cancelOrder(orderId),
+        data: reason ? { reason } : undefined,
+      });
+      if (res.data?.success) {
+        toast.success("Order cancelled");
+        setOrders((prev) =>
+          prev.map((o) =>
+            String(o._id) === String(orderId)
+              ? { ...o, status: "CANCELLED", orderStatus: "CANCELLED" }
+              : o,
+          ),
+        );
+      } else {
+        toast.error(res.data?.message || "Failed to cancel order");
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to cancel order");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500">
@@ -277,15 +385,24 @@ const OrderDashboard = () => {
                 <div className="space-y-2 mb-4 text-sm text-gray-700 pb-4 border-b border-gray-100">
                   <p>
                     <strong>Items:</strong>{" "}
-                    {order.itemCount || (Array.isArray(order.items) ? order.items.length : 0)}
+                    {order.itemCount ||
+                      (Array.isArray(order.items) ? order.items.length : 0)}
                   </p>
                   <p>
-                    <strong>Total:</strong> ₹{Number(order.totalAmount || 0).toFixed(2)}
+                    <strong>Total:</strong> ₹
+                    {Number(order.totalAmount || 0).toFixed(2)}
                   </p>
                   <p>
                     <strong>Time:</strong>{" "}
                     {new Date(order.placedAt).toLocaleTimeString()}
                   </p>
+                  {(order.status === "CANCELLED" ||
+                    order.orderStatus === "CANCELLED") && (
+                    <p className="text-xs text-red-600 font-semibold">
+                      Cancelled by {order.cancelledByRole || "Staff"}
+                      {order.cancelReason ? ` • ${order.cancelReason}` : ""}
+                    </p>
+                  )}
                 </div>
 
                 {/* Items Status */}
@@ -316,10 +433,19 @@ const OrderDashboard = () => {
                   </div>
                 )}
 
-                {/* Action Button */}
-                <button className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:shadow-lg hover:shadow-indigo-500/30 text-white py-2.5 rounded-lg text-sm font-semibold transition">
-                  View Details
-                </button>
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:shadow-lg hover:shadow-indigo-500/30 text-white py-2.5 rounded-lg text-sm font-semibold transition">
+                    View Details
+                  </button>
+                  <button
+                    onClick={() => handleCancelOrder(order)}
+                    disabled={cancellingId === order._id}
+                    className="w-full bg-white border border-red-200 text-red-600 py-2.5 rounded-lg text-sm font-semibold transition hover:bg-red-50 disabled:opacity-60"
+                  >
+                    {cancellingId === order._id ? "Cancelling..." : "Cancel"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>

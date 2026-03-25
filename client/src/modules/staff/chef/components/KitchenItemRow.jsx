@@ -77,7 +77,7 @@ export default function KitchenItemRow({
 
   return (
     <>
-      <div className="flex items-center justify-between p-3 border border-gray-200 rounded-xl bg-white gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 border border-gray-200 rounded-xl bg-white gap-3">
         <div>
           <p className="font-semibold text-gray-900">{item.name}</p>
           <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
@@ -96,12 +96,12 @@ export default function KitchenItemRow({
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto">
           {item.itemStatus === "NEW" && (
             <button
               onClick={() => openConfirmation("IN_PROGRESS")}
               disabled={isUpdating}
-              className="px-4 h-9 text-xs bg-orange-50 text-orange-700 border border-orange-200 rounded-lg font-semibold disabled:opacity-60 hover:shadow-sm transition inline-flex items-center gap-1.5"
+              className="w-full sm:w-auto px-4 h-9 text-xs bg-orange-50 text-orange-700 border border-orange-200 rounded-lg font-semibold disabled:opacity-60 hover:shadow-sm transition inline-flex items-center justify-center gap-1.5"
             >
               {isUpdating && <Loader2 size={14} className="animate-spin" />}
               Start Cooking
@@ -112,7 +112,7 @@ export default function KitchenItemRow({
             <button
               onClick={() => openConfirmation("READY")}
               disabled={isUpdating}
-              className="px-4 h-9 text-xs bg-green-50 text-green-700 border border-green-200 rounded-lg font-semibold disabled:opacity-60 hover:shadow-sm transition inline-flex items-center gap-1.5"
+              className="w-full sm:w-auto px-4 h-9 text-xs bg-green-50 text-green-700 border border-green-200 rounded-lg font-semibold disabled:opacity-60 hover:shadow-sm transition inline-flex items-center justify-center gap-1.5"
             >
               {isUpdating && <Loader2 size={14} className="animate-spin" />}
               Mark Ready
@@ -120,7 +120,7 @@ export default function KitchenItemRow({
           )}
 
           {item.itemStatus === "READY" && (
-            <div className="px-4 h-9 text-xs bg-green-100 text-green-800 border border-green-300 rounded-lg font-semibold inline-flex items-center gap-1.5">
+            <div className="w-full sm:w-auto px-4 h-9 text-xs bg-green-100 text-green-800 border border-green-300 rounded-lg font-semibold inline-flex items-center justify-center gap-1.5">
               ✓ Ready to Serve
             </div>
           )}

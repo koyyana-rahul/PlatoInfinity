@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import QuantityStepper from "./QuantityStepper";
 // import FavoriteButton from "./FavoriteButton";
 import VegNonVegIcon from "../../../components/ui/VegNonVegIcon";
@@ -17,9 +18,14 @@ export default function ItemCard({ item, qty = 0, onAdd, onMinus }) {
   };
 
   return (
-    <div
+    <motion.div
       onClick={goToItem}
-      className="group bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden relative cursor-pointer transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.99 }}
+      className="group bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden relative cursor-pointer transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] cmr-card"
     >
       {/* IMAGE */}
       <div className="relative p-3 pb-0">
@@ -75,6 +81,6 @@ export default function ItemCard({ item, qty = 0, onAdd, onMinus }) {
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

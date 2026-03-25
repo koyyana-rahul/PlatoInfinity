@@ -49,7 +49,7 @@ export default function KitchenStationList({ stations, onUpdate }) {
           <div
             key={s._id}
             className={clsx(
-              "p-5 rounded-xl border bg-white",
+              "p-5 rounded-xl border bg-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md",
               isOffline ? "border-gray-200" : "border-orange-200",
             )}
           >
@@ -78,7 +78,7 @@ export default function KitchenStationList({ stations, onUpdate }) {
               onClick={() => setConfirmStation(s)}
               disabled={isProcessing}
               className={clsx(
-                "mt-5 w-full h-10 flex items-center justify-center gap-2 rounded-lg text-sm font-semibold",
+                "mt-5 w-full h-10 flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5",
                 isOffline
                   ? "bg-orange-500 text-white hover:bg-orange-600"
                   : "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100",

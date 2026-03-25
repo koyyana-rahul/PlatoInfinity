@@ -2,6 +2,7 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ClipboardList } from "lucide-react";
+import { motion } from "framer-motion";
 
 import { selectHasOrders } from "../../store/customer/orderSelectors";
 
@@ -18,7 +19,7 @@ export default function CustomerHeader() {
 
   if (!brand?._id) {
     return (
-      <header className="sticky top-0 z-40 rounded-3xl bg-white/95 ring-1 ring-black/5 shadow-[0_16px_40px_-28px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+      <header className="sticky top-0 z-40 rounded-3xl bg-white/95 ring-1 ring-black/5 shadow-[0_16px_40px_-28px_rgba(2,6,23,0.45)] backdrop-blur-xl cmr-card">
         <div className="h-16 sm:h-[70px] w-full px-3 sm:px-4 md:px-6 lg:px-8 flex items-center gap-2 sm:gap-3 animate-pulse">
           <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-gray-200 flex-shrink-0" />
           <div className="flex-1 space-y-2">
@@ -32,7 +33,12 @@ export default function CustomerHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 rounded-3xl bg-white/95 ring-1 ring-black/5 shadow-[0_16px_40px_-28px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+    <motion.header
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+      className="sticky top-0 z-40 rounded-3xl bg-white/95 ring-1 ring-black/5 shadow-[0_16px_40px_-28px_rgba(2,6,23,0.45)] backdrop-blur-xl cmr-card"
+    >
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-4">
         {/* LEFT: LOGO & BRAND */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -62,8 +68,10 @@ export default function CustomerHeader() {
 
         {/* RIGHT: ORDERS BUTTON */}
         {hasOrders && !isOrdersPage && (
-          <button
+          <motion.button
             onClick={() => navigate(ordersBasePath)}
+            whileHover={{ y: -1 }}
+            whileTap={{ scale: 0.97 }}
             className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-[#F35C2B] to-[#FF7A45] text-white text-[11px] sm:text-xs font-black hover:brightness-105 active:scale-[0.97] transition-all duration-200 shadow-md hover:shadow-lg flex-shrink-0 uppercase tracking-wider"
           >
             <ClipboardList
@@ -73,9 +81,9 @@ export default function CustomerHeader() {
             />
             <span className="hidden xs:inline">Orders</span>
             <span className="xs:hidden">View</span>
-          </button>
+          </motion.button>
         )}
       </div>
-    </header>
+    </motion.header>
   );
 }

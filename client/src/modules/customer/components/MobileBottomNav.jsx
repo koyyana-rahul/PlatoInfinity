@@ -1,10 +1,13 @@
 import { House, Search, ShoppingCart } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { selectTotalQty } from "../../../store/customer/cartSelectors";
 
 export default function MobileBottomNav() {
   const { brandSlug, restaurantSlug, tableId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const qty = useSelector(selectTotalQty);
 
   if (!brandSlug || !restaurantSlug || !tableId) return null;
 
@@ -44,13 +47,20 @@ export default function MobileBottomNav() {
             <button
               key={tab.key}
               onClick={() => navigate(tab.to)}
-              className={`h-14 rounded-2xl flex flex-col items-center justify-center gap-1 text-[11px] font-semibold tracking-tight transition-all active:scale-95 ${
+              className={`relative h-14 rounded-2xl flex flex-col items-center justify-center gap-1 text-[11px] font-semibold tracking-tight transition-all active:scale-95 ${
                 tab.active
                   ? "bg-[#F35C2B] text-white shadow-[0_10px_25px_-15px_rgba(243,92,43,0.6)]"
                   : "text-slate-500 bg-transparent"
               }`}
             >
-              <Icon size={18} />
+              <div className="relative">
+                <Icon size={18} />
+                {tab.key === "cart" && qty > 0 && (
+                  <span className="absolute -top-2 -right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-[#F35C2B] text-[10px] font-black flex items-center justify-center shadow">
+                    {qty}
+                  </span>
+                )}
+              </div>
               <span>{tab.label}</span>
             </button>
           );

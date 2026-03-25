@@ -137,7 +137,7 @@ export default function SubcategoryBar({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDelete(sub.id);
+                        onDelete(sub);
                       }}
                       className="w-7 h-7 bg-white shadow-md rounded-full flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 active:scale-110 transition-all border border-gray-200"
                     >

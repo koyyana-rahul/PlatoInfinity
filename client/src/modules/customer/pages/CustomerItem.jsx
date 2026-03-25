@@ -49,6 +49,11 @@ export default function CustomerItem() {
   );
 
   const qty = existingCartItem?.quantity || 0;
+  const rating = Number(item?.rating || item?.meta?.rating || 0);
+  const prepTime = item?.meta?.prepTime || item?.prepTime;
+  const isBestSeller = Boolean(item?.isBestSeller || item?.meta?.isBestSeller);
+  const spiceLevel = item?.spiceLevel || item?.meta?.spiceLevel;
+  const chefNote = item?.meta?.chefNote;
 
   const images = useMemo(() => {
     return getItemImages(item);
@@ -99,14 +104,29 @@ export default function CustomerItem() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-white flex flex-col items-center justify-center space-y-3">
-        <Loader2
-          className="w-6 h-6 text-slate-900 animate-spin"
-          strokeWidth={1.5}
-        />
-        <p className="text-[10px] font-black tracking-[0.3em] text-slate-400 uppercase">
-          Loading Item
-        </p>
+      <div className="min-h-screen bg-white cmr-page">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+          <div className="h-56 sm:h-72 bg-slate-100 rounded-3xl animate-pulse cmr-shimmer" />
+          <div className="h-7 w-44 bg-slate-100 rounded-full animate-pulse cmr-shimmer" />
+          <div className="h-4 w-64 bg-slate-100 rounded-full animate-pulse cmr-shimmer" />
+          <div className="grid grid-cols-3 gap-3">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div
+                key={`item-kpi-shimmer-${idx}`}
+                className="h-16 bg-slate-100 rounded-2xl animate-pulse cmr-shimmer"
+              />
+            ))}
+          </div>
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div
+                key={`item-row-shimmer-${idx}`}
+                className="h-12 bg-slate-100 rounded-2xl animate-pulse cmr-shimmer"
+              />
+            ))}
+          </div>
+          <div className="h-12 bg-slate-100 rounded-2xl animate-pulse cmr-shimmer" />
+        </div>
       </div>
     );
   }
@@ -133,12 +153,19 @@ export default function CustomerItem() {
     setImageIndex((i) => (i === 0 ? images.length - 1 : i - 1));
 
   return (
-    <div className="w-full max-w-3xl mx-auto flex flex-col min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 font-sans antialiased pb-28 sm:pb-32">
-      <div className="relative w-full aspect-[5/4] sm:aspect-[16/10] overflow-hidden rounded-b-[28px] sm:rounded-b-[34px] shadow-[0_30px_60px_-45px_rgba(15,23,42,0.75)]">
+    <div className="w-full max-w-3xl mx-auto flex flex-col min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 font-sans antialiased pb-32 sm:pb-36 cmr-page cmr-item-page">
+      <div className="relative w-full aspect-[5/4] sm:aspect-[16/10] overflow-hidden rounded-b-[30px] sm:rounded-b-[36px] shadow-[0_30px_60px_-45px_rgba(15,23,42,0.75)] bg-slate-100 cmr-item-hero">
+        <img
+          src={images[imageIndex]}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-45"
+          onError={fallbackCustomerImage}
+        />
         <img
           src={images[imageIndex]}
           alt={item.name}
-          className="w-full h-full object-cover"
+          className="relative z-10 w-full h-full object-contain sm:object-cover transition-transform duration-500 ease-out"
           onError={fallbackCustomerImage}
           onTouchStart={(e) => {
             touchStartX.current = e.touches?.[0]?.clientX || null;
@@ -158,7 +185,7 @@ export default function CustomerItem() {
 
         <button
           onClick={() => navigate(-1)}
-          className="absolute left-4 top-4 sm:left-5 sm:top-5 z-20 w-11 h-11 flex items-center justify-center bg-white/90 backdrop-blur-md rounded-full shadow-lg text-slate-900 active:scale-90 transition-all"
+          className="absolute left-4 top-4 sm:left-5 sm:top-5 z-20 w-11 h-11 flex items-center justify-center bg-white/90 backdrop-blur-md rounded-full shadow-lg text-slate-900 active:scale-90 transition-all duration-200"
         >
           <ChevronLeft size={20} strokeWidth={2.5} />
         </button>
@@ -174,13 +201,13 @@ export default function CustomerItem() {
           <>
             <button
               onClick={prevImage}
-              className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/85 backdrop-blur-md flex items-center justify-center shadow-md active:scale-95"
+              className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/85 backdrop-blur-md flex items-center justify-center shadow-md active:scale-95 transition-all duration-200"
             >
               <ChevronLeft size={16} />
             </button>
             <button
               onClick={nextImage}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/85 backdrop-blur-md flex items-center justify-center shadow-md active:scale-95"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/85 backdrop-blur-md flex items-center justify-center shadow-md active:scale-95 transition-all duration-200"
             >
               <ChevronRight size={16} />
             </button>
@@ -205,32 +232,43 @@ export default function CustomerItem() {
         </div>
       </div>
 
-      <div className="relative -mt-6 sm:-mt-7 bg-white rounded-t-[26px] sm:rounded-t-[30px] px-4 sm:px-6 pt-6 sm:pt-8 pb-8 flex-1 border-t border-slate-100 shadow-[0_-15px_35px_-28px_rgba(15,23,42,0.5)]">
+      <div className="relative -mt-6 sm:-mt-7 bg-white rounded-t-[28px] sm:rounded-t-[32px] px-4 sm:px-6 md:px-7 pt-6 sm:pt-8 pb-10 sm:pb-11 flex-1 border-t border-slate-100 shadow-[0_-15px_35px_-28px_rgba(15,23,42,0.5)] cmr-card cmr-item-surface">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-[22px] sm:text-[28px] font-extrabold text-slate-900 leading-tight tracking-tight">
               {item.name}
             </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-3">
-              <span className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 px-2.5 py-1 rounded-full">
-                Bestseller
-              </span>
-              <span className="text-[10px] sm:text-[11px] font-black text-amber-700 uppercase tracking-widest bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100 inline-flex items-center gap-1">
-                <Star size={10} className="fill-amber-500 text-amber-500" /> 4.6
-              </span>
-              <span className="text-[10px] sm:text-[11px] font-black text-emerald-700 uppercase tracking-widest bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
-                High Rating
-              </span>
+            <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-2.5">
+              {isBestSeller && (
+                <span className="text-[10px] sm:text-[11px] font-black text-slate-700 uppercase tracking-widest bg-slate-100 px-2.5 py-1 rounded-full">
+                  Bestseller
+                </span>
+              )}
+              {rating > 0 && (
+                <span className="text-[10px] sm:text-[11px] font-black text-amber-700 uppercase tracking-widest bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100 inline-flex items-center gap-1">
+                  <Star size={10} className="fill-amber-500 text-amber-500" />
+                  {rating.toFixed(1)}
+                </span>
+              )}
+              {spiceLevel && (
+                <span className="text-[10px] sm:text-[11px] font-black text-rose-700 uppercase tracking-widest bg-rose-50 px-2.5 py-1 rounded-full border border-rose-100">
+                  {spiceLevel}
+                </span>
+              )}
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 rounded-full px-2.5 py-1">
-                <Star size={12} className="fill-amber-500 text-amber-500" />
-                4.6
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 rounded-full px-2.5 py-1">
-                <Clock size={12} className="text-slate-600" /> 20-25 min
-              </span>
+            <div className="mt-3.5 flex flex-wrap items-center gap-2">
+              {rating > 0 && (
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 rounded-full px-2.5 py-1">
+                  <Star size={12} className="fill-amber-500 text-amber-500" />
+                  {rating.toFixed(1)}
+                </span>
+              )}
+              {prepTime && (
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 rounded-full px-2.5 py-1">
+                  <Clock size={12} className="text-slate-600" /> {prepTime} min
+                </span>
+              )}
               <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 rounded-full px-2.5 py-1">
                 <VegNonVegIcon isVeg={item.isVeg} size={11} />
                 {item.isVeg ? "Pure Veg" : "Chef Special"}
@@ -251,7 +289,7 @@ export default function CustomerItem() {
         </div>
 
         {item.description && (
-          <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_24px_-20px_rgba(15,23,42,0.55)]">
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-[0_8px_24px_-20px_rgba(15,23,42,0.55)]">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
               About this dish
             </p>
@@ -261,8 +299,8 @@ export default function CustomerItem() {
           </div>
         )}
 
-        <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-white to-slate-50 border border-slate-200 flex items-start gap-3 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.65)]">
+        <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-white to-slate-50 border border-slate-200 flex items-start gap-3 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.65)] transition-all duration-300">
             <Clock size={18} className="text-slate-900 mt-0.5" />
             <div>
               <p className="text-[11px] font-bold text-slate-900 uppercase tracking-wider">
@@ -273,7 +311,7 @@ export default function CustomerItem() {
               </p>
             </div>
           </div>
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-white to-slate-50 border border-slate-200 flex items-start gap-3 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.65)]">
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-white to-slate-50 border border-slate-200 flex items-start gap-3 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.65)] transition-all duration-300">
             <ShieldCheck size={18} className="text-slate-900 mt-0.5" />
             <div>
               <p className="text-[11px] font-bold text-slate-900 uppercase tracking-wider">
@@ -286,17 +324,17 @@ export default function CustomerItem() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-orange-100 bg-gradient-to-r from-orange-50 via-amber-50 to-rose-50 p-4 sm:p-5 shadow-[0_10px_25px_-22px_rgba(249,115,22,0.9)]">
+        <div className="mt-6 sm:mt-7 rounded-2xl border border-orange-100 bg-gradient-to-r from-orange-50 via-amber-50 to-rose-50 p-4 sm:p-5 shadow-[0_10px_25px_-22px_rgba(249,115,22,0.9)]">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-orange-600 inline-flex items-center gap-1.5">
             <Sparkles size={12} />
             Chef Note
           </p>
           <p className="mt-1 text-sm text-slate-700 font-semibold">
-            Balanced flavor profile and perfect for table sharing.
+            {chefNote || "Balanced flavor profile and perfect for sharing."}
           </p>
         </div>
 
-        <div className="mt-6 flex items-center gap-2 py-2 border-t border-slate-100/70">
+        <div className="mt-7 flex items-center gap-2 py-2.5 border-t border-slate-100/70">
           <Info size={14} className="text-slate-400" />
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
             Inclusive of all taxes & hygiene charges
@@ -304,12 +342,12 @@ export default function CustomerItem() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 p-3 sm:p-5 bg-gradient-to-t from-white via-white/90 to-transparent border-t border-slate-200/70 backdrop-blur-md pb-[calc(env(safe-area-inset-bottom)+0.7rem)]">
+      <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pt-3 sm:px-5 sm:pt-4 bg-gradient-to-t from-white via-white/95 to-transparent border-t border-slate-200/70 backdrop-blur-md pb-[calc(env(safe-area-inset-bottom)+0.7rem)] cmr-safe-bottom cmr-item-sticky">
         <div className="max-w-3xl mx-auto">
           {qty === 0 ? (
             <button
               onClick={handleAddOne}
-              className="w-full h-[58px] sm:h-[64px] bg-gradient-to-r from-[#F35C2B] via-[#FF6B35] to-[#FF8A4D] text-white rounded-2xl sm:rounded-[20px] shadow-2xl flex items-center justify-between px-5 sm:px-8 active:scale-[0.98] transition-all group"
+              className="w-full h-[58px] sm:h-[64px] bg-gradient-to-r from-[#F35C2B] via-[#FF6B35] to-[#FF8A4D] text-white rounded-2xl sm:rounded-[20px] shadow-2xl flex items-center justify-between px-5 sm:px-8 active:scale-[0.98] transition-all duration-300 ease-out group"
             >
               <span className="text-[11px] sm:text-[12px] font-black uppercase tracking-[0.22em]">
                 Add Item
@@ -322,22 +360,22 @@ export default function CustomerItem() {
               </div>
             </button>
           ) : (
-            <div className="w-full h-[58px] sm:h-[64px] flex items-center bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl sm:rounded-[20px] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-full h-[58px] sm:h-[64px] flex items-center justify-between rounded-2xl sm:rounded-[20px] bg-white border border-orange-200 shadow-[0_18px_45px_-28px_rgba(249,115,22,0.6)] overflow-hidden animate-in fade-in zoom-in-95 duration-300">
               <button
                 onClick={() => handleUpdate(qty - 1)}
-                className="w-16 sm:w-20 h-full flex items-center justify-center hover:bg-white/10 transition-colors"
+                className="w-16 sm:w-20 h-full flex items-center justify-center text-orange-600 hover:bg-orange-50 active:scale-95 transition-all duration-200"
               >
                 <Minus size={20} strokeWidth={3} />
               </button>
-              <div className="flex-1 h-full flex flex-col items-center justify-center border-x border-white/10 bg-white/5">
+              <div className="flex-1 h-full flex flex-col items-center justify-center border-x border-orange-100 bg-gradient-to-r from-orange-500 via-orange-400 to-orange-500 text-white">
                 <span className="text-base sm:text-lg font-black">{qty}</span>
-                <span className="text-[8px] font-black uppercase tracking-widest opacity-40">
-                  Selected
+                <span className="text-[8px] font-black uppercase tracking-widest opacity-80">
+                  Added
                 </span>
               </div>
               <button
                 onClick={() => handleUpdate(qty + 1)}
-                className="w-16 sm:w-20 h-full flex items-center justify-center hover:bg-white/10 transition-colors"
+                className="w-16 sm:w-20 h-full flex items-center justify-center text-orange-600 hover:bg-orange-50 active:scale-95 transition-all duration-200"
               >
                 <Plus size={20} strokeWidth={3} />
               </button>

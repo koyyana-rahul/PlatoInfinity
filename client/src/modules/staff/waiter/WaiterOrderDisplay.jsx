@@ -53,6 +53,21 @@ const WaiterOrderDisplay = () => {
     loadTables();
   }, [loadTables]);
 
+  useEffect(() => {
+    if (!socket || !restaurantId) return;
+
+    const joinRooms = () => {
+      socket.emit("join:restaurant", { restaurantId });
+    };
+
+    joinRooms();
+    socket.on("connect", joinRooms);
+
+    return () => {
+      socket.off("connect", joinRooms);
+    };
+  }, [socket, restaurantId]);
+
   /**
    * 2️⃣ Load orders for the selected table
    */
@@ -114,7 +129,11 @@ const WaiterOrderDisplay = () => {
               : item,
           );
 
-          return { ...order, items: updatedItems, orderStatus: update.orderStatus };
+          return {
+            ...order,
+            items: updatedItems,
+            orderStatus: update.orderStatus,
+          };
         }),
       );
 
@@ -169,13 +188,13 @@ const WaiterOrderDisplay = () => {
 
     // F. Table status changes
     const handleTableStatusChange = ({ tableId, status }) => {
-        if (status === "AVAILABLE") {
-            setTables(prev => prev.filter(t => t._id !== tableId));
-            if (selectedTable?._id === tableId) {
-                setSelectedTable(null);
-            }
+      if (status === "AVAILABLE") {
+        setTables((prev) => prev.filter((t) => t._id !== tableId));
+        if (selectedTable?._id === tableId) {
+          setSelectedTable(null);
         }
-    }
+      }
+    };
 
     // Subscribe to events
     socket.on("order:placed", handleOrderPlaced);
@@ -183,7 +202,7 @@ const WaiterOrderDisplay = () => {
     socket.on("order:ready-for-serving", handleOrderReady);
     socket.on("order:served", handleOrderServed);
     socket.on("order:cancelled", handleOrderCancelled);
-    socket.on("table:status-changed", handleTableStatusChange)
+    socket.on("table:status-changed", handleTableStatusChange);
     socket.on("connect", loadTableOrders); // Reload on reconnect
 
     // Unsubscribe on cleanup
@@ -193,7 +212,7 @@ const WaiterOrderDisplay = () => {
       socket.off("order:ready-for-serving", handleOrderReady);
       socket.off("order:served", handleOrderServed);
       socket.off("order:cancelled", handleOrderCancelled);
-      socket.off("table:status-changed", handleTableStatusChange)
+      socket.off("table:status-changed", handleTableStatusChange);
       socket.off("connect", loadTableOrders);
     };
   }, [socket, selectedTable, loadTableOrders]);

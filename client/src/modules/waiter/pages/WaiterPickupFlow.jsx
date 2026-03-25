@@ -29,6 +29,7 @@ export default function WaiterPickupFlow() {
   const [showPinModal, setShowPinModal] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [isPinLoading, setIsPinLoading] = useState(false);
+  const [cancellingOrderId, setCancellingOrderId] = useState(null);
 
   // Fetch ready items
   const fetchReadyItems = useCallback(async () => {
@@ -51,6 +52,21 @@ export default function WaiterPickupFlow() {
   useEffect(() => {
     fetchReadyItems();
   }, [fetchReadyItems]);
+
+  useEffect(() => {
+    if (!socket || !restaurantId) return;
+
+    const joinRooms = () => {
+      socket.emit("join:restaurant", { restaurantId });
+    };
+
+    joinRooms();
+    socket.on("connect", joinRooms);
+
+    return () => {
+      socket.off("connect", joinRooms);
+    };
+  }, [socket, restaurantId]);
 
   // Real-time waiter updates
   useEffect(() => {
@@ -140,6 +156,36 @@ export default function WaiterPickupFlow() {
     }
   };
 
+  const handleCancelOrder = async (orderId, tableName) => {
+    if (!orderId) return;
+    const confirmed = window.confirm(
+      `Cancel order for Table ${tableName || ""}?`,
+    );
+    if (!confirmed) return;
+    const reason = window.prompt("Reason for cancellation (optional)") || "";
+
+    try {
+      setCancellingOrderId(orderId);
+      const res = await Axios({
+        url: `/api/order/${orderId}/cancel`,
+        method: "POST",
+        data: reason ? { reason } : undefined,
+      });
+
+      if (res.data?.success) {
+        notify.success("Order cancelled");
+        fetchReadyItems();
+      } else {
+        notify.error(res.data?.message || "Failed to cancel order");
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to cancel order";
+      notify.error(msg);
+    } finally {
+      setCancellingOrderId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -216,6 +262,13 @@ export default function WaiterPickupFlow() {
                 <span className="text-sm font-bold text-emerald-400">
                   READY
                 </span>
+                <button
+                  onClick={() => handleCancelOrder(order._id, order.tableName)}
+                  disabled={cancellingOrderId === order._id}
+                  className="ml-2 text-xs px-3 py-1 rounded-lg font-semibold bg-red-600/90 hover:bg-red-600 text-white transition disabled:opacity-60"
+                >
+                  {cancellingOrderId === order._id ? "Cancelling..." : "Cancel"}
+                </button>
               </div>
             </div>
 

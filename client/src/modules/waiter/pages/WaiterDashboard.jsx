@@ -16,7 +16,6 @@ import {
   DollarSign,
   Printer,
   Eye,
-  RefreshCw,
   Plus,
   Home,
   TrendingUp,
@@ -73,7 +72,6 @@ export default function WaiterDashboard() {
 
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const [stats, setStats] = useState(null);
   const [selectedTable, setSelectedTable] = useState(null);
@@ -139,21 +137,6 @@ export default function WaiterDashboard() {
   }, [socket, loadData]);
 
   /**
-   * Manual refresh
-   */
-  const handleRefresh = async () => {
-    try {
-      setRefreshing(true);
-      await loadData();
-      notify.success("Dashboard updated");
-    } catch (error) {
-      notify.error("Failed to refresh");
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  /**
    * Update table status
    */
   const handleUpdateTableStatus = async (tableId, newStatus) => {
@@ -208,36 +191,28 @@ export default function WaiterDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background-primary">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white">
       {/* HEADER */}
-      <header className="bg-background-secondary border-b border-gray-200 p-4 md:p-6 sticky top-0 z-20 shadow-soft">
+      <header className="bg-white/95 backdrop-blur-xl border-b border-slate-200 px-3 sm:px-6 py-3 sm:py-5 sticky top-0 z-20 shadow-sm">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 bg-brand-primary/10 rounded-lg flex items-center justify-center">
-                <Utensils size={20} className="text-brand-primary" />
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-primary/10 rounded-2xl flex items-center justify-center">
+                <Utensils size={18} className="text-brand-primary" />
               </div>
               <div>
-                <h1 className="text-xl md:text-2xl font-bold text-text-primary">
+                <h1 className="text-[12px] sm:text-lg font-black text-slate-900">
                   Waiter Dashboard
                 </h1>
-                <p className="text-xs md:text-sm text-text-light mt-1">
-                  Manage tables and track orders
+                <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-0">
+                  Open sessions, hand over PIN, and track occupied tables.
                 </p>
               </div>
             </div>
-
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="btn-secondary gap-2 inline-flex items-center justify-center py-2.5 px-4"
-            >
-              <RefreshCw
-                size={18}
-                className={refreshing ? "animate-spin" : ""}
-              />
-              <span className="hidden md:inline font-semibold">Refresh</span>
-            </button>
+            <div className="hidden sm:inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-widest">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              Live updates
+            </div>
           </div>
 
           {/* QUICK STATS */}
@@ -269,16 +244,16 @@ export default function WaiterDashboard() {
           </div>
 
           {/* FILTER TABS */}
-          <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-2">
+          <div className="mt-5 sm:mt-6 flex items-center gap-2 overflow-x-auto pb-2">
             {["all", "AVAILABLE", "OCCUPIED", "WAITING", "SETTLING"].map(
               (status) => (
                 <button
                   key={status}
                   onClick={() => setFilterStatus(status)}
-                  className={`px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap transition-all ${
+                  className={`px-4 py-2 rounded-full font-semibold text-xs sm:text-sm whitespace-nowrap border transition-all duration-200 ${
                     filterStatus === status
-                      ? "bg-brand-cta text-white shadow-card"
-                      : "bg-background-tertiary text-text-secondary hover:bg-gray-100"
+                      ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                      : "bg-white text-text-secondary border-slate-200 hover:bg-slate-50"
                   }`}
                 >
                   {status === "all" ? "All Tables" : status}
@@ -290,17 +265,17 @@ export default function WaiterDashboard() {
       </header>
 
       {/* MAIN CONTENT */}
-      <main className="p-4 md:p-6 max-w-7xl mx-auto">
+      <main className="px-4 sm:px-6 py-5 sm:py-6 max-w-7xl mx-auto">
         {filteredTables.length === 0 ? (
-          <div className="flex items-center justify-center min-h-[500px]">
+          <div className="flex items-center justify-center min-h-[420px]">
             <div className="text-center">
-              <div className="w-24 h-24 bg-background-tertiary rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-gray-200">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-5 ring-1 ring-slate-200">
                 <ChefHat size={40} className="text-text-light" />
               </div>
-              <h2 className="text-2xl font-bold text-text-primary mb-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
                 No tables
               </h2>
-              <p className="text-text-secondary text-base max-w-sm">
+              <p className="text-slate-500 text-sm sm:text-base max-w-sm">
                 {filterStatus === "all"
                   ? "No tables found"
                   : `No tables with status: ${filterStatus}`}
@@ -308,7 +283,7 @@ export default function WaiterDashboard() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
             <AnimatePresence>
               {filteredTables.map((table) => {
                 const config =
@@ -320,17 +295,19 @@ export default function WaiterDashboard() {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="card p-5 border-l-4 border-l-brand-primary hover:shadow-card-hover transition-all"
+                    whileHover={{ y: -2 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="bg-white rounded-3xl border border-slate-200 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all"
                   >
                     {/* TABLE HEADER */}
                     <div
-                      className={`${config.bg} px-4 py-3 rounded-lg mb-4 flex items-center justify-between`}
+                      className={`${config.bg} px-4 py-3 rounded-2xl mb-4 flex items-center justify-between border border-slate-200`}
                     >
                       <div>
-                        <p className="text-xs font-semibold text-text-light uppercase tracking-wide">
+                        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">
                           Table
                         </p>
-                        <p className="text-2xl font-bold text-text-primary mt-1">
+                        <p className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
                           {table.tableNumber}
                         </p>
                       </div>
@@ -338,7 +315,7 @@ export default function WaiterDashboard() {
                         <span
                           className={`inline-block h-2.5 w-2.5 rounded-full ${config.dot}`}
                         />
-                        <p className="text-xs font-semibold text-text-secondary uppercase">
+                        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">
                           {config.label}
                         </p>
                       </div>
@@ -371,11 +348,11 @@ export default function WaiterDashboard() {
 
                     {/* SPECIAL NOTES */}
                     {table.notes && (
-                      <div className="bg-brand-cta/10 border border-brand-cta/30 rounded-lg p-3 mb-4">
-                        <p className="text-xs font-semibold text-brand-cta mb-1">
+                      <div className="bg-brand-cta/10 border border-brand-cta/30 rounded-2xl p-3 mb-4">
+                        <p className="text-[11px] font-semibold text-brand-cta mb-1">
                           Notes
                         </p>
-                        <p className="text-xs text-text-secondary line-clamp-2">
+                        <p className="text-xs text-slate-500 line-clamp-2">
                           {table.notes}
                         </p>
                       </div>
@@ -388,7 +365,7 @@ export default function WaiterDashboard() {
                           onClick={() =>
                             handleUpdateTableStatus(table._id, "OCCUPIED")
                           }
-                          className="btn-primary py-2.5 px-3 text-xs md:text-sm font-semibold"
+                          className="btn-primary h-11 rounded-2xl px-3 text-xs sm:text-sm font-semibold"
                         >
                           Assign Table
                         </button>
@@ -396,7 +373,7 @@ export default function WaiterDashboard() {
                         <>
                           <button
                             onClick={() => setSelectedTable(table)}
-                            className="btn-ghost py-2.5 px-3 text-xs md:text-sm font-semibold flex items-center justify-center gap-2"
+                            className="btn-ghost h-11 rounded-2xl px-3 text-xs sm:text-sm font-semibold flex items-center justify-center gap-2"
                           >
                             <Eye size={16} />
                             View Orders
@@ -405,7 +382,7 @@ export default function WaiterDashboard() {
                             onClick={() =>
                               handleUpdateTableStatus(table._id, "SETTLING")
                             }
-                            className="btn-secondary py-2.5 px-3 text-xs md:text-sm font-semibold"
+                            className="btn-secondary h-11 rounded-2xl px-3 text-xs sm:text-sm font-semibold"
                           >
                             Call Bill
                           </button>
@@ -414,7 +391,7 @@ export default function WaiterDashboard() {
                         <>
                           <button
                             onClick={() => handlePrintBill(table._id)}
-                            className="btn-ghost py-2.5 px-3 text-xs md:text-sm font-semibold flex items-center justify-center gap-2"
+                            className="btn-ghost h-11 rounded-2xl px-3 text-xs sm:text-sm font-semibold flex items-center justify-center gap-2"
                           >
                             <Printer size={16} />
                             Print Bill
@@ -423,7 +400,7 @@ export default function WaiterDashboard() {
                             onClick={() =>
                               handleUpdateTableStatus(table._id, "AVAILABLE")
                             }
-                            className="btn-primary py-2.5 px-3 text-xs md:text-sm font-semibold"
+                            className="btn-primary h-11 rounded-2xl px-3 text-xs sm:text-sm font-semibold"
                           >
                             Mark Complete
                           </button>
@@ -433,7 +410,7 @@ export default function WaiterDashboard() {
                           onClick={() =>
                             handleUpdateTableStatus(table._id, "OCCUPIED")
                           }
-                          className="btn-primary py-2.5 px-3 text-xs md:text-sm font-semibold"
+                          className="btn-primary h-11 rounded-2xl px-3 text-xs sm:text-sm font-semibold"
                         >
                           Take Order
                         </button>
@@ -455,17 +432,17 @@ export default function WaiterDashboard() {
  */
 function StatCard({ label, value, icon: Icon, color }) {
   return (
-    <div className="card p-4 flex items-center gap-3">
+    <div className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center gap-3 shadow-sm">
       <div
-        className={`w-10 h-10 bg-${color}/10 rounded-lg flex items-center justify-center`}
+        className={`w-10 h-10 bg-${color}/10 rounded-2xl flex items-center justify-center`}
       >
         <Icon size={20} className={`text-${color}`} />
       </div>
       <div>
-        <p className="text-xs font-semibold text-text-light uppercase tracking-wide">
+        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">
           {label}
         </p>
-        <p className="text-2xl font-bold text-text-primary">{value}</p>
+        <p className="text-xl sm:text-2xl font-black text-slate-900">{value}</p>
       </div>
     </div>
   );
@@ -478,12 +455,12 @@ function DetailRow({ icon: Icon, label, value }) {
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <Icon size={14} className="text-text-light" />
-        <span className="text-xs font-semibold text-text-light uppercase tracking-wide">
+        <Icon size={14} className="text-slate-400" />
+        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">
           {label}
         </span>
       </div>
-      <span className="text-sm font-bold text-text-primary">{value}</span>
+      <span className="text-sm font-bold text-slate-900">{value}</span>
     </div>
   );
 }

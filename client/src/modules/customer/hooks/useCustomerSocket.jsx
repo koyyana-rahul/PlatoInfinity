@@ -74,12 +74,6 @@ export function useCustomerSocket({
   const [socketInstance, setSocketInstance] = useState(socket || null);
 
   useEffect(() => {
-    const resolved = resolveCustomerContext({
-      sessionId,
-      restaurantId,
-      tableId,
-    });
-
     if (!socket) {
       socket = io(getSocketUrl(), {
         path: "/socket.io",
@@ -93,6 +87,11 @@ export function useCustomerSocket({
     setSocketInstance(socket);
 
     const joinCustomerRoom = () => {
+      const resolved = resolveCustomerContext({
+        sessionId,
+        restaurantId,
+        tableId,
+      });
       // Server accepts either sessionId OR restaurantId for join:customer.
       // Keep this permissive so customer clients still receive fallback
       // broadcasts even if one identifier is temporarily unavailable.
@@ -108,14 +107,16 @@ export function useCustomerSocket({
           restaurantId: resolved.restaurantId || "(none)",
         });
       } else {
-        console.warn(
-          "⚠️ Missing sessionId/restaurantId for customer socket join",
-          {
-            sessionId: resolved.sessionId,
-            restaurantId: resolved.restaurantId,
-            tableId: resolved.tableId,
-          },
-        );
+        if (!resolved.tableId) {
+          console.warn(
+            "⚠️ Missing sessionId/restaurantId for customer socket join",
+            {
+              sessionId: resolved.sessionId,
+              restaurantId: resolved.restaurantId,
+              tableId: resolved.tableId,
+            },
+          );
+        }
       }
     };
 

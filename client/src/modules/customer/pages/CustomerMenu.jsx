@@ -141,26 +141,40 @@ export default function CustomerMenu() {
 
   if (loading) {
     return (
-      <div className="h-[60vh] flex flex-col items-center justify-center">
-        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-        <p className="mt-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-          Loading Menu
-        </p>
+      <div className="min-h-[70vh] bg-white cmr-page">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="h-6 w-24 bg-slate-100 rounded-full animate-pulse cmr-shimmer" />
+            <div className="h-8 w-40 bg-slate-100 rounded-full animate-pulse cmr-shimmer" />
+          </div>
+          <div className="h-10 w-full bg-slate-100 rounded-2xl animate-pulse cmr-shimmer" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {Array.from({ length: 8 }).map((_, idx) => (
+              <div
+                key={`menu-shimmer-${idx}`}
+                className="h-44 sm:h-52 bg-slate-100 rounded-2xl animate-pulse cmr-shimmer"
+              />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
       className={clsx(
-        "relative min-h-screen bg-transparent flex flex-col selection:bg-orange-100 font-sans tracking-tight text-slate-900",
+        "relative min-h-screen bg-transparent flex flex-col selection:bg-orange-100 font-sans tracking-tight text-slate-900 cmr-page",
         isEmpty && "h-screen overflow-hidden overscroll-none",
       )}
     >
       {/* ================= STATIONARY TOP REGION ================= */}
       <div className="sticky top-0 z-30 w-full">
         {/* LAYER 1: MAIN HEADER */}
-        <header className="bg-white/95 backdrop-blur-xl w-full shadow-[0_8px_30px_-24px_rgba(15,23,42,0.35)]">
+        <header className="bg-white/95 backdrop-blur-xl w-full shadow-[0_8px_30px_-24px_rgba(15,23,42,0.35)] cmr-sticky-header">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 shrink-0">
               <h1 className="text-lg sm:text-xl font-[800] text-black tracking-tight leading-none">
@@ -203,7 +217,7 @@ export default function CustomerMenu() {
         </header>
 
         {/* LAYER 2: CATEGORY NAVIGATION */}
-        <div className="bg-white/95 backdrop-blur-xl w-full shadow-[0_10px_30px_-26px_rgba(15,23,42,0.35)]">
+        <div className="bg-white/95 backdrop-blur-xl w-full shadow-[0_10px_30px_-26px_rgba(15,23,42,0.35)] cmr-sticky-header">
           <div className="max-w-7xl mx-auto">
             <AdminCategoryBar
               categories={menu}
@@ -272,6 +286,6 @@ export default function CustomerMenu() {
 
       {/* GLOBAL CART BUTTON */}
       <StickyCartBar />
-    </div>
+    </motion.div>
   );
 }

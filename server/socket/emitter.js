@@ -585,6 +585,7 @@ export async function emitOrderCancelled(orderData) {
     orderNumber,
     reason,
     cancelledBy,
+    cancelledByRole,
     cancelledAt,
   } = orderData;
 
@@ -601,6 +602,7 @@ export async function emitOrderCancelled(orderData) {
     orderNumber,
     reason,
     cancelledBy,
+    cancelledByRole,
     cancelledAt,
     orderStatus: "CANCELLED",
     status: "CANCELLED",

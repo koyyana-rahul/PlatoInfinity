@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { FiClock, FiFilter, FiRefreshCcw, FiBell } from "react-icons/fi";
+import { FiClock, FiFilter, FiBell } from "react-icons/fi";
 import { useSocket } from "../../../socket/SocketProvider";
+import { useSelector } from "react-redux";
 import Axios from "../../../api/axios";
 import orderApi from "../../../api/order.api";
 import OrderCard from "../../../components/waiter/OrderCard";
@@ -9,10 +10,11 @@ import toast from "react-hot-toast";
 export default function WaiterOrders() {
   const [orders, setOrders] = useState([]);
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [refreshing, setRefreshing] = useState(false);
   const [readyAlerts, setReadyAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const socket = useSocket();
+  const restaurantId = useSelector((s) => s.user?.restaurantId);
 
   const updateOrderItemFromSocket = (data) => {
     const { orderId, _id, itemId, itemIndex, itemStatus, status, orderStatus } =
@@ -52,17 +54,36 @@ export default function WaiterOrders() {
 
   const load = async (silent = false) => {
     try {
-      if (!silent) setRefreshing(true);
+      if (!silent) {
+        setLoading(true);
+      }
       const res = await Axios(orderApi.listActiveOrders());
       setOrders(res.data.data || []);
     } finally {
-      setRefreshing(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     load();
+    const interval = setInterval(() => load(true), 15000);
+    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!socket || !restaurantId) return;
+
+    const joinRooms = () => {
+      socket.emit("join:restaurant", { restaurantId });
+    };
+
+    joinRooms();
+    socket.on("connect", joinRooms);
+
+    return () => {
+      socket.off("connect", joinRooms);
+    };
+  }, [socket, restaurantId]);
 
   useEffect(() => {
     if (!socket) return;
@@ -182,136 +203,210 @@ export default function WaiterOrders() {
       ? orders
       : orders.filter((o) => getOrderLevelStatus(o) === statusFilter);
 
+  const sortedOrders = [...visibleOrders].sort((a, b) => {
+    const timeA = new Date(a.createdAt || 0).getTime();
+    const timeB = new Date(b.createdAt || 0).getTime();
+    return timeB - timeA;
+  });
+
   return (
-    <div className="space-y-4">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Live Orders</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Monitor incoming table orders and item status in real time.
-            </p>
-          </div>
-          {readyAlerts.length > 0 && (
-            <div className="relative">
-              <FiBell className="text-orange-500 animate-pulse" size={20} />
-              <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                {readyAlerts.length}
-              </span>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-5">
+        <div className="bg-white border border-slate-200 rounded-3xl px-3 py-2.5 sm:px-5 sm:py-4 shadow-sm">
+          {loading ? (
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2">
+                <div className="h-5 w-28 bg-slate-100 rounded-full animate-pulse" />
+                <div className="h-6 w-40 bg-slate-100 rounded-full animate-pulse" />
+                <div className="h-3 w-56 bg-slate-100 rounded-full animate-pulse" />
+              </div>
+              <div className="h-5 w-5 bg-slate-100 rounded-full animate-pulse" />
+            </div>
+          ) : (
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 text-[9px] font-semibold uppercase tracking-widest text-orange-700 bg-orange-50 border border-orange-200 rounded-full px-2.5 py-0.5 mb-1">
+                  <FiClock size={12} /> Waiter Orders
+                </div>
+                <h1 className="text-[15px] sm:text-xl font-black text-slate-900">
+                  Live Orders
+                </h1>
+                <p className="text-[12px] text-slate-500 mt-0.5">
+                  Monitor incoming table orders and item status in real time.
+                </p>
+              </div>
+              {readyAlerts.length > 0 && (
+                <div className="relative">
+                  <FiBell className="text-orange-500 animate-pulse" size={20} />
+                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center">
+                    {readyAlerts.length}
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>
-      </div>
 
-      {/* Ready Alerts Banner */}
-      {readyAlerts.length > 0 && (
-        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
-              <FiBell /> Ready for pickup
-            </h2>
-            <button
-              onClick={() => setReadyAlerts([])}
-              className="text-xs text-orange-600 hover:text-orange-800"
-            >
-              Clear
-            </button>
+        {/* Ready Alerts Banner */}
+        {!loading && readyAlerts.length > 0 && (
+          <div className="bg-orange-50 border border-orange-200 rounded-3xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
+                <FiBell /> Ready for pickup
+              </h2>
+              <button
+                onClick={() => setReadyAlerts([])}
+                className="text-xs text-orange-600 hover:text-orange-800"
+              >
+                Clear
+              </button>
+            </div>
+            <div className="space-y-1">
+              {readyAlerts.slice(0, 3).map((alert, idx) => (
+                <div key={idx} className="text-xs text-orange-800">
+                  {alert.itemName} – Table {alert.tableName}
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="space-y-1">
-            {readyAlerts.slice(0, 3).map((alert, idx) => (
-              <div key={idx} className="text-xs text-orange-800">
-                {alert.itemName} – Table {alert.tableName}
+        )}
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {loading ? (
+            Array.from({ length: 6 }).map((_, idx) => (
+              <div
+                key={`kpi-shimmer-${idx}`}
+                className="rounded-2xl border border-slate-200 p-4 shadow-sm bg-white"
+              >
+                <div className="h-3 w-20 bg-slate-100 rounded-full animate-pulse" />
+                <div className="h-6 w-12 bg-slate-100 rounded-xl mt-3 animate-pulse" />
+              </div>
+            ))
+          ) : (
+            <>
+              <Kpi title="Total" value={orders.length} />
+              <Kpi
+                title="Placed"
+                value={
+                  orders.filter((o) => getOrderLevelStatus(o) === "PLACED")
+                    .length
+                }
+                tone="neutral"
+              />
+              <Kpi
+                title="Preparing"
+                value={
+                  orders.filter((o) => getOrderLevelStatus(o) === "PREPARING")
+                    .length
+                }
+                tone="orange"
+              />
+              <Kpi
+                title="Serving"
+                value={
+                  orders.filter((o) => getOrderLevelStatus(o) === "SERVING")
+                    .length
+                }
+                tone="blue"
+              />
+              <Kpi
+                title="Ready"
+                value={
+                  orders.filter((o) => getOrderLevelStatus(o) === "READY")
+                    .length
+                }
+                tone="green"
+              />
+              <Kpi
+                title="Served"
+                value={
+                  orders.filter((o) => getOrderLevelStatus(o) === "SERVED")
+                    .length
+                }
+                tone="green"
+              />
+            </>
+          )}
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-3xl p-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between shadow-sm">
+          {loading ? (
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+              <div className="h-4 w-20 bg-slate-100 rounded-full animate-pulse" />
+              <div className="flex flex-wrap gap-2">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div
+                    key={`filter-shimmer-${idx}`}
+                    className="h-9 w-16 bg-slate-100 rounded-2xl animate-pulse"
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="inline-flex items-center gap-2 text-sm text-slate-600">
+                <FiFilter size={14} />
+                Filter
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {[
+                  { label: "All", value: "ALL" },
+                  { label: "Placed", value: "PLACED" },
+                  { label: "Preparing", value: "PREPARING" },
+                  { label: "Serving", value: "SERVING" },
+                  { label: "Ready", value: "READY" },
+                  { label: "Served", value: "SERVED" },
+                ].map((f) => (
+                  <button
+                    key={f.value}
+                    onClick={() => setStatusFilter(f.value)}
+                    className={`h-10 px-3 rounded-2xl text-xs font-semibold border transition-colors ${
+                      statusFilter === f.value
+                        ? "bg-slate-900 text-white border-slate-900"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <div
+                key={`order-shimmer-${idx}`}
+                className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-sm"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2">
+                    <div className="h-4 w-28 bg-slate-100 rounded-full animate-pulse" />
+                    <div className="h-3 w-20 bg-slate-100 rounded-full animate-pulse" />
+                  </div>
+                  <div className="h-5 w-16 bg-slate-100 rounded-full animate-pulse" />
+                </div>
+                <div className="mt-3 space-y-2">
+                  <div className="h-3 w-full bg-slate-100 rounded-full animate-pulse" />
+                  <div className="h-3 w-5/6 bg-slate-100 rounded-full animate-pulse" />
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <Kpi title="Total" value={orders.length} />
-        <Kpi
-          title="Placed"
-          value={
-            orders.filter((o) => getOrderLevelStatus(o) === "PLACED").length
-          }
-          tone="neutral"
-        />
-        <Kpi
-          title="Preparing"
-          value={
-            orders.filter((o) => getOrderLevelStatus(o) === "PREPARING").length
-          }
-          tone="orange"
-        />
-        <Kpi
-          title="Serving"
-          value={
-            orders.filter((o) => getOrderLevelStatus(o) === "SERVING").length
-          }
-          tone="blue"
-        />
-        <Kpi
-          title="Ready"
-          value={
-            orders.filter((o) => getOrderLevelStatus(o) === "READY").length
-          }
-          tone="green"
-        />
-        <Kpi
-          title="Served"
-          value={
-            orders.filter((o) => getOrderLevelStatus(o) === "SERVED").length
-          }
-          tone="green"
-        />
+        ) : sortedOrders.length === 0 ? (
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 text-slate-600 shadow-sm">
+            No matching orders
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {sortedOrders.map((o) => (
+              <OrderCard key={o._id} order={o} />
+            ))}
+          </div>
+        )}
       </div>
-
-      <div className="bg-white border border-gray-200 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-        <div className="inline-flex items-center gap-2 text-sm text-gray-600">
-          <FiFilter size={14} />
-          Filter
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {[
-            { label: "All", value: "ALL" },
-            { label: "Placed", value: "PLACED" },
-            { label: "Preparing", value: "PREPARING" },
-            { label: "Serving", value: "SERVING" },
-            { label: "Ready", value: "READY" },
-            { label: "Served", value: "SERVED" },
-          ].map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setStatusFilter(f.value)}
-              className={`h-10 px-3 rounded-xl text-xs font-semibold border transition-colors ${
-                statusFilter === f.value
-                  ? "bg-orange-500 text-white border-orange-500"
-                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-          <button
-            onClick={() => load(true)}
-            className="h-9 px-3 rounded-xl text-xs font-semibold border border-orange-200 bg-orange-50 text-orange-700 inline-flex items-center gap-1.5"
-          >
-            <FiRefreshCcw
-              className={refreshing ? "animate-spin" : ""}
-              size={12}
-            />
-            Refresh
-          </button>
-        </div>
-      </div>
-
-      {visibleOrders.length === 0 ? (
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 text-gray-600">
-          No matching orders
-        </div>
-      ) : (
-        visibleOrders.map((o) => <OrderCard key={o._id} order={o} />)
-      )}
     </div>
   );
 }
@@ -327,11 +422,11 @@ function Kpi({ title, value, tone = "neutral" }) {
           : "bg-white border-gray-200 text-gray-700";
 
   return (
-    <div className={`rounded-xl border p-4 ${toneClass}`}>
-      <p className="text-xs uppercase tracking-wide font-semibold inline-flex items-center gap-1.5">
+    <div className={`rounded-2xl border p-4 shadow-sm ${toneClass}`}>
+      <p className="text-[11px] uppercase tracking-widest font-semibold inline-flex items-center gap-1.5">
         <FiClock size={12} /> {title}
       </p>
-      <p className="text-2xl font-bold mt-1.5">{value}</p>
+      <p className="text-2xl font-black mt-1.5 text-slate-900">{value}</p>
     </div>
   );
 }

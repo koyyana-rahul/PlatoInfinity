@@ -81,6 +81,7 @@ import CustomerCart from "../modules/customer/pages/CustomerCartWithPin";
 import CustomerOrders from "../modules/customer/pages/CustomerOrders";
 import CustomerBill from "../modules/customer/pages/CustomerBill";
 import CustomerItem from "../modules/customer/pages/CustomerItem";
+import CustomerPinEntry from "../modules/customer/components/CustomerPinEntry";
 import CustomerLegacyMenuRedirect from "../modules/customer/CustomerLegacyMenuRedirect";
 
 /* ================= FALLBACK ================= */
@@ -113,6 +114,7 @@ const router = createBrowserRouter([
       { index: true, element: <CustomerMenu /> },
       { path: "join", element: <CustomerJoin /> },
       { path: "menu", element: <CustomerMenu /> },
+      { path: "pin", element: <CustomerPinEntry /> },
       { path: "cart", element: <CustomerCart /> },
       { path: "orders", element: <CustomerOrders /> },
       { path: "bill", element: <CustomerBill /> },

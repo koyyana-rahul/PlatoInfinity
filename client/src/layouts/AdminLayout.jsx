@@ -2,6 +2,7 @@
 import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useState, useEffect, useCallback } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import AdminHeader from "../components/headers/AdminHeader";
 import AdminSidebar from "../components/sidebars/AdminSidebar";
@@ -14,6 +15,7 @@ export default function AdminLayout() {
   const user = useSelector((s) => s.user);
   const brand = useSelector((s) => s.brand);
   const location = useLocation();
+  const prefersReducedMotion = useReducedMotion();
 
   const isMobile = useMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -22,6 +24,24 @@ export default function AdminLayout() {
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [location.pathname]);
+
+  const routeTransition = prefersReducedMotion
+    ? {
+        initial: { opacity: 1, y: 0 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 1, y: 0 },
+        transition: { duration: 0 },
+      }
+    : {
+        initial: { opacity: 0, y: 10 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: -8 },
+        transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
+      };
 
   // Close sidebar on Escape key
   useEffect(() => {
@@ -79,11 +99,17 @@ export default function AdminLayout() {
         />
 
         {/* CONTENT - Full width on mobile when sidebar is closed */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-[#FDFCFB] w-full min-w-0">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-[#FDFCFB] w-full min-w-0 custom-scrollbar scroll-smooth">
           <div className="w-full p-4 sm:p-6 lg:p-8">
-            <div className="max-w-7xl mx-auto w-full">
-              <Outlet />
-            </div>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={location.pathname}
+                {...routeTransition}
+                className="max-w-7xl mx-auto w-full"
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
           </div>
         </main>
       </div>

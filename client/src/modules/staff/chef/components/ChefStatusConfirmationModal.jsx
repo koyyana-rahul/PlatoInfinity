@@ -89,29 +89,30 @@ export default function ChefStatusConfirmationModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-[100] p-0 sm:p-4 animate-in fade-in duration-200">
       <div
-        className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 relative animate-in zoom-in duration-300"
+        className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-w-md w-full p-5 sm:p-8 relative animate-in zoom-in duration-300 max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* CLOSE BUTTON */}
         <button
           onClick={onClose}
           disabled={isLoading}
-          className="absolute top-6 right-6 p-2 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-50"
+          className="absolute top-4 sm:top-6 right-4 sm:right-6 p-2 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-50"
           type="button"
         >
           <X size={20} className="text-slate-400" />
         </button>
 
         {/* HEADER */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div
-            className={`w-16 h-16 ${config.iconBg} rounded-full flex items-center justify-center mx-auto mb-4 ring-4 ${config.ringColor}`}
+            className={`w-14 h-14 sm:w-16 sm:h-16 ${config.iconBg} rounded-full flex items-center justify-center mx-auto mb-4 ring-4 ${config.ringColor}`}
           >
-            <Icon size={28} className={config.iconColor} strokeWidth={2.5} />
+            <Icon size={24} className={`${config.iconColor} sm:hidden`} strokeWidth={2.5} />
+            <Icon size={28} className={`${config.iconColor} hidden sm:block`} strokeWidth={2.5} />
           </div>
-          <h2 className="text-2xl font-black text-slate-900 text-center tracking-tight mb-4">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 text-center tracking-tight mb-4">
             {config.title}
           </h2>
 
@@ -140,7 +141,7 @@ export default function ChefStatusConfirmationModal({
           <button
             onClick={handleConfirm}
             disabled={isLoading || !status}
-            className={`w-full h-14 ${config.buttonBg} ${config.buttonHover} disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest text-[13px]`}
+            className={`w-full h-12 sm:h-14 ${config.buttonBg} ${config.buttonHover} disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest text-[12px] sm:text-[13px]`}
             type="button"
           >
             {isLoading ? (
@@ -159,7 +160,7 @@ export default function ChefStatusConfirmationModal({
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="w-full bg-slate-100 hover:bg-slate-200 disabled:bg-slate-100 text-slate-900 font-bold py-3 rounded-2xl transition-all text-[13px] uppercase tracking-wider disabled:opacity-50"
+            className="w-full bg-slate-100 hover:bg-slate-200 disabled:bg-slate-100 text-slate-900 font-bold py-3 rounded-2xl transition-all text-[12px] sm:text-[13px] uppercase tracking-wider disabled:opacity-50"
             type="button"
           >
             Cancel

@@ -144,14 +144,36 @@ export default function CustomerCart() {
 
   if (loading && !items.length) {
     return (
-      <div className="fixed inset-0 bg-white flex flex-col items-center justify-center">
-        <Loader2
-          className="w-8 h-8 text-slate-900 animate-spin mb-4"
-          strokeWidth={1.5}
-        />
-        <p className="text-[11px] font-bold tracking-[0.3em] text-slate-400 uppercase">
-          Syncing Cart
-        </p>
+      <div className="min-h-screen bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+          <div className="h-10 w-40 bg-slate-100 rounded-xl animate-pulse" />
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div
+                key={`cart-kpi-shimmer-${idx}`}
+                className="h-20 bg-slate-100 rounded-2xl animate-pulse"
+              />
+            ))}
+          </div>
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div
+                key={`cart-item-shimmer-${idx}`}
+                className="h-28 bg-slate-100 rounded-2xl animate-pulse"
+              />
+            ))}
+          </div>
+          <div className="h-40 bg-slate-100 rounded-3xl animate-pulse" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {Array.from({ length: 2 }).map((_, idx) => (
+              <div
+                key={`cart-info-shimmer-${idx}`}
+                className="h-20 bg-slate-100 rounded-2xl animate-pulse"
+              />
+            ))}
+          </div>
+          <div className="h-16 bg-slate-100 rounded-2xl animate-pulse" />
+        </div>
       </div>
     );
   }

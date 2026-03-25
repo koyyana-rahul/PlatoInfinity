@@ -1,5 +1,6 @@
 // src/modules/staff/chef/hooks/useKitchenOrders.js
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { useSocket } from "../../../../socket/SocketProvider";
 import Axios from "../../../../api/axios";
 import chefApi from "../../../../api/chef.api";
@@ -9,6 +10,7 @@ export default function useKitchenOrders(station, stationId = null) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const socket = useSocket();
+  const restaurantId = useSelector((s) => s.user?.restaurantId);
 
   const applyStatusUpdate = (orderId, itemId, status, itemIndex = null) => {
     if (!orderId || !status) return;
@@ -51,6 +53,22 @@ export default function useKitchenOrders(station, stationId = null) {
   useEffect(() => {
     if (station || stationId) loadOrders();
   }, [station, stationId]);
+
+  useEffect(() => {
+    if (!socket || !restaurantId) return;
+
+    const joinRooms = () => {
+      socket.emit("join:restaurant", { restaurantId });
+      socket.emit("join:kitchen", { restaurantId });
+    };
+
+    joinRooms();
+    socket.on("connect", joinRooms);
+
+    return () => {
+      socket.off("connect", joinRooms);
+    };
+  }, [socket, restaurantId]);
 
   useEffect(() => {
     if (!socket || (!station && !stationId)) return;

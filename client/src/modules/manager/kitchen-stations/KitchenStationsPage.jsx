@@ -58,7 +58,7 @@ export default function KitchenStationsPage() {
           </div>
           <button
             onClick={() => setOpenCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600"
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-all duration-200 hover:-translate-y-0.5"
           >
             <FiPlus size={18} />
             Add Station

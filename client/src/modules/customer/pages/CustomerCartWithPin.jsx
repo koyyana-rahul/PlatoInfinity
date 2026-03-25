@@ -6,10 +6,11 @@
  * - Quantity fraud detection banner
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
+import { motion } from "framer-motion";
 import {
   ChevronLeft,
   ShoppingBag,
@@ -69,6 +70,7 @@ export default function CustomerCart() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [tableNumber, setTableNumber] = useState("Table");
   const [restaurantId, setRestaurantId] = useState(null);
+  const pinInputRef = useRef(null);
 
   const hasLargeQty = items.some((item) => item.quantity > 10);
 
@@ -177,6 +179,18 @@ export default function CustomerCart() {
     loadOrdersSummary();
   }, [tableId]);
 
+  useEffect(() => {
+    if (pinEntryVisible) {
+      requestAnimationFrame(() => {
+        pinInputRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        pinInputRef.current?.focus();
+      });
+    }
+  }, [pinEntryVisible]);
+
   const handlePlaceOrder = async () => {
     if (!pinEntryVisible) {
       setShowCallWaiterModal(true);
@@ -217,21 +231,43 @@ export default function CustomerCart() {
 
   if (loading && !items.length) {
     return (
-      <div className="fixed inset-0 bg-white flex flex-col items-center justify-center">
-        <Loader2
-          className="w-8 h-8 text-slate-900 animate-spin mb-4"
-          strokeWidth={1.5}
-        />
-        <p className="text-[11px] font-bold tracking-[0.3em] text-slate-400 uppercase">
-          Syncing Cart
-        </p>
+      <div className="min-h-screen bg-white cmr-page">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+          <div className="h-10 w-40 bg-slate-100 rounded-xl animate-pulse cmr-shimmer" />
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div
+                key={`cart-pin-kpi-shimmer-${idx}`}
+                className="h-20 bg-slate-100 rounded-2xl animate-pulse cmr-shimmer"
+              />
+            ))}
+          </div>
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div
+                key={`cart-pin-item-shimmer-${idx}`}
+                className="h-28 bg-slate-100 rounded-2xl animate-pulse cmr-shimmer"
+              />
+            ))}
+          </div>
+          <div className="h-40 bg-slate-100 rounded-3xl animate-pulse cmr-shimmer" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {Array.from({ length: 2 }).map((_, idx) => (
+              <div
+                key={`cart-pin-info-shimmer-${idx}`}
+                className="h-20 bg-slate-100 rounded-2xl animate-pulse cmr-shimmer"
+              />
+            ))}
+          </div>
+          <div className="h-16 bg-slate-100 rounded-2xl animate-pulse cmr-shimmer" />
+        </div>
       </div>
     );
   }
 
   if (!items.length) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-10 text-center">
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-10 text-center cmr-page">
         <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-8 ring-1 ring-slate-100">
           <UtensilsCrossed
             size={32}
@@ -247,7 +283,7 @@ export default function CustomerCart() {
         </p>
         <button
           onClick={() => navigate(base + "/menu")}
-          className="w-full max-w-xs h-14 bg-slate-900 text-white rounded-full font-bold text-[13px] uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-slate-200"
+          className="w-full max-w-xs h-14 bg-gradient-to-r from-[#F35C2B] to-[#FF7A45] text-white rounded-full font-bold text-[13px] uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-2xl shadow-orange-200"
         >
           View Menu <ArrowRight size={18} />
         </button>
@@ -256,19 +292,30 @@ export default function CustomerCart() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white flex flex-col font-sans text-slate-900">
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white flex flex-col font-sans text-slate-900 cmr-page"
+    >
       {/* 1. HEADER */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl px-3 sm:px-6 lg:px-8 py-4 sm:py-5 border-b border-slate-100">
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl px-3 sm:px-6 lg:px-8 py-4 sm:py-5 border-b border-slate-100 cmr-sticky-header">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <button
+          <motion.button
             onClick={() => navigate(-1)}
+            whileTap={{ scale: 0.96 }}
             className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-900 transition-colors border border-slate-100"
           >
             <ChevronLeft size={20} strokeWidth={2.5} />
-          </button>
-          <h1 className="text-sm sm:text-base font-black uppercase tracking-[0.25em] text-slate-900">
-            Review Order
-          </h1>
+          </motion.button>
+          <div className="text-center">
+            <h1 className="text-sm sm:text-base font-black uppercase tracking-[0.25em] text-slate-900">
+              Review Order
+            </h1>
+            <p className="text-[10px] font-semibold text-slate-400 mt-1">
+              {tableNumber || "Table"} • Live cart updates
+            </p>
+          </div>
           <div className="w-10" />
         </div>
       </header>
@@ -276,6 +323,24 @@ export default function CustomerCart() {
       <main className="flex-1 px-3 sm:px-6 lg:px-8 py-6 sm:py-8 pb-36 sm:pb-40">
         <div className="max-w-6xl mx-auto lg:grid lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
           <section>
+            <div className="mb-8 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-5 sm:p-6 shadow-2xl shadow-slate-200 cmr-card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/50">
+                    Cart total
+                  </p>
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+                    ₹{Math.round(totalAmount)}
+                  </h2>
+                  <p className="text-[11px] text-white/60 mt-1">
+                    {totalQty} {totalQty > 1 ? "items" : "item"} in your basket
+                  </p>
+                </div>
+                <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center">
+                  <ShoppingBag size={18} className="text-orange-300" />
+                </div>
+              </div>
+            </div>
             {/* FRAUD WARNING */}
             {hasLargeQty && (
               <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex gap-3">
@@ -373,7 +438,7 @@ export default function CustomerCart() {
 
           <aside className="space-y-6 lg:space-y-8 lg:sticky lg:top-24 h-fit">
             {/* BILLING SUMMARY */}
-            <div className="bg-white rounded-[28px] p-6 sm:p-8 ring-1 ring-slate-100 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.4)]">
+            <div className="bg-white rounded-[28px] p-6 sm:p-8 ring-1 ring-slate-100 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.4)] cmr-card">
               <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-6">
                 Payment Summary
               </p>
@@ -403,7 +468,7 @@ export default function CustomerCart() {
             </div>
 
             {/* RUNNING TAB */}
-            <div className="bg-white rounded-[24px] p-5 ring-1 ring-slate-100 shadow-[0_12px_30px_-28px_rgba(15,23,42,0.35)]">
+            <div className="bg-white rounded-[24px] p-5 ring-1 ring-slate-100 shadow-[0_12px_30px_-28px_rgba(15,23,42,0.35)] cmr-card">
               <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-4">
                 Running Tab
               </p>
@@ -502,7 +567,7 @@ export default function CustomerCart() {
                       setCustomerLabel(e.target.value.slice(0, 20))
                     }
                     placeholder="e.g., Rahul, Blue Shirt"
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:border-slate-400"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:border-slate-400 cmr-input"
                   />
                   <p className="text-[10px] text-slate-400 mt-1">
                     Helps waiter identify you
@@ -535,7 +600,7 @@ export default function CustomerCart() {
 
               {/* PIN ENTRY */}
               {pinEntryVisible && (
-                <div>
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <label className="block text-[11px] font-black uppercase tracking-widest text-slate-400 mb-3">
                     <Lock size={12} className="inline mr-1" /> Enter 4-Digit PIN
                   </label>
@@ -547,7 +612,8 @@ export default function CustomerCart() {
                     onChange={(e) =>
                       setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
                     }
-                    className="w-full h-16 border-2 border-slate-900 rounded-xl text-center text-3xl font-black tracking-[0.5em] focus:outline-none focus:border-slate-700 placeholder-slate-300"
+                    ref={pinInputRef}
+                    className="w-full h-16 border-2 border-slate-900 rounded-xl text-center text-3xl font-black tracking-[0.5em] focus:outline-none focus:border-slate-700 placeholder-slate-300 cmr-input"
                     placeholder="••••"
                   />
                   <p className="text-[10px] text-slate-400 mt-2">
@@ -561,12 +627,12 @@ export default function CustomerCart() {
       </main>
 
       {/* BOTTOM CHECKOUT BAR */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/85 backdrop-blur-xl border-t border-slate-100 p-3 sm:p-5 z-40 pb-[calc(env(safe-area-inset-bottom)+0.9rem)]">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/85 backdrop-blur-xl border-t border-slate-100 p-3 sm:p-5 z-40 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] cmr-safe-bottom">
         <div className="max-w-6xl mx-auto">
           <button
             disabled={isPlacing}
             onClick={handlePlaceOrder}
-            className="w-full h-14 sm:h-16 bg-slate-900 disabled:bg-slate-200 text-white rounded-[18px] sm:rounded-[20px] flex items-center justify-between px-5 sm:px-8 transition-all active:scale-[0.98] shadow-2xl shadow-slate-300 overflow-hidden relative"
+            className="w-full h-14 sm:h-16 bg-gradient-to-r from-[#F35C2B] to-[#FF7A45] disabled:bg-slate-200 text-white rounded-[18px] sm:rounded-[20px] flex items-center justify-between px-5 sm:px-8 transition-all active:scale-[0.98] shadow-2xl shadow-orange-200 overflow-hidden relative"
           >
             {isPlacing && (
               <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center backdrop-blur-sm z-10">
@@ -599,7 +665,7 @@ export default function CustomerCart() {
         onClose={() => setShowCallWaiterModal(false)}
         onWaiterConfirmed={handleWaiterConfirmed}
       />
-    </div>
+    </motion.div>
   );
 }
 

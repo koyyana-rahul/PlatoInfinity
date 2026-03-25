@@ -104,6 +104,12 @@ const customerApi = {
       method: "GET",
     }),
 
+    cancel: (orderId) => ({
+      url: `/api/order/${orderId}/cancel/customer`,
+      method: "POST",
+      // body: { reason?: string }
+    }),
+
     retry: {
       url: "/api/order/retry",
       method: "POST",

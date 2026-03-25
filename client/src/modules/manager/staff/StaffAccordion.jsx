@@ -28,12 +28,12 @@ export default function StaffAccordion({
         return (
           <div
             key={role}
-            className="bg-white border border-gray-200 rounded-lg overflow-hidden"
+            className="bg-white border border-gray-200 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-md"
           >
             <button
               type="button"
               onClick={() => setOpen(isOpen ? null : role)}
-              className="w-full flex items-center justify-between px-4 sm:px-5 py-4"
+              className="w-full flex items-center justify-between px-4 sm:px-5 py-4 transition-colors hover:bg-gray-50"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">

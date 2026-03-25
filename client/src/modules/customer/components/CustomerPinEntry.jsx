@@ -11,14 +11,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import useCustomerSession from "../../hooks/useCustomerSession";
-import Axios from "../../api/axios";
-import customerApi from "../../api/customer.api";
+import useCustomerSession from "../../../hooks/useCustomerSession";
+import Axios from "../../../api/axios";
+import customerApi from "../../../api/customer.api";
 
 export default function CustomerPinEntry() {
   const navigate = useNavigate();
   const { brandSlug, restaurantSlug, tableId } = useParams();
   const { restaurantId } = useParams(); // Added from context
+  const base = `/${brandSlug}/${restaurantSlug}/table/${tableId}`;
 
   const {
     session,
@@ -44,7 +45,7 @@ export default function CustomerPinEntry() {
         const hasSession = await loadSessionFromStorage();
         if (hasSession && !tokenExpired) {
           // Session exists and is valid - redirect to menu
-          navigate("menu");
+          navigate(base + "/menu", { replace: true });
           return;
         }
 
@@ -58,7 +59,7 @@ export default function CustomerPinEntry() {
         toast.error("Failed to load table. Please scan QR code again.");
       }
     })();
-  }, [tableId, loadSessionFromStorage, tokenExpired, navigate]);
+  }, [tableId, loadSessionFromStorage, tokenExpired, navigate, base]);
 
   /* ========== SUBMIT PIN ========== */
   const handleSubmit = async (e) => {
@@ -76,7 +77,7 @@ export default function CustomerPinEntry() {
     if (success) {
       // Redirect to menu
       setTimeout(() => {
-        navigate("menu");
+        navigate(base + "/menu", { replace: true });
       }, 500);
     } else {
       // Clear PIN for next attempt

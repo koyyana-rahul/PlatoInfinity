@@ -130,12 +130,14 @@ export default function ItemCard({ item, onDelete, refresh }) {
               >
                 <Pencil size={14} />
               </button>
-              <button
-                onClick={onDelete}
-                className="p-1.5 text-gray-400 active:text-red-600 active:bg-red-50 rounded-lg transition-colors"
-              >
-                <Trash2 size={14} />
-              </button>
+              {onDelete && (
+                <button
+                  onClick={onDelete}
+                  className="p-1.5 text-gray-400 active:text-red-600 active:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -148,13 +150,15 @@ export default function ItemCard({ item, onDelete, refresh }) {
               <Pencil size={13} strokeWidth={2.5} />
               Edit
             </button>
-            <button
-              onClick={onDelete}
-              className="flex-1 h-8 rounded-lg bg-red-600 text-white text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-red-700 active:scale-[0.98] transition-all shadow-sm"
-            >
-              <Trash2 size={13} strokeWidth={2.5} />
-              Delete
-            </button>
+            {onDelete && (
+              <button
+                onClick={onDelete}
+                className="flex-1 h-8 rounded-lg bg-red-600 text-white text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-red-700 active:scale-[0.98] transition-all shadow-sm"
+              >
+                <Trash2 size={13} strokeWidth={2.5} />
+                Delete
+              </button>
+            )}
           </div>
         </div>
       </div>

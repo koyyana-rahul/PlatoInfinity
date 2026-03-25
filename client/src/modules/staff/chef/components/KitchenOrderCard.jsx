@@ -27,10 +27,10 @@ export default function KitchenOrderCard({ order, reload, onStatusUpdate }) {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 space-y-4 shadow-sm hover:shadow-md transition">
-      <div className="flex justify-between items-start gap-3">
+    <div className="rounded-2xl border border-gray-200 bg-white p-3.5 sm:p-5 space-y-3 sm:space-y-4 shadow-sm hover:shadow-md transition">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2.5 sm:gap-3">
         <div>
-          <h3 className="font-bold text-lg text-gray-900">
+          <h3 className="font-bold text-base sm:text-lg text-gray-900">
             Table {formatTableNo(order.tableName, order.tableId)}
           </h3>
           <p className="text-xs text-gray-500 mt-1">
@@ -38,7 +38,7 @@ export default function KitchenOrderCard({ order, reload, onStatusUpdate }) {
             {order.items?.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-wrap gap-2 items-center">
           <span
             className={`inline-block text-xs font-semibold px-3 py-1 rounded border uppercase tracking-wide ${statusColor}`}
           >
@@ -50,7 +50,7 @@ export default function KitchenOrderCard({ order, reload, onStatusUpdate }) {
         </div>
       </div>
 
-      <div className="space-y-2 border-t border-gray-100 pt-3">
+      <div className="space-y-2 border-t border-gray-100 pt-2.5 sm:pt-3">
         {order.items.map((item) => (
           <KitchenItemRow
             key={item._id}

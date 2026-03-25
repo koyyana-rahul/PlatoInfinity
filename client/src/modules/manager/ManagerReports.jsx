@@ -112,7 +112,7 @@ export default function ManagerReports() {
   };
 
   const ReportCard = ({ icon: Icon, title, data }) => (
-    <div className="bg-white border border-gray-200 rounded-lg p-6">
+    <div className="bg-white border border-gray-200 rounded-lg p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2 bg-orange-50 rounded-lg">
           <Icon className="text-orange-600" size={20} />
@@ -157,14 +157,14 @@ export default function ManagerReports() {
 
           <button
             onClick={exportReport}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition text-sm font-semibold"
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-200 text-sm font-semibold hover:-translate-y-0.5"
           >
             <FiDownload size={16} />
             Export Report
           </button>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row gap-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row gap-4 transition-all duration-300 hover:shadow-md">
           <div className="flex-1">
             <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase">
               From Date

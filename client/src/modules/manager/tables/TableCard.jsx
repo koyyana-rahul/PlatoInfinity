@@ -53,7 +53,7 @@ export default function TableCard({ table, onDelete }) {
   };
 
   return (
-    <article className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 flex flex-col gap-4 h-full shadow-sm hover:shadow-md transition-shadow duration-200">
+    <article className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 flex flex-col gap-4 h-full shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
       <div className="flex justify-between items-start">
         <div>
           <h3 className="text-xl font-bold text-gray-900 leading-none">
@@ -101,7 +101,7 @@ export default function TableCard({ table, onDelete }) {
         <div className="flex items-center gap-1">
           <button
             onClick={copyLink}
-            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-orange-600 hover:bg-white rounded-lg"
+            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-orange-600 hover:bg-white rounded-lg transition-colors"
             title="Copy link"
           >
             <FiCopy size={14} />
@@ -111,7 +111,7 @@ export default function TableCard({ table, onDelete }) {
             target="_blank"
             rel="noreferrer"
             onClick={(e) => !qrLink && e.preventDefault()}
-            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-orange-600 hover:bg-white rounded-lg disabled:opacity-40"
+            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-orange-600 hover:bg-white rounded-lg disabled:opacity-40 transition-colors"
             title="Open link"
           >
             <FiExternalLink size={14} />
@@ -123,14 +123,14 @@ export default function TableCard({ table, onDelete }) {
         <button
           onClick={downloadQr}
           disabled={!qrImage}
-          className="h-10 flex items-center justify-center gap-2 rounded-xl border border-gray-300 text-gray-700 text-xs font-semibold uppercase hover:bg-gray-50 disabled:opacity-40"
+          className="h-10 flex items-center justify-center gap-2 rounded-xl border border-gray-300 text-gray-700 text-xs font-semibold uppercase hover:bg-gray-50 disabled:opacity-40 transition-all duration-200 hover:-translate-y-0.5"
         >
           <FiDownload size={12} /> Export
         </button>
 
         <button
           onClick={() => onDelete?.(table)}
-          className="h-10 flex items-center justify-center gap-2 rounded-xl bg-red-50 text-red-600 border border-red-200 text-xs font-semibold uppercase hover:bg-red-100"
+          className="h-10 flex items-center justify-center gap-2 rounded-xl bg-red-50 text-red-600 border border-red-200 text-xs font-semibold uppercase hover:bg-red-100 transition-all duration-200 hover:-translate-y-0.5"
         >
           <FiTrash2 size={12} /> Remove
         </button>

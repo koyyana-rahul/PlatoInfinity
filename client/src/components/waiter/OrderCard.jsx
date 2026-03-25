@@ -6,6 +6,12 @@ export default function OrderCard({ order }) {
   const [servingItemId, setServingItemId] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
+  const formattedTableLabel = (() => {
+    const raw = String(order.tableName || "").trim();
+    if (!raw) return "Table -";
+    return /table/i.test(raw) ? raw : `Table ${raw}`;
+  })();
+
   const handleServeClick = (itemId) => {
     setServingItemId(itemId);
     setShowConfirmModal(true);
@@ -72,38 +78,47 @@ export default function OrderCard({ order }) {
   return (
     <div
       key={cardKey}
-      className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5"
+      className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-sm"
     >
-      <div className="flex justify-between">
+      <div className="flex justify-between items-start gap-3">
         <div>
-          <p className="text-sm font-bold text-gray-900">
-            Table {order.tableName || "-"}
+          <p className="text-sm font-black text-slate-900">
+            {formattedTableLabel}
           </p>
-          <p className="text-xs text-gray-500">
-            {new Date(order.createdAt).toLocaleTimeString()}
+          <p className="text-xs text-slate-500">
+            {order.createdAt
+              ? new Date(order.createdAt).toLocaleString([], {
+                  day: "2-digit",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "--"}
           </p>
         </div>
 
         <span className={getStatusBadgeStyle(orderStatus)}>{orderStatus}</span>
       </div>
 
-      <div className="mt-3 divide-y divide-gray-100">
+      <div className="mt-3 divide-y divide-slate-100">
         {order.items.map((item) => (
           <div key={item._id} className="py-2 flex justify-between items-start">
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900">{item.name}</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-sm font-semibold text-slate-900">
+                {item.name}
+              </p>
+              <p className="text-xs text-slate-500">
                 Qty {item.quantity} · {item.itemStatus}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <p className="text-sm font-bold text-gray-900">
+              <p className="text-sm font-bold text-slate-900">
                 ₹{item.price * item.quantity}
               </p>
               {item.itemStatus === "READY" && (
                 <button
                   onClick={() => handleServeClick(item._id)}
-                  className="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded font-semibold transition"
+                  className="text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-xl font-semibold transition"
                 >
                   Serve
                 </button>
@@ -115,24 +130,24 @@ export default function OrderCard({ order }) {
 
       {/* Confirmation Modal */}
       {showConfirmModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-96 shadow-xl">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+            <h2 className="text-lg font-bold text-slate-900 mb-2">
               Confirm Serve
             </h2>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-slate-500 mb-6">
               Mark this item as served?
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowConfirmModal(false)}
-                className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-semibold"
+                className="flex-1 h-11 rounded-2xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-semibold"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmServe}
-                className="flex-1 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold"
+                className="flex-1 h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold"
               >
                 Serve
               </button>

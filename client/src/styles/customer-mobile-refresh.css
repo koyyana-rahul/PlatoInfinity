@@ -1,0 +1,224 @@
+.customer-shell {
+  --cmr-bg: #f8fafc;
+  --cmr-surface: #ffffff;
+  --cmr-border: #e2e8f0;
+  --cmr-text: #0f172a;
+  --cmr-muted: #64748b;
+  --cmr-brand: #f35c2b;
+}
+
+.customer-shell {
+  background: linear-gradient(180deg, #fff8f4 0%, #ffffff 48%, #f8fafc 100%);
+}
+
+.customer-shell .cmr-card {
+  border: 1px solid var(--cmr-border);
+  border-radius: 20px;
+  box-shadow: 0 12px 34px -28px rgba(15, 23, 42, 0.45);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms ease, background-color 220ms ease;
+}
+
+.customer-shell .cmr-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 38px -30px rgba(15, 23, 42, 0.52);
+}
+
+.customer-shell .cmr-page {
+  color: var(--cmr-text);
+  animation: cmr-page-enter 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.customer-shell .cmr-sticky-header {
+  border-radius: 18px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 10px 30px -26px rgba(15, 23, 42, 0.5);
+}
+
+.customer-shell .cmr-input {
+  min-height: 44px;
+  border-radius: 12px;
+  border-color: #cbd5e1;
+}
+
+.customer-shell .cmr-safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 0.85rem);
+}
+
+.customer-shell .cmr-section-gap {
+  margin-top: 1rem;
+}
+
+.customer-shell .cmr-button {
+  min-height: 46px;
+  border-radius: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  transition: transform 180ms ease, box-shadow 220ms ease,
+    filter 220ms ease, background-color 220ms ease;
+}
+
+.customer-shell button,
+.customer-shell a,
+.customer-shell [role="button"] {
+  transition: transform 180ms ease, box-shadow 220ms ease,
+    filter 220ms ease, background-color 220ms ease, color 220ms ease,
+    border-color 220ms ease;
+}
+
+.customer-shell button:active,
+.customer-shell a:active,
+.customer-shell [role="button"]:active {
+  transform: translateY(0.5px) scale(0.99);
+}
+
+.customer-shell .cmr-pill {
+  border-radius: 999px;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+}
+
+.customer-shell .cmr-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.customer-shell .cmr-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent
+  );
+  animation: cmr-shimmer 1.4s infinite;
+}
+
+.customer-shell .cmr-item-page {
+  row-gap: 0.35rem;
+}
+
+.customer-shell .cmr-item-hero {
+  isolation: isolate;
+}
+
+.customer-shell .cmr-item-surface {
+  transform: translateZ(0);
+  transition: box-shadow 260ms ease, transform 260ms ease;
+}
+
+.customer-shell .cmr-item-sticky {
+  transition: backdrop-filter 220ms ease, background-color 220ms ease;
+}
+
+.customer-shell .cmr-item-page button {
+  transition: transform 180ms ease, box-shadow 200ms ease,
+    background-color 200ms ease;
+}
+
+.customer-shell .cmr-item-page button:active {
+  transform: translateY(0.5px);
+}
+
+@keyframes cmr-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes cmr-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .customer-shell .cmr-page,
+  .customer-shell .cmr-card,
+  .customer-shell .cmr-button,
+  .customer-shell button,
+  .customer-shell a,
+  .customer-shell [role="button"] {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .customer-shell main {
+    padding-left: 0.625rem !important;
+    padding-right: 0.625rem !important;
+  }
+
+  .customer-shell h1 {
+    letter-spacing: -0.01em;
+  }
+
+  .customer-shell .startup-shadow,
+  .customer-shell .shadow-2xl,
+  .customer-shell .shadow-xl,
+  .customer-shell .shadow-lg {
+    box-shadow: 0 10px 30px -24px rgba(15, 23, 42, 0.5) !important;
+  }
+
+  .customer-shell .animate-pulse {
+    background-color: #e2e8f0 !important;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .customer-shell .animate-pulse::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.6),
+      transparent
+    );
+    animation: cmr-shimmer 1.2s infinite;
+  }
+
+  .customer-shell .cmr-page {
+    gap: 0.5rem;
+  }
+
+  .customer-shell .cmr-item-page {
+    padding-bottom: 7.25rem;
+  }
+
+  .customer-shell .cmr-item-surface {
+    border-radius: 24px 24px 0 0;
+    padding-left: 0.95rem;
+    padding-right: 0.95rem;
+  }
+
+  .customer-shell .cmr-item-sticky {
+    padding-left: 0.7rem;
+    padding-right: 0.7rem;
+  }
+
+  .customer-shell button {
+    min-height: 42px;
+  }
+
+  .customer-shell input,
+  .customer-shell textarea,
+  .customer-shell select {
+    min-height: 44px;
+    border-radius: 12px;
+    font-size: 0.92rem;
+  }
+}

@@ -72,7 +72,36 @@ export default function BranchMenuPage() {
     [masterMenu, branchGrouped],
   );
 
-  const activeCategory = mappedMenu.find((c) => c.id === activeCategoryId);
+  const visibleMenu = useMemo(
+    () =>
+      mappedMenu
+        .map((category) => {
+          const filteredSubcategories = (category.subcategories || []).filter(
+            (sub) => (sub.items || []).length > 0,
+          );
+
+          return {
+            ...category,
+            subcategories: filteredSubcategories,
+            items: (category.items || []).filter(Boolean),
+          };
+        })
+        .filter((category) => {
+          const hasCategoryItems = (category.items || []).length > 0;
+          const hasSubcategoryItems = (category.subcategories || []).length > 0;
+          return hasCategoryItems || hasSubcategoryItems;
+        }),
+    [mappedMenu],
+  );
+
+  useEffect(() => {
+    if (!activeCategoryId && visibleMenu.length) {
+      setActiveCategoryId(visibleMenu[0].id);
+      setActiveSubcategoryId(null);
+    }
+  }, [activeCategoryId, visibleMenu]);
+
+  const activeCategory = visibleMenu.find((c) => c.id === activeCategoryId);
 
   const activeSubcategory =
     activeCategory?.subcategories.find((s) => s.id === activeSubcategoryId) ||
@@ -92,7 +121,7 @@ export default function BranchMenuPage() {
     return items;
   }, [activeCategory, activeSubcategoryId, activeSubcategory, vegFilter]);
 
-  const totalItems = mappedMenu.reduce((sum, cat) => {
+  const totalItems = visibleMenu.reduce((sum, cat) => {
     const categoryItems = cat.items?.length || 0;
     const subcategoryItems = (cat.subcategories || []).reduce(
       (acc, sub) => acc + (sub.items?.length || 0),
@@ -104,9 +133,9 @@ export default function BranchMenuPage() {
   /* ================= UI ================= */
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col transition-colors duration-300">
       {/* ================= STICKY HEADER ================= */}
-      <div className="sticky top-0 z-30 bg-white shadow-sm">
+      <div className="sticky top-0 z-30 bg-white shadow-sm transition-shadow duration-300">
         {/* Top Header */}
         <header className="border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4">
@@ -191,7 +220,7 @@ export default function BranchMenuPage() {
         <div className="bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto">
             <BranchCategoryBar
-              categories={mappedMenu}
+              categories={visibleMenu}
               activeCategoryId={activeCategoryId}
               onSelect={(id) => {
                 setActiveCategoryId(id);

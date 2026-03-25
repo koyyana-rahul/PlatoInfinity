@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import toast from "react-hot-toast";
-import { FiBell, FiCheckCircle, FiClock, FiRefreshCw } from "react-icons/fi";
+import { FiBell, FiCheckCircle, FiClock } from "react-icons/fi";
 
 import { useSocket } from "../../../socket/SocketProvider";
 import WaiterAlertModal from "../../../components/waiter/WaiterAlertModal";
@@ -108,6 +108,7 @@ export default function WaiterAlerts() {
   const [activeAlert, setActiveAlert] = useState(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const [activeTab, setActiveTab] = useState("pending"); // "pending" or "attended"
   const [activeTypeTab, setActiveTypeTab] = useState("all"); // "all" | "TABLE_PIN" | "BILL_REQUEST"
 
@@ -178,6 +179,7 @@ export default function WaiterAlerts() {
                 (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
               );
             });
+            setLastSyncedAt(new Date().toISOString());
           } else {
             console.log("ℹ️ No alerts found in database response");
           }
@@ -201,7 +203,10 @@ export default function WaiterAlerts() {
   }, []);
 
   // Refresh alerts from database
-  const refreshAlerts = async () => {
+  const refreshAlerts = async ({ silent = false } = {}) => {
+    if (isRefreshing || isLoadingHistory) {
+      return;
+    }
     setIsRefreshing(true);
     try {
       const today = new Date().toISOString().split("T")[0];
@@ -268,12 +273,18 @@ export default function WaiterAlerts() {
             );
           }
 
-          toast.success("Alerts refreshed ✓");
+          setLastSyncedAt(new Date().toISOString());
+
+          if (!silent) {
+            toast.success("Alerts refreshed ✓");
+          }
         }
       }
     } catch (err) {
       console.error("❌ Error refreshing alerts:", err);
-      toast.error("Failed to refresh alerts");
+      if (!silent) {
+        toast.error("Failed to refresh alerts");
+      }
     } finally {
       setIsRefreshing(false);
     }
@@ -402,6 +413,37 @@ export default function WaiterAlerts() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket]);
 
+  useEffect(() => {
+    refreshAlerts({ silent: true });
+    const intervalId = setInterval(() => {
+      refreshAlerts({ silent: true });
+    }, 8000);
+
+    return () => clearInterval(intervalId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  useEffect(() => {
+    const handleVisibilityRefresh = () => {
+      if (document.visibilityState === "visible") {
+        refreshAlerts({ silent: true });
+      }
+    };
+    const handleWindowFocus = () => refreshAlerts({ silent: true });
+    const handleOnline = () => refreshAlerts({ silent: true });
+
+    document.addEventListener("visibilitychange", handleVisibilityRefresh);
+    window.addEventListener("focus", handleWindowFocus);
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityRefresh);
+      window.removeEventListener("focus", handleWindowFocus);
+      window.removeEventListener("online", handleOnline);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
   const summary = useMemo(
     () => ({
       total: alerts.length,
@@ -469,124 +511,203 @@ export default function WaiterAlerts() {
     setActiveAlert(null);
   };
 
+  const showShimmer = isLoadingHistory && alerts.length === 0;
+
   return (
-    <div className="space-y-5 p-3 sm:p-5 lg:p-6 min-h-screen bg-gray-50">
+    <div className="space-y-4 sm:space-y-5 p-3 sm:p-5 lg:p-6 min-h-screen bg-gradient-to-b from-gray-50 to-slate-100/70">
       {/* Header */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Call Alerts
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">
-            Real-time customer assistance requests from table call buttons.
-          </p>
-          <p className="text-[10px] sm:text-xs text-gray-400 mt-2">
-            📊 All alerts stored in database for audit & reporting
-          </p>
+      <div className="bg-white/95 backdrop-blur border border-gray-200 rounded-2xl p-4 sm:p-6 shadow-sm motion-safe:transition-all motion-safe:duration-300">
+        <div className="space-y-1">
+          {showShimmer ? (
+            <div className="space-y-2">
+              <div className="h-5 w-28 bg-gray-100 rounded-full animate-pulse" />
+              <div className="h-3 w-64 bg-gray-100 rounded-full animate-pulse" />
+              <div className="h-3 w-52 bg-gray-100 rounded-full animate-pulse" />
+            </div>
+          ) : (
+            <>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                Call Alerts
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                Real-time customer assistance requests from table call buttons.
+              </p>
+              <p className="text-[10px] sm:text-xs text-gray-400 mt-2">
+                📊 All alerts stored in database for audit & reporting
+              </p>
+              <p className="text-[11px] sm:text-xs text-gray-500 pt-1">
+                ⟳ Auto-refresh every 8s
+                {lastSyncedAt
+                  ? ` • Last sync ${new Date(lastSyncedAt).toLocaleTimeString()}`
+                  : ""}
+              </p>
+            </>
+          )}
         </div>
       </div>
 
       {/* Stats KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Kpi
-          title="Total Alerts"
-          value={summary.total}
-          tone="neutral"
-          icon={<FiBell size={14} />}
-        />
-        <Kpi
-          title="Pending"
-          value={summary.pending}
-          tone="orange"
-          icon={<FiClock size={14} />}
-        />
-        <Kpi
-          title="Attended"
-          value={summary.attended}
-          tone="green"
-          icon={<FiCheckCircle size={14} />}
-        />
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+        {showShimmer ? (
+          Array.from({ length: 3 }).map((_, idx) => (
+            <div
+              key={`alert-kpi-shimmer-${idx}`}
+              className="rounded-xl border border-gray-200 bg-white p-4"
+            >
+              <div className="h-3 w-24 bg-gray-100 rounded-full animate-pulse" />
+              <div className="h-6 w-16 bg-gray-100 rounded-xl mt-3 animate-pulse" />
+            </div>
+          ))
+        ) : (
+          <>
+            <Kpi
+              title="Total Alerts"
+              value={summary.total}
+              tone="neutral"
+              icon={<FiBell size={14} />}
+            />
+            <Kpi
+              title="Pending"
+              value={summary.pending}
+              tone="orange"
+              icon={<FiClock size={14} />}
+            />
+            <Kpi
+              title="Attended"
+              value={summary.attended}
+              tone="green"
+              icon={<FiCheckCircle size={14} />}
+              className="col-span-2 sm:col-span-1"
+            />
+          </>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Kpi title="Table PIN Alerts" value={summary.tablePin} tone="neutral" />
-        <Kpi title="Bill Alerts" value={summary.billRequest} tone="neutral" />
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        {showShimmer ? (
+          Array.from({ length: 2 }).map((_, idx) => (
+            <div
+              key={`alert-subkpi-shimmer-${idx}`}
+              className="rounded-xl border border-gray-200 bg-white p-4"
+            >
+              <div className="h-3 w-28 bg-gray-100 rounded-full animate-pulse" />
+              <div className="h-6 w-16 bg-gray-100 rounded-xl mt-3 animate-pulse" />
+            </div>
+          ))
+        ) : (
+          <>
+            <Kpi
+              title="Table PIN Alerts"
+              value={summary.tablePin}
+              tone="neutral"
+            />
+            <Kpi
+              title="Bill Alerts"
+              value={summary.billRequest}
+              tone="neutral"
+            />
+          </>
+        )}
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2 bg-gray-50">
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+        <div className="flex items-center justify-between border-b border-gray-200 px-3 sm:px-4 py-2 bg-gray-50">
           <div className="flex overflow-x-auto flex-1">
-            <button
-              onClick={() => setActiveTab("pending")}
-              className={`flex-1 min-w-[120px] px-4 sm:px-6 py-2 sm:py-3 font-semibold text-sm transition-colors border-b-2 ${
-                activeTab === "pending"
-                  ? "border-orange-500 text-orange-600 bg-orange-50"
-                  : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <FiClock size={16} />
-                <span className="hidden sm:inline">Pending</span>
-                <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-xs font-bold rounded-full bg-orange-500 text-white">
-                  {summary.pending}
-                </span>
+            {showShimmer ? (
+              <div className="flex gap-2 py-2">
+                <div className="h-9 w-32 bg-gray-100 rounded-full animate-pulse" />
+                <div className="h-9 w-32 bg-gray-100 rounded-full animate-pulse" />
               </div>
-            </button>
-            <button
-              onClick={() => setActiveTab("attended")}
-              className={`flex-1 min-w-[120px] px-4 sm:px-6 py-2 sm:py-3 font-semibold text-sm transition-colors border-b-2 ${
-                activeTab === "attended"
-                  ? "border-green-500 text-green-600 bg-green-50"
-                  : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <FiCheckCircle size={16} />
-                <span className="hidden sm:inline">Attended</span>
-                <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-xs font-bold rounded-full bg-green-500 text-white">
-                  {summary.attended}
-                </span>
-              </div>
-            </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => setActiveTab("pending")}
+                  className={`flex-1 min-w-[120px] px-3 sm:px-6 py-2.5 sm:py-3 font-semibold text-sm transition-all duration-200 border-b-2 ${
+                    activeTab === "pending"
+                      ? "border-orange-500 text-orange-600 bg-orange-50"
+                      : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <FiClock size={16} />
+                    <span className="hidden sm:inline">Pending</span>
+                    <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-xs font-bold rounded-full bg-orange-500 text-white">
+                      {summary.pending}
+                    </span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setActiveTab("attended")}
+                  className={`flex-1 min-w-[120px] px-3 sm:px-6 py-2.5 sm:py-3 font-semibold text-sm transition-all duration-200 border-b-2 ${
+                    activeTab === "attended"
+                      ? "border-green-500 text-green-600 bg-green-50"
+                      : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <FiCheckCircle size={16} />
+                    <span className="hidden sm:inline">Attended</span>
+                    <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-xs font-bold rounded-full bg-green-500 text-white">
+                      {summary.attended}
+                    </span>
+                  </div>
+                </button>
+              </>
+            )}
           </div>
-          <button
-            onClick={refreshAlerts}
-            disabled={isRefreshing || isLoadingHistory}
-            className="ml-3 px-3 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            title="Refresh alerts from database"
-          >
-            <FiRefreshCw
-              size={16}
-              className={isRefreshing ? "animate-spin" : ""}
-            />
-            <span className="hidden sm:inline">Refresh</span>
-          </button>
+          <span className="ml-2 sm:ml-3 inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 sm:px-3 py-1.5 rounded-full whitespace-nowrap">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            Live updates on
+          </span>
         </div>
 
         <div className="flex gap-2 px-4 py-2 border-b border-gray-100 bg-white overflow-x-auto">
-          {[
-            { key: "all", label: "All Types" },
-            { key: "TABLE_PIN", label: "Table PIN" },
-            { key: "BILL_REQUEST", label: "Bill" },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTypeTab(tab.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap border transition-colors ${
-                activeTypeTab === tab.key
-                  ? "bg-slate-900 text-white border-slate-900"
-                  : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {showShimmer ? (
+            <div className="flex gap-2 py-1">
+              <div className="h-7 w-20 bg-gray-100 rounded-full animate-pulse" />
+              <div className="h-7 w-20 bg-gray-100 rounded-full animate-pulse" />
+              <div className="h-7 w-20 bg-gray-100 rounded-full animate-pulse" />
+            </div>
+          ) : (
+            [
+              { key: "all", label: "All Types" },
+              { key: "TABLE_PIN", label: "Table PIN" },
+              { key: "BILL_REQUEST", label: "Bill" },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTypeTab(tab.key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap border transition-colors ${
+                  activeTypeTab === tab.key
+                    ? "bg-slate-900 text-white border-slate-900"
+                    : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))
+          )}
         </div>
 
         {/* Alert List */}
-        <div className="p-4 sm:p-6">
-          {isLoadingHistory ? (
+        <div className="p-3 sm:p-6">
+          {showShimmer ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={`alert-card-shimmer-${idx}`}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 sm:p-4"
+                >
+                  <div className="space-y-2">
+                    <div className="h-4 w-32 bg-gray-100 rounded-full animate-pulse" />
+                    <div className="h-3 w-48 bg-gray-100 rounded-full animate-pulse" />
+                    <div className="h-3 w-40 bg-gray-100 rounded-full animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : isLoadingHistory ? (
             <div className="p-8 text-center">
               <p className="text-gray-700 font-semibold">Loading alerts...</p>
             </div>
@@ -604,22 +725,22 @@ export default function WaiterAlerts() {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2.5 sm:space-y-3">
               {filteredAlerts.map((alert) => (
                 <button
                   key={alert.id}
                   onClick={() => setActiveAlert(alert)}
-                  className="w-full text-left bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl p-3 sm:p-4 transition-all hover:shadow-md"
+                  className="w-full text-left bg-gray-50/90 hover:bg-white border border-gray-200 rounded-xl p-3 sm:p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99]"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm sm:text-base font-bold text-gray-900 truncate">
+                      <p className="text-[15px] sm:text-base font-bold text-gray-900 truncate tracking-tight">
                         {alert.tableName}
                       </p>
-                      <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                      <p className="text-xs sm:text-sm text-gray-600 mt-1 leading-relaxed">
                         {alert.reason}
                       </p>
-                      <div className="flex flex-wrap items-center gap-3 mt-2 text-[11px] text-gray-400">
+                      <div className="flex flex-wrap items-center gap-2.5 mt-2.5 text-[11px] text-gray-500">
                         <span>
                           🕐 {new Date(alert.createdAt).toLocaleTimeString()}
                         </span>
@@ -666,7 +787,7 @@ export default function WaiterAlerts() {
   );
 }
 
-function Kpi({ title, value, icon, tone = "neutral" }) {
+function Kpi({ title, value, icon, tone = "neutral", className = "" }) {
   const toneClass =
     tone === "green"
       ? "bg-green-50 border-green-200 text-green-700"
@@ -675,12 +796,14 @@ function Kpi({ title, value, icon, tone = "neutral" }) {
         : "bg-white border-gray-200 text-gray-700";
 
   return (
-    <div className={`rounded-xl border p-4 ${toneClass}`}>
-      <p className="text-xs uppercase tracking-wide font-semibold inline-flex items-center gap-1.5">
+    <div
+      className={`rounded-xl border p-4 sm:p-5 shadow-sm motion-safe:transition-transform motion-safe:duration-200 hover:-translate-y-0.5 ${toneClass} ${className}`}
+    >
+      <p className="text-[11px] sm:text-xs uppercase tracking-wide font-semibold inline-flex items-center gap-1.5">
         {icon}
         {title}
       </p>
-      <p className="text-2xl font-bold mt-1.5">{value}</p>
+      <p className="text-[26px] leading-none font-extrabold mt-2">{value}</p>
     </div>
   );
 }

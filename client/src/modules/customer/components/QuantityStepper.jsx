@@ -9,6 +9,7 @@ export default function QuantityStepper({ value, onAdd, onMinus }) {
         whileTap={{ scale: 0.95 }}
         onClick={onAdd}
         className="
+          cmr-button
           px-6 py-2.5 
           bg-[#F35C2B] 
           hover:brightness-105 
@@ -32,7 +33,7 @@ export default function QuantityStepper({ value, onAdd, onMinus }) {
     <motion.div
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      className="flex items-center bg-[#F35C2B] text-white rounded-full startup-shadow overflow-hidden"
+      className="flex items-center bg-[#F35C2B] text-white rounded-full startup-shadow overflow-hidden border border-orange-300/30"
     >
       <button
         onClick={onMinus}

@@ -3,9 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import Axios from "../../../../api/axios";
 import chefApi from "../../../../api/chef.api";
 import { useSelector } from "react-redux";
-import { FiRefreshCcw } from "react-icons/fi";
 import { useSocket } from "../../../../socket/SocketProvider";
-import toast from "react-hot-toast";
 
 const formatTableNo = (tableName, tableId) => {
   const raw = String(tableName || tableId || "Unknown").trim();
@@ -15,10 +13,10 @@ const formatTableNo = (tableName, tableId) => {
 export default function ChefHistory() {
   const station = useSelector((s) => s.user.station || "MAIN");
   const kitchenStationId = useSelector((s) => s.user.kitchenStationId || null);
+  const restaurantId = useSelector((s) => s.user?.restaurantId);
   const socket = useSocket();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const loadHistory = async (silent = false) => {
     try {
@@ -53,30 +51,50 @@ export default function ChefHistory() {
 
   // 🔥 REAL-TIME SOCKET LISTENER - Auto-refresh when items are marked SERVED
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !restaurantId) return;
+
+    const joinRooms = () => {
+      socket.emit("join:restaurant", { restaurantId });
+      socket.emit("join:kitchen", { restaurantId });
+    };
+
+    joinRooms();
+    socket.on("connect", joinRooms);
 
     const handleItemStatusUpdate = (data) => {
-      console.log("📡 Item status update in history:", data);
+      if (data.itemStatus === "SERVED" || data.status === "SERVED") {
+        loadHistory(true);
+        return;
+      }
 
-      // If an item is marked as SERVED, refresh history silently
-      if (data.itemStatus === "SERVED") {
+      if (data.itemStatus === "READY" || data.status === "READY") {
         loadHistory(true);
       }
     };
 
+    const handleLifecycleRefresh = () => {
+      loadHistory(true);
+    };
+
     socket.on("order:item-status-updated", handleItemStatusUpdate);
+    socket.on("order:itemStatus", handleItemStatusUpdate);
+    socket.on("order:served", handleLifecycleRefresh);
+    socket.on("order:ready", handleLifecycleRefresh);
+    socket.on("order:status-changed", handleLifecycleRefresh);
+    socket.on("manager:order-status-changed", handleLifecycleRefresh);
+    socket.on("connect", handleLifecycleRefresh);
 
     return () => {
+      socket.off("connect", joinRooms);
       socket.off("order:item-status-updated", handleItemStatusUpdate);
+      socket.off("order:itemStatus", handleItemStatusUpdate);
+      socket.off("order:served", handleLifecycleRefresh);
+      socket.off("order:ready", handleLifecycleRefresh);
+      socket.off("order:status-changed", handleLifecycleRefresh);
+      socket.off("manager:order-status-changed", handleLifecycleRefresh);
+      socket.off("connect", handleLifecycleRefresh);
     };
-  }, [socket, station]);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadHistory(true);
-    setRefreshing(false);
-    toast.success("History refreshed");
-  };
+  }, [socket, restaurantId, station, kitchenStationId]);
 
   const itemCount = useMemo(
     () => orders.reduce((sum, o) => sum + (o.items?.length || 0), 0),
@@ -84,47 +102,33 @@ export default function ChefHistory() {
   );
 
   if (loading) {
-    return <div className="p-6 text-gray-500">Loading history…</div>;
+    return <ChefHistorySkeleton />;
   }
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
-        <div className="flex items-start justify-between">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">History</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">History</h1>
             <p className="text-sm text-gray-600 mt-1">
               Completed orders for station {station}
             </p>
           </div>
-          <div className="bg-green-100 text-green-700 px-3 py-1 rounded-lg text-xs font-semibold tracking-wide">
+          <div className="w-fit bg-green-100 text-green-700 px-3 py-1 rounded-lg text-xs font-semibold tracking-wide">
             ✓ Served
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <Kpi label="Orders Served" value={orders.length} tone="green" />
         <Kpi label="Total Items Served" value={itemCount} tone="blue" />
       </div>
 
-      <div className="flex justify-end">
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="h-10 px-4 bg-orange-50 text-orange-700 border border-orange-200 rounded-lg font-semibold text-sm hover:shadow-sm disabled:opacity-60 inline-flex items-center gap-2"
-        >
-          <FiRefreshCcw
-            size={16}
-            className={refreshing ? "animate-spin" : ""}
-          />
-          Refresh
-        </button>
-      </div>
-
       <div className="space-y-3">
         {orders.length === 0 ? (
-          <div className="p-8 text-center bg-white border border-gray-200 rounded-2xl">
+          <div className="p-6 sm:p-8 text-center bg-white border border-gray-200 rounded-2xl">
             <p className="text-gray-500 text-lg">No completed orders yet</p>
             <p className="text-gray-400 text-sm mt-1">
               Orders will appear here once served
@@ -134,9 +138,9 @@ export default function ChefHistory() {
           orders.map((order) => (
             <div
               key={order._id}
-              className="p-4 border border-gray-200 rounded-xl bg-white hover:shadow-sm transition"
+              className="p-3.5 sm:p-4 border border-gray-200 rounded-xl bg-white hover:shadow-sm transition"
             >
-              <div className="flex justify-between items-start">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                 <div>
                   <h3 className="font-bold text-gray-900">
                     Table {formatTableNo(order.tableName, order.tableId)}
@@ -147,7 +151,7 @@ export default function ChefHistory() {
                     </span>
                   </div>
                 </div>
-                <span className="text-xs text-gray-500 font-medium whitespace-nowrap ml-2">
+                <span className="text-xs text-gray-500 font-medium whitespace-nowrap sm:ml-2">
                   {new Date(order.updatedAt).toLocaleTimeString()}
                 </span>
               </div>
@@ -187,6 +191,47 @@ function Kpi({ label, value, tone = "neutral" }) {
     <div className={`rounded-xl border p-4 ${toneClass}`}>
       <p className="text-xs uppercase tracking-wide font-semibold">{label}</p>
       <p className="text-2xl font-bold mt-1">{value}</p>
+    </div>
+  );
+}
+
+function ChefHistorySkeleton() {
+  return (
+    <div className="space-y-3 sm:space-y-4 animate-pulse">
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6">
+        <div className="h-6 w-32 bg-gray-200 rounded" />
+        <div className="h-4 w-60 bg-gray-100 rounded mt-2" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {Array.from({ length: 2 }).map((_, idx) => (
+          <div
+            key={idx}
+            className="rounded-xl border border-gray-200 bg-white p-4 space-y-2"
+          >
+            <div className="h-3 w-24 bg-gray-200 rounded" />
+            <div className="h-7 w-12 bg-gray-100 rounded" />
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        {Array.from({ length: 4 }).map((_, idx) => (
+          <div
+            key={idx}
+            className="p-3.5 sm:p-4 border border-gray-200 rounded-xl bg-white space-y-3"
+          >
+            <div className="flex justify-between">
+              <div className="h-5 w-20 bg-gray-200 rounded" />
+              <div className="h-4 w-16 bg-gray-100 rounded" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-100 rounded" />
+              <div className="h-4 bg-gray-100 rounded w-11/12" />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

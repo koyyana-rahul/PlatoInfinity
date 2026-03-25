@@ -737,17 +737,25 @@ export async function recentOrdersController(req, res) {
 
     const orders = await Order.find(filter)
       .select(
-        "orderNumber tableName totalAmount orderStatus createdAt updatedAt items restaurantId",
+        "orderNumber tableName totalAmount orderStatus createdAt updatedAt items restaurantId meta",
       )
       .populate("restaurantId", "name")
       .sort({ createdAt: -1 })
       .limit(parsedLimit)
       .lean();
 
+    const normalizedOrders = (orders || []).map((order) => ({
+      ...order,
+      cancelReason: order?.cancelReason || order?.meta?.cancelReason || null,
+      cancelledByRole:
+        order?.cancelledByRole || order?.meta?.cancelledByRole || null,
+      cancelledAt: order?.cancelledAt || order?.meta?.cancelledAt || null,
+    }));
+
     return res.json({
       success: true,
       error: false,
-      data: orders,
+      data: normalizedOrders,
     });
   } catch (err) {
     console.error("recentOrdersController error:", err);
@@ -970,6 +978,221 @@ export async function rejectOrderController(req, res) {
     });
   } catch (err) {
     console.error("rejectOrderController:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
+/**
+ * ============================
+ * CANCEL ORDER (STAFF)
+ * ============================
+ * POST /api/order/:orderId/cancel
+ * Roles: BRAND_ADMIN, MANAGER, CHEF, WAITER
+ */
+export async function cancelOrderController(req, res) {
+  try {
+    const { orderId } = req.params;
+    const { reason } = req.body || {};
+    const user = req.user;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (
+      user?.restaurantId &&
+      String(order.restaurantId) !== String(user.restaurantId)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to cancel this order",
+      });
+    }
+
+    if (order.orderStatus === "PAID") {
+      return res.status(400).json({
+        success: false,
+        message: "Paid orders cannot be cancelled",
+      });
+    }
+
+    if (order.orderStatus === "CANCELLED") {
+      return res.status(400).json({
+        success: false,
+        message: "Order is already cancelled",
+      });
+    }
+
+    order.orderStatus = "CANCELLED";
+    order.items = (order.items || []).map((item) => ({
+      ...(item.toObject?.() || item),
+      itemStatus: item.itemStatus === "SERVED" ? "SERVED" : "CANCELLED",
+    }));
+
+    order.meta = order.meta || {};
+    order.meta.cancelReason = reason || "Cancelled by staff";
+    order.meta.cancelledBy = user?._id || null;
+    order.meta.cancelledByRole = user?.role || null;
+    order.meta.cancelledAt = new Date();
+
+    await order.save();
+
+    await emitOrderCancelled({
+      orderId: order._id,
+      restaurantId: order.restaurantId,
+      sessionId: order.sessionId,
+      tableId: order.tableId,
+      tableName: order.tableName,
+      orderNumber: order.orderNumber,
+      reason: order.meta.cancelReason,
+      cancelledBy: user?._id || null,
+      cancelledByRole: user?.role || null,
+      cancelledAt: order.meta.cancelledAt,
+    });
+
+    return res.json({
+      success: true,
+      message: "Order cancelled",
+      data: order,
+    });
+  } catch (err) {
+    console.error("cancelOrderController:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
+/**
+ * ============================
+ * CANCEL ORDER (CUSTOMER)
+ * ============================
+ * POST /api/order/:orderId/cancel/customer
+ * Auth: resolveCustomerSession
+ */
+export async function cancelCustomerOrderController(req, res) {
+  try {
+    const { orderId } = req.params;
+    const { reason } = req.body || {};
+    const session = req.sessionDoc;
+    const deviceId = req.deviceId || req.body?.deviceId || null;
+
+    if (!session || session.status !== "OPEN") {
+      return res.status(400).json({
+        success: false,
+        error: true,
+        message: "Session closed or invalid",
+      });
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (String(order.sessionId) !== String(session._id)) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to cancel this order",
+      });
+    }
+
+    if (session.mode === "INDIVIDUAL") {
+      const orderDeviceId = order.meta?.deviceId || null;
+      if (
+        !deviceId ||
+        !orderDeviceId ||
+        String(orderDeviceId) !== String(deviceId)
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "Not authorized to cancel this order",
+        });
+      }
+    }
+
+    if (order.orderStatus === "PAID") {
+      return res.status(400).json({
+        success: false,
+        message: "Paid orders cannot be cancelled",
+      });
+    }
+
+    if (order.orderStatus === "CANCELLED") {
+      return res.status(400).json({
+        success: false,
+        message: "Order is already cancelled",
+      });
+    }
+
+    const allowedOrderStatuses = ["NEW", "OPEN", "PENDING_APPROVAL"];
+    const normalizedStatus = String(order.orderStatus || "").toUpperCase();
+    if (!allowedOrderStatuses.includes(normalizedStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Order cannot be cancelled after preparation has started",
+      });
+    }
+
+    const items = Array.isArray(order.items) ? order.items : [];
+    const hasStartedPreparation = items.some((item) =>
+      ["IN_PROGRESS", "READY", "SERVING", "SERVED"].includes(
+        String(item.itemStatus || "").toUpperCase(),
+      ),
+    );
+
+    if (hasStartedPreparation) {
+      return res.status(400).json({
+        success: false,
+        message: "Order cannot be cancelled after preparation has started",
+      });
+    }
+
+    order.orderStatus = "CANCELLED";
+    order.items = items.map((item) => ({
+      ...(item.toObject?.() || item),
+      itemStatus: "CANCELLED",
+    }));
+
+    order.meta = order.meta || {};
+    order.meta.cancelReason = reason || "Cancelled by customer";
+    order.meta.cancelledBy = null;
+    order.meta.cancelledByRole = "CUSTOMER";
+    order.meta.cancelledAt = new Date();
+
+    await order.save();
+
+    await emitOrderCancelled({
+      orderId: order._id,
+      restaurantId: order.restaurantId,
+      sessionId: order.sessionId,
+      tableId: order.tableId,
+      tableName: order.tableName,
+      orderNumber: order.orderNumber,
+      reason: order.meta.cancelReason,
+      cancelledBy: null,
+      cancelledByRole: "CUSTOMER",
+      cancelledAt: order.meta.cancelledAt,
+    });
+
+    return res.json({
+      success: true,
+      message: "Order cancelled",
+      data: order,
+    });
+  } catch (err) {
+    console.error("cancelCustomerOrderController:", err);
     return res.status(500).json({
       success: false,
       message: "Server error",

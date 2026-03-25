@@ -47,6 +47,7 @@ export default function KitchenDisplay() {
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinPendingAction, setPinPendingAction] = useState(null);
   const [isPinLoading, setIsPinLoading] = useState(false);
+  const [cancellingOrderId, setCancellingOrderId] = useState(null);
 
   const {
     orders,
@@ -146,6 +147,37 @@ export default function KitchenDisplay() {
     }
   };
 
+  const handleCancelOrder = async (orderId, tableNumber) => {
+    if (!orderId) return;
+    const confirmed = window.confirm(
+      `Cancel order for Table ${tableNumber || ""}?`,
+    );
+    if (!confirmed) return;
+    const reason =
+      window.prompt("Reason for cancellation (optional)") || "";
+
+    try {
+      setCancellingOrderId(orderId);
+      const res = await Axios({
+        url: `/api/order/${orderId}/cancel`,
+        method: "POST",
+        data: reason ? { reason } : undefined,
+      });
+
+      if (res.data?.success) {
+        notify.success("Order cancelled");
+        fetchKitchenOrders();
+      } else {
+        notify.error(res.data?.message || "Failed to cancel order");
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to cancel order";
+      notify.error(msg);
+    } finally {
+      setCancellingOrderId(null);
+    }
+  };
+
   if (loading && !orders.length) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900">
@@ -224,6 +256,17 @@ export default function KitchenDisplay() {
                 {order.priority === "URGENT" && (
                   <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
                 )}
+                <button
+                  onClick={() =>
+                    handleCancelOrder(order.orderId, order.tableNumber)
+                  }
+                  disabled={cancellingOrderId === order.orderId}
+                  className="ml-2 text-xs px-3 py-1 rounded-lg font-semibold bg-red-600/90 hover:bg-red-600 text-white transition disabled:opacity-60"
+                >
+                  {cancellingOrderId === order.orderId
+                    ? "Cancelling..."
+                    : "Cancel"}
+                </button>
               </div>
 
               {/* ========== ORDER ITEMS ========== */}

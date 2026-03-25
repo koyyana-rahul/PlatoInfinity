@@ -1,5 +1,8 @@
 import mongoose, { Schema } from "mongoose";
 import mongoosePaginate from "mongoose-paginate-v2";
+import Restaurant from "./restaurant.model.js";
+import Brand from "./brand.model.js";
+import OrderCounter from "./orderCounter.model.js";
 const OrderItemSchema = new mongoose.Schema(
   {
     branchMenuItemId: {
@@ -40,6 +43,13 @@ const orderSchema = new mongoose.Schema(
       ref: "Restaurant",
       required: true,
       index: true,
+    },
+    orderNumber: {
+      type: String,
+      index: true,
+      unique: true,
+      sparse: true,
+      trim: true,
     },
     sessionId: {
       type: Schema.Types.ObjectId,
@@ -91,6 +101,64 @@ orderSchema.pre("save", function () {
       total += (it.price + mods) * (it.quantity || 1);
     }
     this.totalAmount = total;
+  }
+});
+
+function toCode(value, fallback) {
+  const normalized = String(value || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+
+  if (normalized.length >= 2) return normalized.slice(0, 3);
+  return (normalized || fallback).slice(0, 3);
+}
+
+function buildOrderNumber(brandCode, branchCode) {
+  return `${brandCode}-${branchCode}`;
+}
+
+async function generateOrderNumber(restaurantId) {
+  let brandCode = "PLT";
+  let branchCode = "BR";
+
+  if (restaurantId) {
+    const restaurant = await Restaurant.findById(restaurantId)
+      .select("name brandId")
+      .lean();
+
+    if (restaurant) {
+      branchCode = toCode(restaurant.name, "BR");
+
+      if (restaurant.brandId) {
+        const brand = await Brand.findById(restaurant.brandId)
+          .select("slug name")
+          .lean();
+        brandCode = toCode(brand?.slug || brand?.name, "PLT");
+      }
+    }
+  }
+
+  const baseCode = buildOrderNumber(brandCode, branchCode);
+
+  const counter = await OrderCounter.findOneAndUpdate(
+    { restaurantId },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true, setDefaultsOnInsert: true },
+  ).lean();
+
+  const sequence = counter?.seq || 1;
+  const padded = String(sequence).padStart(4, "0");
+  return `${baseCode}-${padded}`;
+}
+
+orderSchema.pre("save", async function () {
+  if (this.orderNumber) return;
+
+  let attempts = 0;
+  while (!this.orderNumber && attempts < 5) {
+    const nextNumber = await generateOrderNumber(this.restaurantId);
+    this.orderNumber = nextNumber;
+    break;
   }
 });
 

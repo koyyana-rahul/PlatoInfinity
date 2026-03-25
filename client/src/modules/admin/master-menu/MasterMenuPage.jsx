@@ -99,8 +99,22 @@ export default function MasterMenuPage() {
     }
   };
 
-  const confirmAndDelete = ({ title, description, action }) => {
-    setConfirmDelete({ title, description, action });
+  const confirmAndDelete = ({
+    title,
+    description,
+    action,
+    confirmText,
+    targetLabel,
+    impact,
+  }) => {
+    setConfirmDelete({
+      title,
+      description,
+      action,
+      confirmText,
+      targetLabel,
+      impact,
+    });
   };
 
   return (
@@ -174,6 +188,11 @@ export default function MasterMenuPage() {
                   title: "Delete Category?",
                   description:
                     "This will permanently remove the category and all its items.",
+                  confirmText: "Delete Category",
+                  targetLabel:
+                    menu.find((c) => c.id === id)?.name || "Category",
+                  impact:
+                    "All sections and items inside this category will be deleted.",
                   action: () => Axios(masterMenuApi.deleteCategory(id)),
                 })
               }
@@ -201,14 +220,29 @@ export default function MasterMenuPage() {
                 setModal({ type: "subcategory", data: activeCategory.id })
               }
               onEdit={(sub) => setModal({ type: "editSubcategory", data: sub })}
-              onDelete={(id) =>
+              onDelete={(sub) => {
+                const itemCount = sub?.items?.length || 0;
+                const title = itemCount
+                  ? "Delete Section & All Items?"
+                  : "Delete Section?";
+                const description = itemCount
+                  ? `This will permanently delete this section and all ${itemCount} items inside it.`
+                  : "This will permanently delete this section.";
+                const impact = itemCount
+                  ? "All items inside this section will be removed."
+                  : null;
+
                 confirmAndDelete({
-                  title: "Remove Section?",
-                  description:
-                    "This will permanently delete this section and all its items.",
-                  action: () => Axios(masterMenuApi.deleteSubcategory(id)),
-                })
-              }
+                  title,
+                  description,
+                  confirmText: itemCount
+                    ? "Delete Section + Items"
+                    : "Delete Section",
+                  targetLabel: sub?.name || "Section",
+                  impact,
+                  action: () => Axios(masterMenuApi.deleteSubcategory(sub.id)),
+                });
+              }}
             />
           </div>
         )}
@@ -241,12 +275,15 @@ export default function MasterMenuPage() {
                 },
               })
             }
-            onDeleteItem={(id) =>
+            onDeleteItem={(item) =>
               confirmAndDelete({
                 title: "Delete Item?",
                 description:
                   "This item will be permanently removed from the menu.",
-                action: () => Axios(masterMenuApi.deleteItem(id)),
+                confirmText: "Delete Item",
+                targetLabel: item?.name || "Item",
+                action: () =>
+                  Axios(masterMenuApi.deleteItem(item?.id || item?._id)),
               })
             }
             refresh={loadMenu}
@@ -295,6 +332,9 @@ export default function MasterMenuPage() {
         open={!!confirmDelete}
         title={confirmDelete?.title}
         description={confirmDelete?.description}
+        confirmText={confirmDelete?.confirmText}
+        targetLabel={confirmDelete?.targetLabel}
+        impact={confirmDelete?.impact}
         loading={deleteLoading}
         onCancel={() => setConfirmDelete(null)}
         onConfirm={executeDelete}

@@ -90,42 +90,79 @@ export default function WaiterBills() {
   return (
     <div className="space-y-6">
       <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
-        <h1 className="text-2xl font-bold text-gray-900">Bills</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Prepare table bills before cashier settlement.
-        </p>
+        {loading ? (
+          <div className="space-y-2">
+            <div className="h-5 w-24 bg-gray-100 rounded-full animate-pulse" />
+            <div className="h-3 w-56 bg-gray-100 rounded-full animate-pulse" />
+          </div>
+        ) : (
+          <>
+            <h1 className="text-2xl font-bold text-gray-900">Bills</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Prepare table bills before cashier settlement.
+            </p>
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold">
-            Open Sessions
-          </p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">
-            {sessions.length}
-          </p>
-        </div>
-        <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
-          <p className="text-xs uppercase tracking-wide text-orange-700 font-semibold">
-            Current Session
-          </p>
-          <p className="text-sm font-bold text-orange-900 mt-2 break-all">
-            {selectedSessionId ? String(selectedSessionId).slice(-8) : "-"}
-          </p>
-        </div>
-        <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-          <p className="text-xs uppercase tracking-wide text-green-700 font-semibold">
-            Current Bill
-          </p>
-          <p className="text-2xl font-bold text-green-800 mt-1">
-            ₹{Math.round(bill?.total || 0)}
-          </p>
-        </div>
+        {loading ? (
+          Array.from({ length: 3 }).map((_, idx) => (
+            <div
+              key={`bill-kpi-shimmer-${idx}`}
+              className="rounded-xl border border-gray-200 bg-white p-4"
+            >
+              <div className="h-3 w-24 bg-gray-100 rounded-full animate-pulse" />
+              <div className="h-6 w-16 bg-gray-100 rounded-xl mt-3 animate-pulse" />
+            </div>
+          ))
+        ) : (
+          <>
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
+              <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold">
+                Open Sessions
+              </p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {sessions.length}
+              </p>
+            </div>
+            <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-orange-700 font-semibold">
+                Current Session
+              </p>
+              <p className="text-sm font-bold text-orange-900 mt-2 break-all">
+                {selectedSessionId ? String(selectedSessionId).slice(-8) : "-"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-green-700 font-semibold">
+                Current Bill
+              </p>
+              <p className="text-2xl font-bold text-green-800 mt-1">
+                ₹{Math.round(bill?.total || 0)}
+              </p>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-4">
         {loading ? (
-          <div className="h-24 bg-gray-100 rounded-xl animate-pulse" />
+          <>
+            <div className="h-10 bg-gray-100 rounded-xl animate-pulse" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <div
+                  key={`bill-info-shimmer-${idx}`}
+                  className="h-14 bg-gray-100 rounded-xl animate-pulse"
+                />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="h-11 bg-gray-100 rounded-xl animate-pulse" />
+              <div className="h-11 bg-gray-100 rounded-xl animate-pulse" />
+            </div>
+          </>
         ) : sessions.length === 0 ? (
           <p className="text-sm text-gray-600">No active sessions available.</p>
         ) : (
@@ -185,7 +222,13 @@ export default function WaiterBills() {
         )}
       </div>
 
-      {!bill ? (
+      {loading ? (
+        <div className="bg-white p-6 rounded-2xl border border-gray-200">
+          <div className="h-4 w-40 bg-gray-100 rounded-full animate-pulse" />
+          <div className="h-3 w-64 bg-gray-100 rounded-full mt-3 animate-pulse" />
+          <div className="h-24 bg-gray-100 rounded-xl mt-4 animate-pulse" />
+        </div>
+      ) : !bill ? (
         <div className="bg-white p-6 rounded-2xl border border-gray-200 text-gray-600">
           Select a session and generate bill to view totals.
         </div>

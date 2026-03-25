@@ -64,7 +64,7 @@ export default function ChefSidebar({ open, onClose, brandSlug }) {
       <aside
         className={clsx(
           "fixed sm:static z-50 sm:z-0",
-          "h-full w-[260px] sm:w-[280px] bg-white border-r border-gray-200 shadow-lg sm:shadow-none",
+          "h-full w-[86vw] max-w-[320px] sm:w-[280px] bg-white border-r border-gray-200 shadow-lg sm:shadow-none",
           "transition-transform duration-300 ease-out",
           open ? "translate-x-0" : "-translate-x-full sm:translate-x-0",
         )}

@@ -61,6 +61,12 @@ const orderApi = {
     // body: { status: "IN_PROGRESS" | "READY" | "SERVED" | "CANCELLED" }
   }),
 
+  cancelOrder: (orderId) => ({
+    url: `/api/order/${orderId}/cancel`,
+    method: "POST",
+    // body: { reason?: string }
+  }),
+
   /* ========== RETRY/RECOVERY ========== */
   retryPlacement: {
     url: "/api/order/retry",

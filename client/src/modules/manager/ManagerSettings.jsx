@@ -10,7 +10,7 @@ import {
 
 // Component definition outside to prevent re-creation on each render
 const ToggleSetting = ({ label, value, onChange, help }) => (
-  <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+  <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 transition-all duration-300 hover:shadow-sm">
     <div>
       <p className="font-semibold text-gray-900">{label}</p>
       {help && <p className="text-xs text-gray-500 mt-1">{help}</p>}
@@ -129,7 +129,7 @@ export default function ManagerSettings() {
 
         {activeTab === "preferences" && (
           <div className="space-y-6">
-            <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+            <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4 transition-all duration-300 hover:shadow-md">
               <h3 className="text-lg font-bold text-gray-900">
                 Notification Preferences
               </h3>
@@ -175,7 +175,7 @@ export default function ManagerSettings() {
               <button
                 onClick={saveSettings}
                 disabled={saving}
-                className="flex items-center gap-2 px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-semibold disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-200 font-semibold disabled:opacity-50 hover:-translate-y-0.5"
               >
                 <FiSave size={16} />
                 {saving ? "Saving..." : "Save Preferences"}
@@ -186,7 +186,7 @@ export default function ManagerSettings() {
 
         {activeTab === "permissions" && (
           <div className="space-y-6">
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3 transition-all duration-300 hover:shadow-sm">
               <FiAlertCircle
                 className="text-amber-600 flex-shrink-0"
                 size={20}
@@ -197,7 +197,7 @@ export default function ManagerSettings() {
               </div>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+            <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4 transition-all duration-300 hover:shadow-md">
               <h3 className="text-lg font-bold text-gray-900">
                 My Permissions
               </h3>
@@ -239,7 +239,7 @@ export default function ManagerSettings() {
 
         {activeTab === "security" && (
           <div className="space-y-6">
-            <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+            <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4 transition-all duration-300 hover:shadow-md">
               <h3 className="text-lg font-bold text-gray-900">
                 Change Password
               </h3>
@@ -300,7 +300,7 @@ export default function ManagerSettings() {
               <button
                 onClick={changePassword}
                 disabled={saving}
-                className="flex items-center gap-2 px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-semibold disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-200 font-semibold disabled:opacity-50 hover:-translate-y-0.5"
               >
                 <FiLock size={16} />
                 {saving ? "Updating..." : "Change Password"}
