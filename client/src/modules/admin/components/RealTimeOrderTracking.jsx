@@ -172,17 +172,17 @@ export const RealTimeOrderTracking = ({ activeOrders = [], loading }) => {
     .slice(0, 5);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 sm:space-y-3">
       <div className="flex items-center gap-2 mb-4">
         <FiTrendingUp className="text-blue-600" size={20} />
-        <h3 className="text-lg font-bold text-slate-900">Active Orders</h3>
-        <span className="ml-auto text-xs font-semibold text-slate-600 bg-blue-100 px-2 py-1 rounded-full">
+        <h3 className="text-base sm:text-lg font-bold text-slate-900">Active Orders</h3>
+        <span className="ml-auto text-[10px] sm:text-xs font-semibold text-slate-600 bg-blue-100 px-2 py-1 rounded-full">
           {sortedOrders.length} {sortedOrders.length === 1 ? "order" : "orders"}
         </span>
       </div>
 
       {sortedOrders.length > 0 ? (
-        <div className="space-y-2">
+        <div className="space-y-2 max-h-[480px] overflow-y-auto pr-0.5">
           {sortedOrders.map((order) => (
             <ActiveOrderCard key={order._id} order={order} />
           ))}

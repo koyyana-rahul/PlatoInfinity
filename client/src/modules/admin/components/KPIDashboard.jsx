@@ -37,24 +37,24 @@ const KPICard = ({
   };
 
   return (
-    <div className="bg-white rounded-3xl p-6 startup-shadow hover:scale-[1.02] transition-all duration-300">
+    <div className="bg-white rounded-2xl sm:rounded-3xl p-2.5 sm:p-6 startup-shadow hover:scale-[1.02] transition-all duration-300">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+          <p className="text-[10px] sm:text-xs font-semibold text-slate-600 uppercase tracking-wide leading-tight">
             {title}
           </p>
-          <div className="flex items-baseline gap-2 mt-2">
-            <p className="text-3xl font-bold text-slate-900">{value}</p>
-            {unit && <p className="text-sm text-slate-500">{unit}</p>}
+          <div className="flex items-baseline gap-1 sm:gap-2 mt-1 sm:mt-2">
+            <p className="text-base sm:text-3xl font-black text-slate-900">{value}</p>
+            {unit && <p className="text-[10px] sm:text-sm text-slate-500">{unit}</p>}
           </div>
           {trend && (
-            <div className="flex items-center gap-1 mt-3">
+            <div className="flex items-center gap-1 mt-1.5 sm:mt-3">
               <FiTrendingUp
                 className={trend > 0 ? "text-green-500" : "text-red-500"}
-                size={14}
+                size={12}
               />
               <span
-                className={`text-xs font-semibold ${
+                className={`text-[10px] sm:text-xs font-semibold ${
                   trend > 0 ? "text-green-600" : "text-red-600"
                 }`}
               >
@@ -64,8 +64,9 @@ const KPICard = ({
             </div>
           )}
         </div>
-        <div className={`p-3 rounded-2xl ${colorClasses[color]}`}>
-          <Icon size={24} />
+        <div className={`p-1.5 sm:p-3 rounded-xl sm:rounded-2xl ${colorClasses[color]}`}>
+          <Icon size={16} className="sm:hidden" />
+          <Icon size={24} className="hidden sm:block" />
         </div>
       </div>
     </div>
@@ -81,7 +82,7 @@ export const KPIDashboard = ({ stats, loading }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+    <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-6">
       {/* Total Revenue */}
       <KPICard
         title="Total Revenue"

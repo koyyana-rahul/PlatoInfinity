@@ -142,13 +142,13 @@ export default function TablesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/70">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6 space-y-5">
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 py-3 sm:py-6 space-y-3 sm:space-y-5 transition-all">
+        <div className="bg-white border border-gray-200 rounded-2xl p-2.5 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
           <div>
-            <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-orange-700 bg-orange-50 border border-orange-200 rounded-full px-2.5 py-0.5 mb-2">
-              <FiGrid size={11} /> Restaurant Operations
+            <div className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-orange-700 bg-orange-50 border border-orange-200 rounded-full px-2 py-0.5 mb-1.5">
+              <FiGrid size={10} /> Restaurant Operations
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
+            <h1 className="text-base sm:text-xl font-bold text-gray-900 mb-0.5 sm:mb-1">
               Table Management
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 max-w-xl">
@@ -159,42 +159,44 @@ export default function TablesPage() {
 
           <button
             onClick={() => setOpenCreate(true)}
-            className="h-10 px-4 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 inline-flex items-center justify-center gap-2 transition-all duration-200 hover:-translate-y-0.5"
+            className="h-8 sm:h-10 px-2.5 sm:px-4 rounded-xl bg-orange-500 text-white text-xs sm:text-sm font-semibold hover:bg-orange-600 inline-flex items-center justify-center gap-1.5 sm:gap-2 transition-all duration-200 hover:-translate-y-0.5"
           >
-            <FiPlus size={18} /> Add Table
+            <FiPlus size={14} />{" "}
+            <span className="hidden xs:inline">Add Table</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">
+        {/* Stats grid: 4 cols on mobile, tighter spacing */}
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-4">
+          <div className="bg-white rounded-xl p-2.5 sm:p-5 border border-gray-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
+            <p className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wide">
               Total Tables
             </p>
-            <p className="text-2xl font-bold text-gray-900 mt-2">
+            <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2">
               {summary.total}
             </p>
           </div>
-          <div className="bg-green-50 rounded-xl p-4 sm:p-5 border border-green-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
-            <p className="text-xs text-green-700 uppercase tracking-wide inline-flex items-center gap-1.5">
-              <FiCheckCircle size={12} /> Available
+          <div className="bg-green-50 rounded-xl p-2.5 sm:p-5 border border-green-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
+            <p className="text-[10px] sm:text-xs text-green-700 uppercase tracking-wide inline-flex items-center gap-1 xs:gap-1.5">
+              <FiCheckCircle size={10} /> Available
             </p>
-            <p className="text-2xl font-bold text-green-700 mt-2">
+            <p className="text-lg sm:text-2xl font-bold text-green-700 mt-1 sm:mt-2">
               {summary.free}
             </p>
           </div>
-          <div className="bg-orange-50 rounded-xl p-4 sm:p-5 border border-orange-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
-            <p className="text-xs text-orange-700 uppercase tracking-wide inline-flex items-center gap-1.5">
-              <FiUsers size={12} /> Occupied
+          <div className="bg-orange-50 rounded-xl p-2.5 sm:p-5 border border-orange-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
+            <p className="text-[10px] sm:text-xs text-orange-700 uppercase tracking-wide inline-flex items-center gap-1 xs:gap-1.5">
+              <FiUsers size={10} /> Occupied
             </p>
-            <p className="text-2xl font-bold text-orange-700 mt-2">
+            <p className="text-lg sm:text-2xl font-bold text-orange-700 mt-1 sm:mt-2">
               {summary.occupied}
             </p>
           </div>
-          <div className="bg-amber-50 rounded-xl p-4 sm:p-5 border border-amber-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
-            <p className="text-xs text-amber-700 uppercase tracking-wide inline-flex items-center gap-1.5">
-              <FiClock size={12} /> Reserved
+          <div className="bg-amber-50 rounded-xl p-2.5 sm:p-5 border border-amber-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
+            <p className="text-[10px] sm:text-xs text-amber-700 uppercase tracking-wide inline-flex items-center gap-1 xs:gap-1.5">
+              <FiClock size={10} /> Reserved
             </p>
-            <p className="text-2xl font-bold text-amber-700 mt-2">
+            <p className="text-lg sm:text-2xl font-bold text-amber-700 mt-1 sm:mt-2">
               {summary.reserved}
             </p>
           </div>

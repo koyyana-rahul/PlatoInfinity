@@ -138,12 +138,12 @@ export default function BranchMenuPage() {
       <div className="sticky top-0 z-30 bg-white shadow-sm transition-shadow duration-300">
         {/* Top Header */}
         <header className="border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4">
-            <div className="flex flex-col gap-3">
+          <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-2.5 sm:py-4">
+            <div className="flex flex-col gap-2.5 sm:gap-3">
               {/* Title & Actions Row */}
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start justify-between gap-2 sm:gap-3">
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 truncate">
+                  <h1 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 truncate">
                     Menu Management
                   </h1>
                   <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
@@ -152,9 +152,9 @@ export default function BranchMenuPage() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-gray-50">
-                    <Download size={14} className="text-gray-500" />
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                  <div className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-md border border-gray-200 bg-gray-50">
+                    <Download size={12} className="text-gray-500" />
                     <span className="text-xs font-medium text-gray-600">
                       {totalItems}
                     </span>
@@ -162,15 +162,15 @@ export default function BranchMenuPage() {
 
                   <button
                     onClick={() => setModal({ type: "sync" })}
-                    className="p-2 sm:px-3 sm:py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors active:scale-95"
+                    className="p-1.5 sm:px-3 sm:py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors active:scale-95"
                     title="Sync with Master"
                   >
-                    <RefreshCcw size={16} />
+                    <RefreshCcw size={14} />
                   </button>
 
                   <button
                     onClick={() => setModal({ type: "import" })}
-                    className="px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white rounded-lg hover:shadow-lg transition-all active:scale-95 font-semibold whitespace-nowrap"
+                    className="px-2.5 py-1.5 sm:px-4 sm:py-2.5 text-xs sm:text-sm bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white rounded-lg hover:shadow-lg transition-all active:scale-95 font-semibold whitespace-nowrap"
                   >
                     <span className="hidden sm:inline">Import from Master</span>
                     <span className="sm:hidden">Import</span>
@@ -179,8 +179,8 @@ export default function BranchMenuPage() {
               </div>
 
               {/* Veg/Non-Veg Filter Row */}
-              <div className="flex items-center justify-between gap-3 pb-1">
-                <div className="flex bg-gray-100 rounded-lg p-1 border border-gray-200">
+              <div className="flex items-center justify-between gap-2 sm:gap-3 pb-0.5 sm:pb-1">
+                <div className="flex bg-gray-100 rounded-lg p-0.5 sm:p-1 border border-gray-200 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200">
                   {[
                     { id: "all", label: "All" },
                     { id: "veg", label: "Veg", isVeg: true },
@@ -190,7 +190,7 @@ export default function BranchMenuPage() {
                       key={v.id}
                       onClick={() => setVegFilter(v.id)}
                       className={clsx(
-                        "px-2.5 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-md transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap",
+                        "px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold rounded-md transition-all active:scale-95 flex items-center gap-1 whitespace-nowrap",
                         vegFilter === v.id
                           ? "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white shadow-md"
                           : "text-gray-700 hover:bg-gray-200",
@@ -205,8 +205,8 @@ export default function BranchMenuPage() {
                 </div>
 
                 {/* Mobile Item Count */}
-                <div className="sm:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-gray-50">
-                  <Download size={12} className="text-gray-500" />
+                <div className="sm:hidden flex items-center gap-1 px-2 py-1 rounded-md border border-gray-200 bg-gray-50">
+                  <Download size={10} className="text-gray-500" />
                   <span className="text-xs font-medium text-gray-600">
                     {totalItems}
                   </span>
@@ -218,7 +218,7 @@ export default function BranchMenuPage() {
 
         {/* Category Navigation Bar */}
         <div className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200">
             <BranchCategoryBar
               categories={visibleMenu}
               activeCategoryId={activeCategoryId}
@@ -232,7 +232,7 @@ export default function BranchMenuPage() {
       </div>
 
       {/* ================= MAIN CONTENT ================= */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 md:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-2 sm:px-4 md:px-6 py-2.5 sm:py-6 space-y-2.5 sm:space-y-6 transition-all">
         {activeCategory && (
           <BranchSubcategoryBar
             subcategories={activeCategory.subcategories}

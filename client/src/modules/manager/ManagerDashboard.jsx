@@ -23,7 +23,9 @@ export default function ManagerDashboard() {
     );
 
   const normalizeStatus = (status) => {
-    const raw = String(status || "").toUpperCase().trim();
+    const raw = String(status || "")
+      .toUpperCase()
+      .trim();
 
     const statusAliasMap = {
       OPEN: "NEW",
@@ -420,53 +422,60 @@ export default function ManagerDashboard() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="w-full px-4 sm:px-6 py-6 sm:py-10 space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
+      <div className="w-full px-2.5 sm:px-4 py-3 sm:py-6 space-y-3 sm:space-y-6 transition-all">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-2 sm:gap-4">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+            <h1 className="text-xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 transition-all">
               Kitchen Hub
             </h1>
-            <p className="text-sm text-gray-600">
+            <p className="text-xs sm:text-sm text-gray-600">
               Track live orders and performance
             </p>
           </div>
           <button
             onClick={exportOrders}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-all duration-200 hover:-translate-y-0.5"
+            className="flex items-center gap-1 px-2 xs:gap-2 xs:px-4 py-2 xs:py-2 bg-gradient-to-r from-orange-500 to-orange-400 text-white rounded-full font-bold shadow-sm hover:from-orange-600 hover:to-orange-500 transition-all duration-200 hover:-translate-y-0.5 text-xs xs:text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
           >
-            <FiDownload size={16} />
-            Export Orders
+            <span className="flex items-center justify-center bg-white bg-opacity-20 rounded-full p-1 mr-1 xs:mr-2">
+              <FiDownload size={18} />
+            </span>
+            <span className="ml-1 text-center text-[10px] xs:text-[10px] sm:text-xs leading-tight font-medium">
+              Export Orders
+            </span>
           </button>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
-            <p className="text-sm text-gray-600">Total Orders</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">
+        {/* Stats grid: 3 cols on mobile, 5 on desktop */}
+        <div className="grid grid-cols-3 lg:grid-cols-5 gap-1.5 sm:gap-3">
+          <div className="bg-gray-50 rounded-lg p-2.5 sm:p-4 border border-gray-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
+            <p className="text-[11px] sm:text-sm text-gray-600">Total Orders</p>
+            <p className="text-lg sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">
               {stats.totalOrders}
             </p>
           </div>
-          <div className="bg-red-50 rounded-lg p-6 border border-red-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
-            <p className="text-sm text-red-700">Total Quantity</p>
-            <p className="text-3xl font-bold text-red-600 mt-2">
+          <div className="bg-red-50 rounded-lg p-2.5 sm:p-4 border border-red-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
+            <p className="text-[11px] sm:text-sm text-red-700">
+              Total Quantity
+            </p>
+            <p className="text-lg sm:text-3xl font-bold text-red-600 mt-1 sm:mt-2">
               {stats.totalQuantity}
             </p>
           </div>
-          <div className="bg-blue-50 rounded-lg p-6 border border-blue-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
-            <p className="text-sm text-blue-700">In Progress</p>
-            <p className="text-3xl font-bold text-blue-600 mt-2">
+          <div className="bg-blue-50 rounded-lg p-2.5 sm:p-4 border border-blue-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
+            <p className="text-[11px] sm:text-sm text-blue-700">In Progress</p>
+            <p className="text-lg sm:text-3xl font-bold text-blue-600 mt-1 sm:mt-2">
               {stats.pendingOrders}
             </p>
           </div>
-          <div className="bg-green-50 rounded-lg p-6 border border-green-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
-            <p className="text-sm text-green-700">Completed</p>
-            <p className="text-3xl font-bold text-green-600 mt-2">
+          <div className="bg-green-50 rounded-lg p-2.5 sm:p-4 border border-green-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
+            <p className="text-[11px] sm:text-sm text-green-700">Completed</p>
+            <p className="text-lg sm:text-3xl font-bold text-green-600 mt-1 sm:mt-2">
               {stats.completedOrders}
             </p>
           </div>
-          <div className="bg-orange-50 rounded-lg p-6 border border-orange-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
-            <p className="text-sm text-orange-700">Revenue</p>
-            <p className="text-3xl font-bold text-orange-600 mt-2">
+          <div className="bg-orange-50 rounded-lg p-2.5 sm:p-4 border border-orange-200 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md">
+            <p className="text-[11px] sm:text-sm text-orange-700">Revenue</p>
+            <p className="text-lg sm:text-3xl font-bold text-orange-600 mt-1 sm:mt-2">
               ₹{stats.totalRevenue}
             </p>
           </div>
@@ -544,112 +553,123 @@ export default function ManagerDashboard() {
             <>
               <div className="hidden lg:block">
                 <table className="w-full table-fixed">
-                <thead>
-                  <tr className="border-b border-gray-200 text-left text-xs font-semibold uppercase text-gray-500">
-                    <th className="py-3 pr-3">Order #</th>
-                    <th className="py-3 pr-3">Table</th>
-                    <th className="py-3 pr-3">Items</th>
-                    <th className="py-3 pr-3">Qty</th>
-                    <th className="py-3 pr-3">Amount</th>
-                    <th className="py-3 pr-3">Status</th>
-                    <th className="py-3">Date & Time</th>
-                    <th className="py-3"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedOrders.map((order) => {
-                    const dateTime = formatOrderDateTimeParts(order.placedAt);
-                    return (
-                      <tr key={order._id} className="border-b border-gray-100">
-                        <td
-                          className={`${compactClass} pr-3 font-semibold text-gray-900 whitespace-nowrap ${compactCellTextClass}`}
-                        >
-                          #{order.orderNumber}
-                        </td>
-                        <td
-                          className={`${compactClass} pr-3 text-gray-700 whitespace-nowrap ${compactCellTextClass}`}
-                        >
-                          {order.tableName || "Takeaway"}
-                        </td>
-                        <td
-                          className={`${compactClass} pr-3 text-gray-700 whitespace-nowrap ${compactCellTextClass}`}
-                        >
-                          {order.items?.length || 0}
-                        </td>
-                        <td
-                          className={`${compactClass} pr-3 text-gray-700 font-semibold whitespace-nowrap ${compactCellTextClass}`}
-                        >
-                          {getTotalQuantity(order.items)}
-                        </td>
-                        <td
-                          className={`${compactClass} pr-3 text-gray-700 whitespace-nowrap ${compactCellTextClass}`}
-                        >
-                          ₹{order.totalAmount || 0}
-                        </td>
-                        <td className={`${compactClass} pr-3`}>
-                          {(() => {
-                            const progress = getStatusProgress(order.orderStatus);
-                            return (
-                              <div className="space-y-1">
-                                <span
-                                  className={`px-2 py-1 rounded-full text-xs font-semibold ${statusClass(order.orderStatus)}`}
-                                >
-                                  {progress.label}
-                                </span>
-                                {(order.orderStatus === "CANCELLED" ||
-                                  order.status === "CANCELLED") && (
-                                  <div className="text-[10px] text-red-600 font-semibold">
-                                    Cancelled by{" "}
-                                    {order.cancelledByRole || "Staff"}
-                                    {order.cancelReason
-                                      ? ` • ${order.cancelReason}`
-                                      : ""}
-                                  </div>
-                                )}
-                                <div className="flex items-center gap-2">
-                                  <div className="w-24 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                    <div
-                                      className={`h-full ${progress.color} transition-all duration-500`}
-                                      style={{ width: `${progress.percent}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-[10px] font-semibold text-gray-600">
-                                    {progress.percent}%
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })()}
-                        </td>
-                        <td className={`${compactClass} text-xs text-gray-500`}>
-                          <div className="leading-tight">
-                            <p className="font-semibold text-gray-700">
-                              {dateTime.date}
-                            </p>
-                            <p>{dateTime.time}</p>
-                          </div>
-                        </td>
-                        <td className={compactClass}></td>
-                      </tr>
-                    );
-                  })}
-                  {filteredOrders.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="py-8 text-center text-gray-500"
-                      >
-                        No orders found.
-                      </td>
+                  <thead>
+                    <tr className="border-b border-gray-200 text-left text-xs font-semibold uppercase text-gray-500">
+                      <th className="py-3 pr-3">Order #</th>
+                      <th className="py-3 pr-3">Table</th>
+                      <th className="py-3 pr-3">Items</th>
+                      <th className="py-3 pr-3">Qty</th>
+                      <th className="py-3 pr-3">Amount</th>
+                      <th className="py-3 pr-3">Status</th>
+                      <th className="py-3">Date & Time</th>
+                      <th className="py-3"></th>
                     </tr>
-                  )}
-                </tbody>
+                  </thead>
+                  <tbody>
+                    {paginatedOrders.map((order) => {
+                      const dateTime = formatOrderDateTimeParts(order.placedAt);
+                      return (
+                        <tr
+                          key={order._id}
+                          className="border-b border-gray-100"
+                        >
+                          <td
+                            className={`${compactClass} pr-3 font-semibold text-gray-900 whitespace-nowrap ${compactCellTextClass}`}
+                          >
+                            #{order.orderNumber}
+                          </td>
+                          <td
+                            className={`${compactClass} pr-3 text-gray-700 whitespace-nowrap ${compactCellTextClass}`}
+                          >
+                            {order.tableName || "Takeaway"}
+                          </td>
+                          <td
+                            className={`${compactClass} pr-3 text-gray-700 whitespace-nowrap ${compactCellTextClass}`}
+                          >
+                            {order.items?.length || 0}
+                          </td>
+                          <td
+                            className={`${compactClass} pr-3 text-gray-700 font-semibold whitespace-nowrap ${compactCellTextClass}`}
+                          >
+                            {getTotalQuantity(order.items)}
+                          </td>
+                          <td
+                            className={`${compactClass} pr-3 text-gray-700 whitespace-nowrap ${compactCellTextClass}`}
+                          >
+                            ₹{order.totalAmount || 0}
+                          </td>
+                          <td className={`${compactClass} pr-3`}>
+                            {(() => {
+                              const progress = getStatusProgress(
+                                order.orderStatus,
+                              );
+                              return (
+                                <div className="space-y-1">
+                                  <span
+                                    className={`px-2 py-1 rounded-full text-xs font-semibold ${statusClass(order.orderStatus)}`}
+                                  >
+                                    {progress.label}
+                                  </span>
+                                  {(order.orderStatus === "CANCELLED" ||
+                                    order.status === "CANCELLED") && (
+                                    <div className="text-[10px] text-red-600 font-semibold">
+                                      Cancelled by{" "}
+                                      {order.cancelledByRole || "Staff"}
+                                      {order.cancelReason
+                                        ? ` • ${order.cancelReason}`
+                                        : ""}
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-24 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                      <div
+                                        className={`h-full ${progress.color} transition-all duration-500`}
+                                        style={{
+                                          width: `${progress.percent}%`,
+                                        }}
+                                      />
+                                    </div>
+                                    <span className="text-[10px] font-semibold text-gray-600">
+                                      {progress.percent}%
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </td>
+                          <td
+                            className={`${compactClass} text-xs text-gray-500`}
+                          >
+                            <div className="leading-tight">
+                              <p className="font-semibold text-gray-700">
+                                {dateTime.date}
+                              </p>
+                              <p>{dateTime.time}</p>
+                            </div>
+                          </td>
+                          <td className={compactClass}></td>
+                        </tr>
+                      );
+                    })}
+                    {filteredOrders.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={8}
+                          className="py-8 text-center text-gray-500"
+                        >
+                          No orders found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
                 </table>
               </div>
 
               <div className="lg:hidden space-y-3">
                 {filteredOrders.length === 0 ? (
-                  <div className="py-8 text-center text-gray-500">No orders found.</div>
+                  <div className="py-8 text-center text-gray-500">
+                    No orders found.
+                  </div>
                 ) : (
                   paginatedOrders.map((order) => {
                     const progress = getStatusProgress(order.orderStatus);
@@ -679,7 +699,8 @@ export default function ManagerDashboard() {
                           <div className="bg-gray-50 rounded p-2">
                             <p className="text-gray-500">Items / Qty</p>
                             <p className="font-semibold text-gray-800">
-                              {order.items?.length || 0} / {getTotalQuantity(order.items)}
+                              {order.items?.length || 0} /{" "}
+                              {getTotalQuantity(order.items)}
                             </p>
                           </div>
                           <div className="bg-gray-50 rounded p-2">
@@ -690,7 +711,9 @@ export default function ManagerDashboard() {
                           </div>
                           <div className="bg-gray-50 rounded p-2 col-span-2">
                             <p className="text-gray-500">Date & Time</p>
-                            <p className="font-semibold text-gray-800">{dateTime.date}</p>
+                            <p className="font-semibold text-gray-800">
+                              {dateTime.date}
+                            </p>
                             <p className="text-gray-600">{dateTime.time}</p>
                           </div>
                         </div>
@@ -711,7 +734,9 @@ export default function ManagerDashboard() {
                           order.status === "CANCELLED") && (
                           <div className="text-[11px] text-red-600 font-semibold">
                             Cancelled by {order.cancelledByRole || "Staff"}
-                            {order.cancelReason ? ` • ${order.cancelReason}` : ""}
+                            {order.cancelReason
+                              ? ` • ${order.cancelReason}`
+                              : ""}
                           </div>
                         )}
                       </div>
@@ -723,7 +748,9 @@ export default function ManagerDashboard() {
               <div className="border-t border-slate-100 mt-3 pt-3 px-1 sm:px-0 flex items-center justify-between gap-3">
                 <button
                   type="button"
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(1, prev - 1))
+                  }
                   disabled={currentPage === 1}
                   className="px-3 py-1.5 text-xs sm:text-sm rounded-md border border-slate-200 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >

@@ -7,8 +7,6 @@ import {
   FiClock,
   FiPlus,
   FiArrowLeft,
-  FiRefreshCw,
-  FiChevronRight,
 } from "react-icons/fi";
 import clsx from "clsx";
 
@@ -16,6 +14,7 @@ import Axios from "../../../api/axios";
 import restaurantApi from "../../../api/restaurant.api";
 import managerApi from "../../../api/manager.api";
 import useAutoRefresh from "../../../hooks/useAutoRefresh";
+import { useSocket } from "../../../socket/SocketProvider";
 
 import InviteManagerModal from "./InviteManagerModal";
 import ManagerTable from "./ManagerTable";
@@ -28,11 +27,11 @@ import ConfirmRemoveModal from "./ConfirmRemoveModal";
 export default function ManagersPage() {
   const { restaurantId, brandSlug } = useParams();
   const navigate = useNavigate();
+  const socket = useSocket();
 
   const [restaurant, setRestaurant] = useState(null);
   const [managers, setManagers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const [openInvite, setOpenInvite] = useState(false);
   const [removeTarget, setRemoveTarget] = useState(null);
@@ -64,19 +63,32 @@ export default function ManagersPage() {
     initialize();
   }, [restaurantId, loadManagers]);
 
-  // Auto-refresh every 45 seconds, pause when modals are open
+  // Auto-refresh every 15 seconds, pause when modals are open
   const isModalOpen = openInvite || removeTarget;
-  useAutoRefresh(loadManagers, 45000, {
+  useAutoRefresh(loadManagers, 15000, {
     enabled: !isModalOpen,
     pauseWhenHidden: true,
   });
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadManagers();
-    setRefreshing(false);
-    notify.success("Data refreshed");
-  };
+  useEffect(() => {
+    if (!socket) return;
+
+    const syncManagers = () => loadManagers();
+    const events = [
+      "connect",
+      "manager:invited",
+      "manager:removed",
+      "manager:activated",
+      "manager:updated",
+      "restaurant:updated",
+    ];
+
+    events.forEach((eventName) => socket.on(eventName, syncManagers));
+
+    return () => {
+      events.forEach((eventName) => socket.off(eventName, syncManagers));
+    };
+  }, [socket, loadManagers]);
 
   const handleResend = async (managerId) => {
     try {
@@ -194,20 +206,7 @@ export default function ManagersPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3 bg-white hover:bg-gray-50 text-gray-700 rounded-xl sm:rounded-2xl transition-all font-bold text-xs sm:text-sm border-2 border-gray-200 hover:border-orange-300 disabled:opacity-50 active:scale-95 shadow-md hover:shadow-lg h-10 sm:h-11 md:h-12"
-            >
-              <FiRefreshCw
-                size={16}
-                strokeWidth={2.5}
-                className={refreshing ? "animate-spin" : ""}
-              />
-              <span className="hidden sm:inline">Refresh</span>
-            </button>
-
+          <div className="hidden sm:flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <button
               onClick={() => setOpenInvite(true)}
               className="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition-all shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 active:scale-95 border-2 border-orange-600 h-10 sm:h-11 md:h-12 whitespace-nowrap"
@@ -220,69 +219,69 @@ export default function ManagersPage() {
 
         {/* ================= MANAGER STATISTICS ================= */}
         {!loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {/* Total Managers */}
-            <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-gray-100 p-3.5 sm:p-5 md:p-6 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 sm:hover:-translate-y-1">
-              <div className="flex items-start justify-between mb-3 sm:mb-4">
-                <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-br from-blue-100 to-blue-50 rounded-lg sm:rounded-xl">
+            <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-gray-100 p-2.5 sm:p-5 md:p-6 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 sm:hover:-translate-y-1">
+              <div className="flex items-start justify-between mb-1 sm:mb-4">
+                <div className="p-1.5 sm:p-3 md:p-4 bg-gradient-to-br from-blue-100 to-blue-50 rounded-lg sm:rounded-xl">
                   <FiUsers
                     className="text-blue-600"
-                    size={20}
+                    size={16}
                     strokeWidth={2.5}
                   />
                 </div>
               </div>
-              <p className="text-gray-600 text-xs font-bold uppercase tracking-wide mb-1.5 sm:mb-2">
+              <p className="text-gray-600 text-[10px] sm:text-xs font-bold uppercase tracking-wide mb-0.5 sm:mb-2 leading-tight">
                 Total
               </p>
-              <p className="text-2xl sm:text-3xl md:text-4xl font-black text-blue-600 tracking-tight">
+              <p className="text-lg sm:text-3xl md:text-4xl font-black text-blue-600 tracking-tight">
                 {managers.length}
               </p>
-              <p className="text-xs text-gray-500 mt-1.5 sm:mt-2">
+              <p className="hidden sm:block text-xs text-gray-500 mt-1.5 sm:mt-2">
                 All managers & invites
               </p>
             </div>
 
             {/* Active Managers */}
-            <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-gray-100 p-3.5 sm:p-5 md:p-6 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 sm:hover:-translate-y-1">
-              <div className="flex items-start justify-between mb-3 sm:mb-4">
-                <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-br from-green-100 to-emerald-50 rounded-lg sm:rounded-xl">
+            <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-gray-100 p-2.5 sm:p-5 md:p-6 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 sm:hover:-translate-y-1">
+              <div className="flex items-start justify-between mb-1 sm:mb-4">
+                <div className="p-1.5 sm:p-3 md:p-4 bg-gradient-to-br from-green-100 to-emerald-50 rounded-lg sm:rounded-xl">
                   <FiUserCheck
                     className="text-green-600"
-                    size={20}
+                    size={16}
                     strokeWidth={2.5}
                   />
                 </div>
               </div>
-              <p className="text-gray-600 text-xs font-bold uppercase tracking-wide mb-1.5 sm:mb-2">
+              <p className="text-gray-600 text-[10px] sm:text-xs font-bold uppercase tracking-wide mb-0.5 sm:mb-2 leading-tight">
                 Active
               </p>
-              <p className="text-2xl sm:text-3xl md:text-4xl font-black text-green-600 tracking-tight">
+              <p className="text-lg sm:text-3xl md:text-4xl font-black text-green-600 tracking-tight">
                 {activeCount}
               </p>
-              <p className="text-xs text-gray-500 mt-1.5 sm:mt-2">
+              <p className="hidden sm:block text-xs text-gray-500 mt-1.5 sm:mt-2">
                 Confirmed & verified
               </p>
             </div>
 
             {/* Pending Invites */}
-            <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-gray-100 p-3.5 sm:p-5 md:p-6 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 sm:hover:-translate-y-1">
-              <div className="flex items-start justify-between mb-3 sm:mb-4">
-                <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-br from-orange-100 to-orange-50 rounded-lg sm:rounded-xl">
+            <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-gray-100 p-2.5 sm:p-5 md:p-6 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 sm:hover:-translate-y-1">
+              <div className="flex items-start justify-between mb-1 sm:mb-4">
+                <div className="p-1.5 sm:p-3 md:p-4 bg-gradient-to-br from-orange-100 to-orange-50 rounded-lg sm:rounded-xl">
                   <FiClock
                     className="text-orange-600"
-                    size={20}
+                    size={16}
                     strokeWidth={2.5}
                   />
                 </div>
               </div>
-              <p className="text-gray-600 text-xs font-bold uppercase tracking-wide mb-1.5 sm:mb-2">
+              <p className="text-gray-600 text-[10px] sm:text-xs font-bold uppercase tracking-wide mb-0.5 sm:mb-2 leading-tight">
                 Pending
               </p>
-              <p className="text-2xl sm:text-3xl md:text-4xl font-black text-orange-600 tracking-tight">
+              <p className="text-lg sm:text-3xl md:text-4xl font-black text-orange-600 tracking-tight">
                 {invitedCount}
               </p>
-              <p className="text-xs text-gray-500 mt-1.5 sm:mt-2">
+              <p className="hidden sm:block text-xs text-gray-500 mt-1.5 sm:mt-2">
                 Awaiting acceptance
               </p>
             </div>
@@ -324,6 +323,15 @@ export default function ManagersPage() {
           )}
         </div>
       </div>
+
+      {/* ================= MOBILE FAB ================= */}
+      <button
+        onClick={() => setOpenInvite(true)}
+        className="sm:hidden fixed bottom-4 right-4 z-30 inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-orange-500/35 border-2 border-orange-600 active:scale-[0.98]"
+      >
+        <FiPlus size={18} strokeWidth={2.5} />
+        Invite Manager
+      </button>
 
       {/* ================= MODALS ================= */}
       {openInvite && (
@@ -410,7 +418,7 @@ function LoadingState() {
  */
 function EmptyState({ onInvite }) {
   return (
-    <div className="flex flex-col items-center justify-center py-8 sm:py-12 md:py-16">
+    <div className="flex flex-col items-center justify-center py-8 sm:py-12 md:py-16 pb-24 sm:pb-16">
       <div className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-orange-100 to-orange-50 flex items-center justify-center mb-4 sm:mb-6 border-4 border-orange-200 shadow-lg">
         <FiUsers className="text-orange-600" size={40} strokeWidth={1.5} />
       </div>

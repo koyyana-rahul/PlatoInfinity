@@ -47,32 +47,41 @@ export default function KitchenStationsPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
+      <div className="max-w-6xl mx-auto px-2.5 sm:px-6 py-3 sm:py-8 space-y-3 sm:space-y-6 transition-all">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 xs:gap-4">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+            <h1 className="text-xl xs:text-3xl sm:text-4xl font-bold text-gray-900 mb-1 xs:mb-2">
               Kitchen Stations
             </h1>
-            <p className="text-gray-600 text-sm">Manage cooking stations</p>
+            <p className="text-xs xs:text-sm text-gray-600">
+              Manage cooking stations
+            </p>
           </div>
           <button
             onClick={() => setOpenCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-all duration-200 hover:-translate-y-0.5"
+            className="flex items-center gap-1 px-2 xs:gap-2 xs:px-4 py-2 xs:py-2 bg-gradient-to-r from-orange-500 to-orange-400 text-white rounded-full font-bold shadow-sm hover:from-orange-600 hover:to-orange-500 transition-all duration-200 hover:-translate-y-0.5 text-xs xs:text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
           >
-            <FiPlus size={18} />
-            Add Station
+            <span className="flex items-center justify-center bg-white bg-opacity-20 rounded-full p-1 mr-1 xs:mr-2">
+              <FiPlus size={18} />
+            </span>
+            <span className="ml-1 text-center text-[10px] xs:text-[10px] sm:text-xs leading-tight font-medium">
+              Add Station
+            </span>
           </button>
         </div>
 
         {/* Search */}
         <div className="relative">
-          <FiSearch className="absolute left-3 top-3 text-gray-400" size={18} />
+          <FiSearch
+            className="absolute left-2.5 top-2.5 text-gray-400"
+            size={14}
+          />
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search stations..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm"
+            className="w-full pl-9 pr-3 py-1.5 xs:py-2 border border-gray-300 rounded-lg text-xs xs:text-sm"
           />
         </div>
 

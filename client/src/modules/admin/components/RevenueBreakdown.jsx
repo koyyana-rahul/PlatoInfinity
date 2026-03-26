@@ -76,10 +76,10 @@ export const RevenueBreakdown = ({ breakdown, loading }) => {
   );
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-6">
+    <div className="bg-white border border-slate-200 rounded-xl p-3.5 sm:p-6">
       <div className="flex items-center gap-2 mb-6">
         <FiPieChart className="text-blue-600" size={20} />
-        <h3 className="text-lg font-bold text-slate-900">Revenue Breakdown</h3>
+        <h3 className="text-base sm:text-lg font-bold text-slate-900">Revenue Breakdown</h3>
       </div>
 
       <div className="space-y-3">

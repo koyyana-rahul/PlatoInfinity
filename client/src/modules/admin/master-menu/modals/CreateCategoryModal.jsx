@@ -47,7 +47,7 @@ export default function CreateCategoryModal({ onClose, onSuccess }) {
 
   return (
     <Modal title="Add Category" onClose={onClose}>
-      <div className="space-y-5">
+      <div className="space-y-5 sm:space-y-6">
         {/* INFO TEXT */}
         <p className="text-sm text-gray-600 leading-relaxed">
           Categories appear at the top of the master menu and help customers
@@ -70,7 +70,7 @@ export default function CreateCategoryModal({ onClose, onSuccess }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Starters"
-              className="w-full pl-10 pr-4 py-3 rounded-lg bg-white border border-gray-300 font-medium text-sm outline-none transition focus:bg-white focus:border-[#FC8019] focus:ring-2 focus:ring-orange-100"
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-white border border-gray-300 font-medium text-sm outline-none transition-all duration-200 focus:bg-white focus:border-[#FC8019] focus:ring-2 focus:ring-orange-100"
               onKeyDown={(e) => {
                 if (e.key === "Enter") submit();
               }}
@@ -79,11 +79,11 @@ export default function CreateCategoryModal({ onClose, onSuccess }) {
         </div>
 
         {/* ACTIONS */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+        <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-3 border-t border-gray-200">
           <button
             onClick={onClose}
             disabled={loading}
-            className="w-full sm:w-1/2 py-3 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition"
+            className="w-full sm:w-1/2 h-11 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200"
           >
             Cancel
           </button>
@@ -91,7 +91,7 @@ export default function CreateCategoryModal({ onClose, onSuccess }) {
           <button
             onClick={submit}
             disabled={loading}
-            className="w-full sm:w-1/2 py-3 rounded-lg bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white font-semibold text-sm flex items-center justify-center gap-2 transition hover:shadow-lg active:scale-[0.98] disabled:opacity-60 shadow-md"
+            className="w-full sm:w-1/2 h-11 rounded-xl bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-lg active:scale-[0.98] disabled:opacity-60 shadow-md"
           >
             {loading ? (
               <>

@@ -216,29 +216,29 @@ export default function AdminDashboard() {
         onSkip={skipOnboarding}
       />
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-4 sm:p-6 lg:p-8 space-y-10 sm:space-y-12 animate-in fade-in duration-500">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-2.5 sm:p-6 lg:p-8 space-y-5 sm:space-y-10 animate-in fade-in duration-500">
         {/* ============================================
           HEADER SECTION
           ============================================ */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start lg:items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 items-start lg:items-center bg-white/70 backdrop-blur rounded-2xl border border-slate-200 p-3 sm:p-4">
           {/* Left: Greeting & Title */}
           <div className="col-span-1">
-            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
               📊 Admin Dashboard
             </h1>
-            <p className="text-slate-600 mt-1 text-sm sm:text-base">
+            <p className="text-slate-600 mt-0.5 text-xs sm:text-base">
               Welcome back,{" "}
               <span className="font-bold">{user?.name || "Admin"}</span>
             </p>
           </div>
 
           {/* Center: Time Range Selector */}
-          <div className="flex items-center justify-center gap-2">
+          <div className="grid grid-cols-3 sm:flex items-center justify-center gap-1.5 sm:gap-2">
             {["today", "week", "month"].map((range) => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
-                className={`px-4 sm:px-6 py-2.5 rounded-full font-semibold text-xs sm:text-sm capitalize transition-all active:scale-95 ${
+                className={`px-2.5 sm:px-6 py-2 sm:py-2.5 rounded-full font-semibold text-[11px] sm:text-sm capitalize transition-all active:scale-95 ${
                   timeRange === range
                     ? "bg-[#F35C2B] text-white startup-shadow"
                     : "bg-white text-slate-700 startup-shadow"
@@ -250,7 +250,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Right: Branch Selector & Notifications */}
-          <div className="flex items-center justify-end gap-3 flex-wrap w-full lg:w-auto">
+          <div className="flex items-center justify-end gap-2 sm:gap-3 flex-wrap w-full lg:w-auto">
             <div className="w-full sm:w-auto min-w-0">
               <BranchSelector
                 branches={branches}
@@ -280,10 +280,10 @@ export default function AdminDashboard() {
         {/* ============================================
           TAB SELECTOR
           ============================================ */}
-        <div className="flex gap-2 border-b border-slate-200">
+        <div className="flex gap-1.5 sm:gap-2 border-b border-slate-200 overflow-x-auto no-scrollbar pb-1">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`px-4 py-3 font-semibold text-sm transition ${
+            className={`px-3 sm:px-4 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm transition whitespace-nowrap ${
               activeTab === "overview"
                 ? "text-blue-600 border-b-2 border-blue-600"
                 : "text-slate-600 hover:text-slate-900"
@@ -293,7 +293,7 @@ export default function AdminDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("fraudAlerts")}
-            className={`px-4 py-3 font-semibold text-sm transition flex items-center gap-2 ${
+            className={`px-3 sm:px-4 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm transition flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
               activeTab === "fraudAlerts"
                 ? "text-red-600 border-b-2 border-red-600"
                 : "text-slate-600 hover:text-slate-900"
@@ -308,7 +308,7 @@ export default function AdminDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("branchComparison")}
-            className={`px-4 py-3 font-semibold text-sm transition ${
+            className={`px-3 sm:px-4 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm transition whitespace-nowrap ${
               activeTab === "branchComparison"
                 ? "text-emerald-600 border-b-2 border-emerald-600"
                 : "text-slate-600 hover:text-slate-900"
@@ -336,9 +336,9 @@ export default function AdminDashboard() {
             {/* ============================================
               MAIN CONTENT GRID - Responsive Layout
               ============================================ */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 lg:gap-10">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-8 lg:gap-10">
               {/* Left Column: Orders & Tracking (2/3 width) */}
-              <div className="xl:col-span-2 space-y-8 lg:space-y-10">
+              <div className="xl:col-span-2 space-y-4 sm:space-y-8 lg:space-y-10">
                 {/* Active Orders Tracking */}
                 <RealTimeOrderTracking
                   activeOrders={recentOrders}
@@ -353,7 +353,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Right Column: Analytics Sidebar (1/3 width) */}
-              <div className="space-y-8 lg:space-y-10">
+              <div className="space-y-4 sm:space-y-8 lg:space-y-10">
                 {/* Revenue Breakdown */}
                 <RevenueBreakdown
                   breakdown={breakdown}

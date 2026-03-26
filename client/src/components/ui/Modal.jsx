@@ -10,19 +10,22 @@ export default function Modal({ title, children, onClose }) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-2 sm:p-6">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6">
       <div
-        className="fixed inset-0 bg-black/45 backdrop-blur-sm"
+        className="fixed inset-0 bg-slate-900/55 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={onClose}
       />
 
       <div
+        role="dialog"
+        aria-modal="true"
         className={clsx(
-          "relative bg-white w-full sm:max-w-xl max-h-[92vh] rounded-t-2xl sm:rounded-2xl flex flex-col",
-          "shadow-[0_30px_80px_-40px_rgba(2,6,23,0.65)] border border-gray-200 overflow-visible",
+          "relative bg-white w-full max-w-2xl max-h-[92vh] rounded-2xl flex flex-col",
+          "shadow-[0_35px_80px_-35px_rgba(2,6,23,0.65)] border border-gray-200 overflow-hidden",
+          "animate-in fade-in zoom-in-95 duration-200",
         )}
       >
-        <div className="flex justify-between items-center px-5 sm:px-6 py-4 border-b border-gray-200 bg-white">
+        <div className="flex justify-between items-center px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-200 bg-white">
           <h3 className="text-base sm:text-lg font-bold text-gray-900">
             {title}
           </h3>
@@ -35,7 +38,7 @@ export default function Modal({ title, children, onClose }) {
           </button>
         </div>
 
-        <div className="p-5 sm:p-6 overflow-y-auto overflow-x-visible scrollbar-hide">
+        <div className="p-4 sm:p-6 overflow-y-auto overflow-x-visible scrollbar-hide">
           {children}
         </div>
       </div>

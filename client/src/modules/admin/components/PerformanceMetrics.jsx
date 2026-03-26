@@ -6,30 +6,38 @@ import { FiAward, FiTrendingDown, FiUsers, FiClock } from "react-icons/fi";
  */
 const StaffCard = ({ staff, metric }) => {
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-3">
+    <div className="bg-white border border-slate-200 rounded-lg p-2 xs:p-2 sm:p-3 md:p-4 hover:shadow-md transition-all duration-200">
+      <div className="flex items-start justify-between mb-1 xs:mb-1 sm:mb-2 md:mb-3">
         <div>
-          <p className="font-semibold text-slate-900">{staff.name}</p>
-          <p className="text-xs text-slate-600">{staff.role}</p>
+          <p className="font-semibold text-[13px] xs:text-[13px] sm:text-base text-slate-900">
+            {staff.name}
+          </p>
+          <p className="text-[10px] xs:text-[10px] sm:text-xs text-slate-600">
+            {staff.role}
+          </p>
           {staff.branch && (
-            <p className="text-xs text-slate-500 mt-1 font-medium">
+            <p className="text-[10px] xs:text-[10px] sm:text-xs text-slate-500 mt-0.5 xs:mt-0.5 sm:mt-1 font-medium">
               🏪 {staff.branch}
             </p>
           )}
         </div>
-        <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+        <div className="w-7 h-7 xs:w-7 xs:h-7 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs xs:text-xs sm:text-sm">
           {staff.initials}
         </div>
       </div>
 
-      <div className="bg-slate-50 rounded p-3">
-        <p className="text-xs text-slate-600 mb-1">{metric.label}</p>
-        <p className="text-2xl font-bold text-slate-900">{metric.value}</p>
+      <div className="bg-slate-50 rounded p-1.5 xs:p-1.5 sm:p-2 md:p-3">
+        <p className="text-[10px] xs:text-[10px] sm:text-xs text-slate-600 mb-0.5 xs:mb-0.5 sm:mb-1">
+          {metric.label}
+        </p>
+        <p className="text-lg xs:text-lg sm:text-2xl font-bold text-slate-900">
+          {metric.value}
+        </p>
       </div>
 
       {metric.trend && (
         <p
-          className={`text-xs mt-2 font-semibold ${metric.trend > 0 ? "text-green-600" : "text-red-600"}`}
+          className={`text-[10px] xs:text-[10px] sm:text-xs mt-1 xs:mt-1 sm:mt-2 font-semibold ${metric.trend > 0 ? "text-green-600" : "text-red-600"}`}
         >
           {metric.trend > 0 ? "↑" : "↓"} {Math.abs(metric.trend)}% vs last
           period
@@ -55,22 +63,29 @@ export const PerformanceMetrics = ({ staffData = [], loading }) => {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3 sm:mb-4">
         <FiAward className="text-yellow-600" size={20} />
-        <h3 className="text-lg font-bold text-slate-900">Top Performance</h3>
+        <h3 className="text-base sm:text-lg font-bold text-slate-900">
+          Top Performance
+        </h3>
       </div>
 
       {staffData && staffData.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-1 xs:gap-1 sm:gap-2.5 md:gap-3">
           {staffData.map((staff) => (
             <StaffCard key={staff.id} staff={staff} metric={staff.metric} />
           ))}
         </div>
       ) : (
-        <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
-          <FiUsers className="mx-auto text-slate-300 mb-3" size={48} />
-          <p className="text-slate-600 font-medium mb-1">No Staff Activity</p>
-          <p className="text-sm text-slate-500">
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 xs:p-4 sm:p-8 text-center">
+          <FiUsers
+            className="mx-auto text-slate-300 mb-2 xs:mb-2 sm:mb-3"
+            size={32}
+          />
+          <p className="text-slate-600 font-medium mb-0.5 xs:mb-0.5 sm:mb-1">
+            No Staff Activity
+          </p>
+          <p className="text-xs xs:text-xs sm:text-sm text-slate-500">
             No staff performance data available for today. Staff activity will
             appear here once they start working.
           </p>
@@ -85,7 +100,9 @@ export const PerformanceMetrics = ({ staffData = [], loading }) => {
  */
 export const OperationalMetrics = ({ metrics, loading }) => {
   if (loading) {
-    return <div className="h-32 bg-slate-100 rounded-lg animate-pulse" />;
+    return (
+      <div className="h-20 xs:h-20 sm:h-32 bg-slate-100 rounded-lg animate-pulse" />
+    );
   }
 
   const defaultMetrics = {
@@ -98,36 +115,44 @@ export const OperationalMetrics = ({ metrics, loading }) => {
   const displayMetrics = metrics || defaultMetrics;
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-lg p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <FiClock className="text-blue-600" size={20} />
-        <h3 className="text-lg font-bold text-slate-900">
+    <div className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-xl p-2 xs:p-2 sm:p-3.5 md:p-6">
+      <div className="flex items-center gap-1 xs:gap-1 sm:gap-2 mb-2 xs:mb-2 sm:mb-4">
+        <FiClock className="text-blue-600" size={16} />
+        <h3 className="text-xs xs:text-xs sm:text-base md:text-lg font-bold text-slate-900">
           Operational Metrics
         </h3>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-4 gap-1 xs:gap-1 sm:gap-2 md:gap-4">
         <div>
-          <p className="text-xs text-slate-600 mb-1">Avg Prep Time</p>
-          <p className="text-2xl font-bold text-slate-900">
+          <p className="text-[9px] xs:text-[9px] sm:text-[10px] md:text-xs text-slate-600 mb-0.5 xs:mb-0.5 sm:mb-1">
+            Avg Prep Time
+          </p>
+          <p className="text-base xs:text-base sm:text-lg md:text-2xl font-bold text-slate-900">
             {displayMetrics.avgPreparationTime}
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-600 mb-1">Avg Delivery</p>
-          <p className="text-2xl font-bold text-slate-900">
+          <p className="text-[9px] xs:text-[9px] sm:text-[10px] md:text-xs text-slate-600 mb-0.5 xs:mb-0.5 sm:mb-1">
+            Avg Delivery
+          </p>
+          <p className="text-base xs:text-base sm:text-lg md:text-2xl font-bold text-slate-900">
             {displayMetrics.avgDeliveryTime}
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-600 mb-1">Satisfaction</p>
-          <p className="text-2xl font-bold text-green-600">
+          <p className="text-[9px] xs:text-[9px] sm:text-[10px] md:text-xs text-slate-600 mb-0.5 xs:mb-0.5 sm:mb-1">
+            Customer Satisfaction
+          </p>
+          <p className="text-base xs:text-base sm:text-lg md:text-2xl font-bold text-slate-900">
             {displayMetrics.customerSatisfaction}
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-600 mb-1">Food Waste</p>
-          <p className="text-2xl font-bold text-orange-600">
+          <p className="text-[9px] xs:text-[9px] sm:text-[10px] md:text-xs text-slate-600 mb-0.5 xs:mb-0.5 sm:mb-1">
+            Food Waste %
+          </p>
+          <p className="text-base xs:text-base sm:text-lg md:text-2xl font-bold text-slate-900">
             {displayMetrics.foodWastePercentage}
           </p>
         </div>

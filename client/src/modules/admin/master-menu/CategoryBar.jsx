@@ -17,39 +17,43 @@ export default function CategoryBar({
   }
 
   return (
-    <div className="w-full bg-white transition-all">
+    <div className="w-full bg-white transition-all duration-200">
       <div
         className="
-          flex gap-2
+          flex gap-2.5
           overflow-x-auto
-          px-3 sm:px-4 py-3
+          px-3 sm:px-4 py-3 sm:py-3.5
           scrollbar-hide
           touch-pan-x
           items-center
           scroll-smooth
+          snap-x snap-mandatory
         "
       >
         {categories.map((cat) => {
           const isActive = cat.id === activeCategoryId;
 
           return (
-            <div key={cat.id} className="relative flex-shrink-0 group">
+            <div
+              key={cat.id}
+              className="relative flex-shrink-0 group snap-start"
+            >
               {/* ================= CATEGORY TILE ================= */}
               <button
                 type="button"
                 onClick={() => onSelect(cat.id)}
                 className={clsx(
-                  "relative flex flex-col items-center gap-1.5 p-2 sm:p-2.5 rounded-xl outline-none transition-all",
-                  "min-w-[68px] sm:min-w-[80px] max-w-[100px]",
+                  "relative flex flex-col items-center gap-1.5 p-2.5 sm:p-2.5 rounded-xl outline-none transition-all duration-200",
+                  "min-w-[78px] sm:min-w-[82px] max-w-[104px] border",
                   isActive
-                    ? "bg-gradient-to-br from-[#FC8019] to-[#FF6B35] text-white shadow-md scale-[1.02] z-10"
-                    : "hover:bg-gray-50 active:scale-[0.98]",
+                    ? "bg-gradient-to-br from-[#FC8019] to-[#FF6B35] text-white shadow-md scale-[1.02] z-10 border-transparent"
+                    : "bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98]",
                 )}
               >
                 {/* ICON */}
                 <div
                   className={clsx(
-                    "w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-lg transition-all",
+                    "w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-lg transition-all duration-200",
                     isActive
                       ? "bg-white/20 text-white"
                       : "bg-gray-100 group-hover:bg-gray-200",
@@ -63,7 +67,7 @@ export default function CategoryBar({
                 {/* LABEL */}
                 <span
                   className={clsx(
-                    "w-full px-1 truncate text-center text-xs font-semibold leading-tight transition-all",
+                    "w-full px-1 truncate text-center text-[11px] sm:text-xs font-semibold leading-tight transition-all duration-200",
                     isActive
                       ? "text-white"
                       : "text-gray-600 group-hover:text-gray-900",
@@ -75,7 +79,7 @@ export default function CategoryBar({
                 {/* ACTIVE INDICATOR */}
                 <div
                   className={clsx(
-                    "absolute -bottom-0.5 h-[2px] rounded-full bg-[#FC8019] transition-all",
+                    "absolute -bottom-0.5 h-[2px] rounded-full bg-[#FC8019] transition-all duration-200",
                     isActive ? "w-4 opacity-100" : "w-0 opacity-0",
                   )}
                 />
@@ -100,7 +104,7 @@ export default function CategoryBar({
                         e.stopPropagation();
                         onEdit(cat);
                       }}
-                      className="h-6 w-6 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center text-gray-400 hover:text-green-600 hover:bg-green-50 transition-all active:scale-75"
+                      className="h-6 w-6 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center text-gray-400 hover:text-green-600 hover:bg-green-50 transition-all duration-200 active:scale-90"
                     >
                       <Pencil size={10} strokeWidth={2.5} />
                     </button>
@@ -112,7 +116,7 @@ export default function CategoryBar({
                         e.stopPropagation();
                         onDelete(cat.id);
                       }}
-                      className="h-6 w-6 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all active:scale-75"
+                      className="h-6 w-6 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200 active:scale-90"
                     >
                       <Trash2 size={10} strokeWidth={2.5} />
                     </button>

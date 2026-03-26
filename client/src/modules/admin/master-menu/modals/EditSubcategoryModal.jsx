@@ -49,9 +49,9 @@ export default function EditSubcategoryModal({
 
   return (
     <Modal title="Edit Section" onClose={onClose}>
-      <div className="space-y-5 max-w-xl mx-auto max-h-[75vh] overflow-y-auto">
+      <div className="space-y-5 sm:space-y-6 max-w-xl mx-auto max-h-[76vh] sm:max-h-[78vh] overflow-y-auto pr-0.5">
         {/* VISUAL CHANGE TRACKER */}
-        <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-200">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200">
           <div className="text-xs">
             <span className="font-semibold text-gray-500 block mb-1">
               Current
@@ -87,7 +87,7 @@ export default function EditSubcategoryModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}
-            className="w-full h-11 px-4 rounded-lg bg-gray-50 border border-gray-200 outline-none focus:bg-white focus:ring-2 focus:ring-[#FC8019]/40 focus:border-[#FC8019] transition-all text-sm font-medium text-gray-900 placeholder:text-gray-400"
+            className="w-full h-11 px-4 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:bg-white focus:ring-2 focus:ring-[#FC8019]/40 focus:border-[#FC8019] transition-all duration-200 text-sm font-medium text-gray-900 placeholder:text-gray-400"
             placeholder="Enter new name..."
           />
           <div className="flex justify-between">
@@ -104,10 +104,10 @@ export default function EditSubcategoryModal({
         </div>
 
         {/* ACTION BAR */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-gray-200">
+        <div className="flex flex-col-reverse sm:flex-row items-center gap-2.5 sm:gap-3 pt-4 border-t border-gray-200">
           <button
             onClick={onClose}
-            className="w-full sm:flex-1 h-11 rounded-lg flex items-center justify-center gap-2 bg-gray-100 text-gray-700 font-medium text-sm hover:bg-gray-200 transition-all active:scale-[0.98]"
+            className="w-full sm:flex-1 h-11 rounded-xl flex items-center justify-center gap-2 bg-gray-100 text-gray-700 font-medium text-sm hover:bg-gray-200 transition-all duration-200 active:scale-[0.98]"
           >
             <X size={16} />
             Cancel
@@ -117,7 +117,7 @@ export default function EditSubcategoryModal({
             onClick={submit}
             disabled={loading || isUnchanged}
             className={clsx(
-              "w-full sm:flex-[1.5] h-11 rounded-lg flex items-center justify-center gap-2 font-semibold text-sm transition-all active:scale-[0.98]",
+              "w-full sm:flex-[1.5] h-11 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm transition-all duration-200 active:scale-[0.98]",
               loading || isUnchanged
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white hover:shadow-md",

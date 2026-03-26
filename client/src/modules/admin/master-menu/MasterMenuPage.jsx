@@ -2,10 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Plus,
   Layout,
-  CheckCircle,
-  Sparkles,
-  CloudCheck,
-  Settings2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import clsx from "clsx";
@@ -118,12 +114,12 @@ export default function MasterMenuPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-[#fffaf6] via-white to-white flex flex-col">
       {/* ================= STATIONARY TOP REGION ================= */}
-      <div className="sticky top-0 z-30 w-full bg-white shadow-md">
+      <div className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 shadow-sm border-b border-gray-100">
         {/* LAYER 1: MAIN HEADER */}
-        <header className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <header className="bg-white/90 border-b border-gray-200/80">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-2.5 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3">
             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
               <h1 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-900 whitespace-nowrap">
                 Master Menu
@@ -135,7 +131,7 @@ export default function MasterMenuPage() {
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="flex bg-gray-100 rounded-lg p-1.5 border border-gray-200 gap-1 flex-wrap sm:flex-nowrap">
+              <div className="flex bg-gray-100/90 rounded-xl p-1 border border-gray-200 gap-1 flex-wrap sm:flex-nowrap">
                 {[
                   { id: "all", label: "All" },
                   { id: "veg", label: "Veg", isVeg: true },
@@ -145,7 +141,7 @@ export default function MasterMenuPage() {
                     key={v.id}
                     onClick={() => setVegFilter(v.id)}
                     className={clsx(
-                      "px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-md transition-all active:scale-[0.98] flex items-center gap-1.5 whitespace-nowrap",
+                      "px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center gap-1.5 whitespace-nowrap",
                       vegFilter === v.id
                         ? "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white shadow-md"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-200",
@@ -161,7 +157,7 @@ export default function MasterMenuPage() {
 
               <button
                 onClick={() => setModal({ type: "category" })}
-                className="bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg shadow-md hover:shadow-lg transition-all active:scale-[0.98] flex items-center gap-1.5 whitespace-nowrap"
+                className="bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white px-3 sm:px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 active:scale-[0.98] flex items-center gap-1.5 whitespace-nowrap"
               >
                 <Plus size={18} strokeWidth={2.5} />
                 <span className="hidden sm:inline text-sm font-semibold">
@@ -173,7 +169,7 @@ export default function MasterMenuPage() {
         </header>
 
         {/* LAYER 2: CATEGORY NAVIGATION */}
-        <div className="bg-white border-b border-gray-200">
+        <div className="bg-white border-b border-gray-200/80">
           <div className="max-w-7xl mx-auto">
             <CategoryBar
               categories={menu}
@@ -202,10 +198,10 @@ export default function MasterMenuPage() {
       </div>
 
       {/* ================= SCROLLABLE CONTENT REGION ================= */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 space-y-5 sm:space-y-6">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 md:px-6 py-3 sm:py-6 md:py-8 space-y-4 sm:space-y-6">
         {/* SECTION NAVIGATION */}
         {activeCategory && (
-          <div className="space-y-3">
+          <div className="space-y-2.5 sm:space-y-3">
             <div className="flex items-center gap-2 px-1">
               <Layout size={14} className="text-[#FC8019]" />
               <p className="text-xs font-medium text-gray-600">
@@ -248,8 +244,8 @@ export default function MasterMenuPage() {
         )}
 
         {/* ITEMS REGISTRY */}
-        <div className="pb-8">
-          <div className="flex items-center justify-between mb-4 px-1">
+        <div className="pb-6 sm:pb-8">
+          <div className="flex items-center justify-between mb-3 sm:mb-4 px-1">
             <div className="flex items-center gap-2">
               <div className="w-1 h-4 bg-[#FC8019] rounded-full" />
               <h3 className="text-base sm:text-lg font-semibold text-gray-900">

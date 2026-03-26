@@ -30,14 +30,25 @@ const QuickActionButton = ({
     success: "bg-green-600 text-white hover:bg-green-700",
   };
 
+  // Special style for Export Report button
+  const isExport = label === "Export Report";
+
   return (
     <button
       onClick={onClick}
       disabled={loading}
-      className={`flex flex-col items-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-all ${variants[variant]} hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed`}
+      className={`flex flex-row items-center gap-1 px-2 xs:px-2 sm:px-3 py-1.5 xs:py-1.5 sm:py-2.5 rounded-lg font-semibold text-[10px] xs:text-[10px] sm:text-xs transition-all duration-200 ${variants[variant]} hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed ${isExport ? "ring-2 ring-blue-200 shadow-sm" : ""}`}
+      style={isExport ? { minWidth: 0 } : {}}
     >
-      <Icon size={20} className={loading ? "animate-spin" : ""} />
-      <span className="text-center text-xs">{label}</span>
+      <span
+        className={`flex items-center justify-center rounded-full ${isExport ? "bg-white text-blue-600 border border-blue-200 mb-0.5" : ""}`}
+        style={isExport ? { width: 24, height: 24 } : {}}
+      >
+        <Icon size={14} className={loading ? "animate-spin" : ""} />
+      </span>
+      <span className="ml-1 text-center text-[10px] xs:text-[10px] sm:text-xs leading-tight font-medium">
+        {label}
+      </span>
     </button>
   );
 };
@@ -50,19 +61,17 @@ export const QuickActions = () => {
   const { brandSlug } = useParams();
   const [loading, setLoading] = useState(null);
 
+  // ...existing code for handlers and actions...
+
   const handleNewOrder = () => {
     navigate("/order-placement");
     notify.success("Opening order placement");
   };
-
   const handlePrintBill = async () => {
     const toastId = notify.loading("Loading recent bills...");
     setLoading("print");
-
     try {
-      // Fetch recent bills from API
       const response = await Axios.get("/api/bills?limit=5&sort=-createdAt");
-
       if (response.data?.data && response.data.data.length > 0) {
         const bills = response.data.data;
         const printHTML = generateBillPrintTemplate(bills);
@@ -72,7 +81,6 @@ export const QuickActions = () => {
         notify.error("No bills found to print", { id: toastId });
       }
     } catch (err) {
-      // Fallback to simple print if API fails
       console.error("Failed to fetch bills:", err);
       notify.success("Opening print preview...", { id: toastId });
       window.print();
@@ -80,17 +88,12 @@ export const QuickActions = () => {
       setLoading(null);
     }
   };
-
   const handleExportReport = async () => {
     const toastId = notify.loading("Generating report...");
     setLoading("export");
-
     try {
-      // Fetch report data from backend
       const response = await Axios.get("/api/dashboard/report/export");
-
       if (response.data?.data) {
-        // Create CSV from data
         const csv = convertToCSV(response.data.data);
         downloadCSV(csv, "dashboard-report.csv");
         notify.success("Report exported successfully", { id: toastId });
@@ -102,23 +105,19 @@ export const QuickActions = () => {
       setLoading(null);
     }
   };
-
   const handleRefreshData = () => {
     notify.success("Refreshing data...");
     window.location.reload();
   };
-
   const handleSendAlert = async () => {
     const toastId = notify.loading("Sending alert to staff...");
     setLoading("alert");
-
     try {
       const response = await Axios.post("/api/notifications/send-alert", {
         title: "Admin Alert",
         message: "Critical action required",
         priority: "HIGH",
       });
-
       if (response.data?.success) {
         notify.success("Alert sent to all staff", { id: toastId });
       }
@@ -129,29 +128,19 @@ export const QuickActions = () => {
       setLoading(null);
     }
   };
-
   const handleTeamStatus = () => {
     navigate(`/${brandSlug}/admin/staff-status`);
     notify.success("Loading team status");
   };
-
   const handleViewAnalytics = () => {
     navigate(`/${brandSlug}/admin/analytics`);
     notify.success("Opening analytics dashboard");
   };
-
   const handleSettings = () => {
     navigate(`/${brandSlug}/admin/settings`);
     notify.success("Opening settings");
   };
-
   const actions = [
-    // {
-    //   icon: FiPlus,
-    //   label: "New Order",
-    //   onClick: handleNewOrder,
-    //   variant: "primary",
-    // },
     {
       icon: FiPrinter,
       label: "Print Bill",
@@ -162,6 +151,7 @@ export const QuickActions = () => {
       label: "Export Report",
       onClick: handleExportReport,
       id: "export",
+      // variant: "primary",
     },
     {
       icon: FiRefreshCw,
@@ -192,9 +182,11 @@ export const QuickActions = () => {
   ];
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-6">
-      <h3 className="text-lg font-bold text-slate-900 mb-4">Quick Actions</h3>
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+    <div className="bg-white border border-slate-200 rounded-xl p-2 xs:p-2 sm:p-3 md:p-6">
+      <h3 className="text-xs xs:text-xs sm:text-base md:text-lg font-bold text-slate-900 mb-1.5 xs:mb-1.5 sm:mb-2.5 md:mb-4">
+        Quick Actions
+      </h3>
+      <div className="grid grid-cols-4 xs:grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-1 xs:gap-1 sm:gap-1.5 md:gap-2">
         {actions.map((action, idx) => (
           <QuickActionButton
             key={idx}

@@ -364,6 +364,7 @@ import clsx from "clsx";
 import Modal from "../../../../components/ui/Modal";
 import Axios from "../../../../api/axios";
 import masterMenuApi from "../../../../api/masterMenu.api";
+import VegNonVegIcon from "../../../../components/ui/VegNonVegIcon";
 
 const MAX_IMAGES = 5;
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -473,7 +474,7 @@ export default function CreateItemModal({
 
   return (
     <Modal title="Create Menu Item" onClose={onClose}>
-      <div className="space-y-5 max-h-[75vh] overflow-y-auto">
+      <div className="space-y-5 sm:space-y-6 max-h-[76vh] sm:max-h-[78vh] overflow-y-auto pr-0.5">
         {/* ================= IMAGES ================= */}
         <section className="space-y-2">
           <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -484,9 +485,9 @@ export default function CreateItemModal({
             onClick={() =>
               document.getElementById("create-item-images-input").click()
             }
-            className="border-2 border-dashed border-gray-300 rounded-lg p-4 cursor-pointer hover:border-[#FC8019] hover:bg-orange-50 transition"
+            className="border-2 border-dashed border-gray-300 rounded-xl p-3.5 sm:p-4 cursor-pointer hover:border-[#FC8019] hover:bg-orange-50 transition-all duration-200"
           >
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {previews.map((src, i) => (
                 <div
                   key={i}
@@ -515,7 +516,7 @@ export default function CreateItemModal({
                 </div>
               ))}
               {previews.length < MAX_IMAGES && (
-                <div className="rounded-lg bg-gray-100 flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:bg-orange-50 hover:text-[#FC8019] transition aspect-square">
+                <div className="rounded-lg bg-gray-100 flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:bg-orange-50 hover:text-[#FC8019] transition-all duration-200 aspect-square">
                   <Plus size={20} />
                 </div>
               )}
@@ -566,7 +567,7 @@ export default function CreateItemModal({
           </div>
 
           {/* PRICE & STATION - TWO COLUMN */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* PRICE */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -585,7 +586,7 @@ export default function CreateItemModal({
             </div>
 
             {/* KITCHEN STATION */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                 <Store size={14} className="text-[#FC8019]" />
                 Station
@@ -598,7 +599,7 @@ export default function CreateItemModal({
                   setForm((p) => ({ ...p, defaultStation: e.target.value }))
                 }
               />
-            </div>
+            </div> */}
           </div>
         </section>
 
@@ -607,39 +608,52 @@ export default function CreateItemModal({
           <label className="text-sm font-semibold text-gray-700">
             Dietary Type
           </label>
-          <div className="flex gap-2 bg-gray-100 p-1.5 rounded-lg">
+          <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1.5 rounded-xl border border-gray-200">
             <button
               type="button"
               onClick={() => setForm((p) => ({ ...p, isVeg: true }))}
               className={clsx(
-                "flex-1 h-10 rounded-md text-sm font-semibold transition-all flex items-center justify-center gap-2",
+                "h-12 sm:h-11 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2.5 border",
                 form.isVeg
-                  ? "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white shadow-md"
-                  : "bg-transparent text-gray-600 hover:text-gray-900",
+                  ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white border-transparent shadow-md"
+                  : "bg-white text-gray-700 border-gray-200 hover:border-green-300 hover:text-green-700",
               )}
             >
-              <Leaf size={16} /> Veg
+              <VegNonVegIcon
+                isVeg
+                size={8}
+                className={form.isVeg ? "border-white" : "border-green-600"}
+              />
+              {/* <Leaf size={14} /> */}
+              Veg
             </button>
             <button
               type="button"
               onClick={() => setForm((p) => ({ ...p, isVeg: false }))}
               className={clsx(
-                "flex-1 h-10 rounded-md text-sm font-semibold transition-all flex items-center justify-center gap-2",
+                "h-12 sm:h-11 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2.5 border",
                 !form.isVeg
-                  ? "bg-red-500 text-white shadow-md"
-                  : "bg-transparent text-gray-600 hover:text-gray-900",
+                  ? "bg-gradient-to-r from-red-500 to-rose-600 text-white border-transparent shadow-md"
+                  : "bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:text-red-700",
               )}
             >
-              <Flame size={16} /> Non-Veg
+              <VegNonVegIcon
+                isVeg={false}
+                size={8}
+                className={!form.isVeg ? "border-white" : "border-red-600"}
+              />
+              {/* <Flame size={14} /> */}
+              Non-Veg
             </button>
           </div>
         </section>
 
         {/* ================= ACTION BAR ================= */}
-        <div className="flex gap-3 pt-4 border-t border-gray-200">
+        <div className="sticky bottom-0 z-10 -mx-4 sm:mx-0 px-4 sm:px-0 pt-3.5 pb-2 sm:pb-0 bg-gradient-to-t from-white via-white to-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/85 border-t border-gray-200">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-3">
           <button
             onClick={onClose}
-            className="flex-1 h-11 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all active:scale-[0.98]"
+            className="flex-1 min-h-[58px] sm:h-12 rounded-2xl px-5 py-4 sm:py-3 text-base sm:text-sm font-bold leading-none text-gray-700 bg-white border border-gray-300 shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 active:scale-[0.98]"
           >
             Cancel
           </button>
@@ -647,21 +661,22 @@ export default function CreateItemModal({
             onClick={submit}
             disabled={loading || !form.name.trim() || !images.length}
             className={clsx(
-              "flex-1 h-11 rounded-lg text-sm font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2",
+              "flex-1 min-h-[58px] sm:h-12 rounded-2xl px-5 py-4 sm:py-3 text-base sm:text-sm font-bold leading-none transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2.5",
               loading || !form.name.trim() || !images.length
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white hover:shadow-md",
+                : "bg-gradient-to-r from-[#FC8019] to-[#FF6B35] text-white shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40",
             )}
           >
             {loading ? (
-              <Loader2 className="animate-spin" size={16} />
+              <Loader2 className="animate-spin" size={18} />
             ) : (
               <>
-                <Save size={16} />
+                <Save size={18} />
                 Create Item
               </>
             )}
           </button>
+          </div>
         </div>
       </div>
     </Modal>
